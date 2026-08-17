@@ -1,9 +1,9 @@
 import type { ProgramWithProgress } from '@/domain/progress';
 import { deriveProgressStatus } from '@/domain/progress';
 import { useAuth } from '@/features/auth';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { listMergedUserProgress, listProgramsByIds } from '@/services';
+import { DATA_FETCH_TIMEOUT_MS, listMergedUserProgress, listProgramsByIds, withTimeout } from '@/services';
 import { getFriendlyErrorMessage } from '@/shared/errors';
 
 type StudentProgressState = {
@@ -13,18 +13,27 @@ type StudentProgressState = {
 };
 
 export function useStudentProgress() {
-  const { user } = useAuth();
+  const { user, isInitialized } = useAuth();
+  const userId = user?.id;
   const [state, setState] = useState<StudentProgressState>({
     items: [],
     isLoading: true,
     error: null,
   });
-
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const requestIdRef = useRef(0);
 
   const load = useCallback(async (isRefresh = false) => {
-    if (!user) {
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
+
+    if (!isInitialized) {
+      return;
+    }
+
+    if (!userId) {
       setState({ items: [], isLoading: false, error: null });
+      setIsRefreshing(false);
       return;
     }
 
@@ -35,7 +44,16 @@ export function useStudentProgress() {
     }
 
     try {
-      const progressItems = await listMergedUserProgress(user.id);
+      const progressItems = await withTimeout(
+        listMergedUserProgress(userId),
+        DATA_FETCH_TIMEOUT_MS,
+        'O progresso demorou demais para carregar. Tente novamente.',
+      );
+
+      if (requestId !== requestIdRef.current) {
+        return;
+      }
+
       const startedItems = progressItems.filter(
         (progress) => deriveProgressStatus(progress) !== 'not_started',
       );
@@ -45,9 +63,14 @@ export function useStudentProgress() {
         return;
       }
 
-      const programs = await listProgramsByIds(
-        startedItems.map((progress) => progress.programId),
+      const programs = await withTimeout(
+        listProgramsByIds(startedItems.map((progress) => progress.programId)),
+        DATA_FETCH_TIMEOUT_MS,
       );
+
+      if (requestId !== requestIdRef.current) {
+        return;
+      }
 
       const programMap = new Map(programs.map((program) => [program.id, program]));
       const items: ProgramWithProgress[] = [];
@@ -73,23 +96,35 @@ export function useStudentProgress() {
 
       setState({ items, isLoading: false, error: null });
     } catch (error) {
+      if (requestId !== requestIdRef.current) {
+        return;
+      }
+
       setState({
         items: [],
         isLoading: false,
         error: getFriendlyErrorMessage(error),
       });
     } finally {
-      setIsRefreshing(false);
+      if (requestId === requestIdRef.current) {
+        setIsRefreshing(false);
+      }
     }
-  }, [user]);
+  }, [isInitialized, userId]);
 
   useEffect(() => {
     void load(false);
+
+    return () => {
+      requestIdRef.current += 1;
+    };
   }, [load]);
+
+  const refetch = useCallback(() => load(true), [load]);
 
   return {
     ...state,
     isRefreshing,
-    refetch: () => load(true),
+    refetch,
   };
 }

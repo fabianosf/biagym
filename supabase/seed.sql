@@ -1,4 +1,4 @@
--- TreinosAtleta – dados de exemplo para testes locais
+-- BiAGym – dados de exemplo para testes locais
 -- Execute APÓS supabase/schema.sql e supabase/storage.sql
 --
 -- Para vídeos reais da pasta /videos, rode também:
@@ -28,7 +28,7 @@ values (
   'programa-iniciante',
   'Programa introdutório de 4 semanas com aulas em vídeo.',
   'https://placehold.co/800x450',
-  'Coach TreinosAtleta',
+  'Coach BiAGym',
   'iniciante',
   4,
   true

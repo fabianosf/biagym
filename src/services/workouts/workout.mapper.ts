@@ -3,20 +3,36 @@ import { MUSCLE_GROUPS } from '@/domain/workout';
 
 import type { ExerciseRow, TrainingPlanRow, WorkoutExerciseRow } from '../supabase/types';
 
-function parseMuscleGroup(value: string): MuscleGroup {
+function parseMuscleGroup(value: string | null | undefined): MuscleGroup {
   return MUSCLE_GROUPS.includes(value as MuscleGroup) ? (value as MuscleGroup) : 'corpo_todo';
+}
+
+function toPositiveInt(value: number | null | undefined, fallback: number): number {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? Math.round(value) : fallback;
 }
 
 export function mapExerciseRow(row: ExerciseRow): Exercise {
   return {
     id: row.id,
-    name: row.name,
+    name: row.name?.trim() || 'Exercício',
     description: row.description ?? undefined,
     muscleGroup: parseMuscleGroup(row.muscle_group),
-    videoUrl: row.video_url,
+    videoUrl: row.video_url ?? '',
     thumbnailUrl: row.thumbnail_url ?? undefined,
-    createdBy: row.created_by,
-    createdAt: row.created_at,
+    createdBy: row.created_by ?? '',
+    createdAt: row.created_at ?? '',
+  };
+}
+
+export function placeholderExercise(exerciseId: string): Exercise {
+  return {
+    id: exerciseId || 'missing-exercise',
+    name: 'Exercício indisponível',
+    description: 'Este exercício não está mais no catálogo.',
+    muscleGroup: 'corpo_todo',
+    videoUrl: '',
+    createdBy: '',
+    createdAt: '',
   };
 }
 
@@ -28,12 +44,12 @@ export function mapWorkoutExercise(
     id: row.id,
     planId: row.plan_id,
     exercise,
-    sets: row.sets,
-    reps: row.reps,
-    loadKg: row.load_kg != null ? Number(row.load_kg) : undefined,
-    restSeconds: row.rest_seconds,
+    sets: toPositiveInt(row.sets, 3),
+    reps: row.reps?.trim() || '12',
+    loadKg: row.load_kg != null && Number.isFinite(Number(row.load_kg)) ? Number(row.load_kg) : undefined,
+    restSeconds: toPositiveInt(row.rest_seconds, 60),
     notes: row.notes ?? undefined,
-    sortOrder: row.sort_order,
+    sortOrder: Number.isFinite(row.sort_order) ? row.sort_order : 0,
   };
 }
 
@@ -43,7 +59,7 @@ export function mapTrainingPlanSummary(
 ): TrainingPlanSummary {
   return {
     id: row.id,
-    title: row.title,
+    title: row.title?.trim() || 'Treino',
     slug: row.slug,
     description: row.description ?? undefined,
     isPublished: row.is_published,
@@ -58,13 +74,13 @@ export function mapTrainingPlan(
 ): TrainingPlan {
   return {
     id: row.id,
-    title: row.title,
-    slug: row.slug,
+    title: row.title?.trim() || 'Treino',
+    slug: row.slug ?? '',
     description: row.description ?? undefined,
-    isPublished: row.is_published,
-    sortOrder: row.sort_order,
-    createdBy: row.created_by,
-    createdAt: row.created_at,
+    isPublished: Boolean(row.is_published),
+    sortOrder: Number.isFinite(row.sort_order) ? row.sort_order : 0,
+    createdBy: row.created_by ?? '',
+    createdAt: row.created_at ?? '',
     exercises: [...exercises].sort((a, b) => a.sortOrder - b.sortOrder),
   };
 }

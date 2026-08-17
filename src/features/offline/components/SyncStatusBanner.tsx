@@ -1,3 +1,4 @@
+import { colors } from '@/shared/theme';
 import { useOfflineStore } from '@/features/offline/store/offline.store';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
@@ -19,7 +20,7 @@ export function SyncStatusBanner({ onRetry }: SyncStatusBannerProps) {
   if (syncStatus === 'syncing') {
     return (
       <View className="flex-row items-center gap-2 bg-elevated px-4 py-2">
-        <ActivityIndicator size="small" color="#E8573A" />
+        <ActivityIndicator size="small" color={colors.primary} />
         <Text className="text-sm text-muted">Sincronizando progresso...</Text>
       </View>
     );
@@ -28,7 +29,7 @@ export function SyncStatusBanner({ onRetry }: SyncStatusBannerProps) {
   if (syncStatus === 'success') {
     return (
       <View className="flex-row items-center gap-2 bg-primary/10 px-4 py-2">
-        <Ionicons name="checkmark-circle" size={16} color="#E8573A" />
+        <Ionicons name="checkmark-circle" size={16} color={colors.primary} />
         <Text className="text-sm text-primary">Progresso sincronizado com sucesso.</Text>
       </View>
     );

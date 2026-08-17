@@ -1,3 +1,4 @@
+import { colors } from '@/shared/theme';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Text, View } from 'react-native';
 
@@ -16,7 +17,7 @@ const VARIANT_STYLES: Record<
     container: 'bg-primary/10 border-primary/25',
     text: 'text-primary',
     icon: 'checkmark-circle',
-    color: '#E8573A',
+    color: colors.primary,
   },
   warning: {
     container: 'bg-amber-500/10 border-amber-500/25',

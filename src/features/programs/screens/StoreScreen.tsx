@@ -1,3 +1,4 @@
+import { colors } from '@/shared/theme';
 import { ProgramPosterCard } from '@/features/programs/components';
 import { BrandHeader } from '@/features/programs/components/BrandHeader';
 import { useCatalog } from '@/features/programs/hooks';
@@ -49,7 +50,7 @@ export function StoreScreen() {
             <RefreshControl
               refreshing={isRefreshing}
               onRefresh={() => void refetch()}
-              tintColor="#E8573A"
+              tintColor={colors.primary}
             />
           }
           showsVerticalScrollIndicator={false}
@@ -109,8 +110,8 @@ export function StoreScreen() {
 
           {list.length === 0 ? (
             <EmptyState
-              title="Nenhum programa encontrado"
-              description="Publique programas no painel admin para aparecerem na loja."
+              title="Nenhum programa por aqui"
+              description="Quando a treinadora publicar programas, eles aparecem nesta loja. Seus Treinos A, B e C ficam na aba Treinos."
             />
           ) : (
             <View className="flex-row flex-wrap justify-between">

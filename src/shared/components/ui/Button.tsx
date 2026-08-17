@@ -2,6 +2,8 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import type { ReactNode } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 
+import { colors } from '@/shared/theme';
+
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
 
 type ButtonProps = {
@@ -29,10 +31,10 @@ const LABEL_CLASS: Record<ButtonVariant, string> = {
 };
 
 const ICON_COLOR: Record<ButtonVariant, string> = {
-  primary: '#FFFFFF',
-  secondary: '#1A1A1A',
-  ghost: '#6F6F6F',
-  danger: '#E11D48',
+  primary: colors.onPrimary,
+  secondary: colors.ink,
+  ghost: colors.muted,
+  danger: colors.danger,
 };
 
 export function Button({

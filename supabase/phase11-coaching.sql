@@ -1,4 +1,4 @@
--- TreinosAtleta – Fase coaching (legado)
+-- BiAGym – Fase coaching (legado)
 -- Prefira executar supabase/phase12-coaching.sql, que já inclui este conteúdo.
 
 

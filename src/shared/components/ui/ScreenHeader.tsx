@@ -2,6 +2,8 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { colors } from '@/shared/theme';
+
 type ScreenHeaderProps = {
   title: string;
   subtitle?: string;
@@ -29,7 +31,7 @@ export function ScreenHeader({
             accessibilityRole="button"
             accessibilityLabel="Voltar"
           >
-              <Ionicons name="chevron-back" size={22} color="#1A1A1A" />
+              <Ionicons name="chevron-back" size={22} color={colors.ink} />
           </Pressable>
         ) : null}
         <View className="flex-1">

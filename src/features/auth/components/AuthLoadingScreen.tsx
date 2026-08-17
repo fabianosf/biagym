@@ -1,14 +1,13 @@
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
-import { APP_NAME } from '@/shared/constants/app';
+import { BrandMark } from '@/shared/components';
 import { colors } from '@/shared/theme';
 
 export function AuthLoadingScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.brand}>{APP_NAME.toUpperCase()}</Text>
+      <BrandMark size={56} showName={false} />
       <ActivityIndicator size="large" color={colors.primary} style={styles.spinner} />
-      <Text style={styles.caption}>Carregando...</Text>
     </View>
   );
 }
@@ -16,23 +15,12 @@ export function AuthLoadingScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.gym,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 24,
   },
-  brand: {
-    color: colors.primary,
-    fontSize: 20,
-    fontWeight: '800',
-    letterSpacing: 1.6,
-  },
   spinner: {
     marginTop: 28,
-  },
-  caption: {
-    marginTop: 16,
-    color: colors.muted,
-    fontSize: 14,
   },
 });

@@ -2,6 +2,8 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 
+import { useThemeColors } from '@/shared/theme';
+
 type PasswordFieldProps = {
   label: string;
   value: string;
@@ -21,6 +23,7 @@ export function PasswordField({
 }: PasswordFieldProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [focused, setFocused] = useState(false);
+  const colors = useThemeColors();
 
   return (
     <View>
@@ -30,14 +33,14 @@ export function PasswordField({
           error ? 'border-red-500/60' : focused ? 'border-primary/50' : 'border-line'
         }`}
       >
-        <Ionicons name="lock-closed-outline" size={18} color={focused ? '#E8573A' : '#9B9B9B'} />
+        <Ionicons name="lock-closed-outline" size={18} color={focused ? colors.primary : colors.faint} />
         <TextInput
           secureTextEntry={!isVisible}
           autoComplete={autoComplete}
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor="#9B9B9B"
+          placeholderTextColor={colors.faint}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
           className="flex-1 px-3 py-3.5 text-base text-ink"

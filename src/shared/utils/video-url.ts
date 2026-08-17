@@ -1,4 +1,4 @@
-export function isPlayableVideoUrl(url: string | null | undefined): boolean {
+export function isPlayableVideoUrl(url: string | null | undefined): url is string {
   if (!url) {
     return false;
   }

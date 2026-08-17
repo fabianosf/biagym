@@ -1,37 +1,54 @@
 import { AdminShell, VideoUploadField, type PickedVideo } from '@/features/admin/components';
+import { useAdminFocusedStudent } from '@/features/admin/hooks/useAdminFocusedStudent';
+import { getStudentFirstName } from '@/features/admin/utils/student-label';
 import { useAuth } from '@/features/auth';
 import { MUSCLE_GROUP_LABELS, MUSCLE_GROUPS, type Exercise, type MuscleGroup } from '@/domain/workout';
 import {
+  DATA_FETCH_TIMEOUT_MS,
+  bootstrapSampleGymCatalog,
   createExercise,
   deleteExercise,
   getDataErrorMessage,
   listExercises,
   updateExercise,
   uploadExerciseVideo,
+  withTimeout,
 } from '@/services';
 import { isPlayableVideoUrl } from '@/shared/utils';
 import { Button, TextField } from '@/shared/components';
-import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
 export function AdminExercisesScreen() {
-  const router = useRouter();
   const { user } = useAuth();
+  const { student: focusedStudent, goBackToStudent } = useAdminFocusedStudent();
+  const firstName = focusedStudent ? getStudentFirstName(focusedStudent.name) : null;
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [muscleGroup, setMuscleGroup] = useState<MuscleGroup>('pernas');
   const [pickedVideo, setPickedVideo] = useState<PickedVideo | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [uploadingExerciseId, setUploadingExerciseId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isBootstrapping, setIsBootstrapping] = useState(false);
 
   const load = useCallback(async () => {
     try {
-      setExercises(await listExercises());
+      setExercises(
+        await withTimeout(
+          listExercises(),
+          DATA_FETCH_TIMEOUT_MS,
+          'Os exercícios demoraram demais para carregar. Tente novamente.',
+        ),
+      );
+      setError(null);
     } catch (err) {
       setError(getDataErrorMessage(err));
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
@@ -45,8 +62,14 @@ export function AdminExercisesScreen() {
       return;
     }
 
+    if (!pickedVideo) {
+      setError('Selecione um vídeo da pasta videos/ ou do aparelho.');
+      return;
+    }
+
     setIsSaving(true);
     setError(null);
+    setNotice(null);
 
     try {
       const created = await createExercise({
@@ -58,24 +81,33 @@ export function AdminExercisesScreen() {
       });
 
       if (pickedVideo) {
-        const videoUrl = await uploadExerciseVideo({
-          exerciseId: created.id,
-          fileUri: pickedVideo.uri,
-          mimeType: pickedVideo.mimeType,
-          fileName: pickedVideo.name,
-        });
-        await updateExercise(created.id, {
-          name: created.name,
-          description: created.description,
-          muscleGroup: created.muscleGroup,
-          videoUrl,
-        });
+        try {
+          const videoUrl = await uploadExerciseVideo({
+            exerciseId: created.id,
+            fileUri: pickedVideo.uri,
+            mimeType: pickedVideo.mimeType,
+            fileName: pickedVideo.name,
+          });
+          await updateExercise(created.id, {
+            name: created.name,
+            description: created.description,
+            muscleGroup: created.muscleGroup,
+            videoUrl,
+          });
+        } catch (uploadError) {
+          setError(
+            `${getDataErrorMessage(uploadError)} O exercício foi salvo. Anexe o vídeo de novo na lista.`,
+          );
+        }
       }
 
       setName('');
       setDescription('');
       setPickedVideo(null);
       await load();
+      if (firstName) {
+        setNotice(`Exercício salvo. Volte e inclua na ficha de ${firstName}.`);
+      }
     } catch (err) {
       setError(getDataErrorMessage(err));
     } finally {
@@ -83,9 +115,38 @@ export function AdminExercisesScreen() {
     }
   }
 
+  async function handleBootstrapSamples() {
+    if (!user) {
+      return;
+    }
+
+    setIsBootstrapping(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const result = await bootstrapSampleGymCatalog(user.id);
+      await load();
+      setPickedVideo(null);
+      setName('');
+      setDescription('');
+      setNotice(
+        `Exemplos prontos: ${result.exerciseCount} exercícios e ${result.planTitles.join(' / ')}.${
+          firstName
+            ? ` Volte ao espaço de ${firstName} e libere o treino.`
+            : ' Abra o aluno e libere o treino no espaço dele.'
+        }`,
+      );
+    } catch (err) {
+      setError(getDataErrorMessage(err));
+    } finally {
+      setIsBootstrapping(false);
+    }
+  }
+
   async function handleAttachVideo(exercise: Exercise, file: PickedVideo) {
     setUploadingExerciseId(exercise.id);
     setError(null);
+    setNotice(null);
     try {
       const videoUrl = await uploadExerciseVideo({
         exerciseId: exercise.id,
@@ -109,13 +170,31 @@ export function AdminExercisesScreen() {
 
   return (
     <AdminShell
-      title="Exercícios"
-      subtitle="Cadastre o movimento, escolha o grupo muscular e anexe o vídeo."
+      title={firstName ? `Exercícios para ${firstName}` : 'Exercícios'}
+      subtitle={
+        focusedStudent
+          ? `Cadastre o movimento e o vídeo. Depois inclua na ficha de ${focusedStudent.name}.`
+          : 'Cadastre o movimento, escolha o grupo muscular e anexe o vídeo.'
+      }
       showBack
-      onBack={() => router.back()}
+      onBack={goBackToStudent}
     >
       <ScrollView className="flex-1" contentContainerClassName="gap-5 px-5 pb-12">
         {error ? <Text className="text-sm text-red-400">{error}</Text> : null}
+        {notice ? <Text className="text-sm text-primary">{notice}</Text> : null}
+
+        <View className="gap-3 rounded-card border border-primary/30 bg-surface p-5">
+          <Text className="text-lg font-semibold text-ink">Pasta videos/</Text>
+          <Text className="text-sm leading-5 text-muted">
+            Cadastra video1 a video5, monta Treino A (video1 + video2) e Treino B (video3 + video4)
+            com séries, reps, carga e descanso. Depois libere o aluno.
+          </Text>
+          <Button
+            label="Cadastrar exemplos da pasta videos/"
+            loading={isBootstrapping}
+            onPress={() => void handleBootstrapSamples()}
+          />
+        </View>
 
         <View className="gap-4 rounded-card border border-line bg-surface p-5">
           <Text className="text-lg font-semibold text-ink">Novo exercício</Text>
@@ -159,7 +238,8 @@ export function AdminExercisesScreen() {
 
         <View className="gap-3">
           <Text className="text-lg font-semibold text-ink">Catálogo</Text>
-          {exercises.length === 0 ? (
+          {isLoading ? <Text className="text-sm text-muted">Carregando exercícios...</Text> : null}
+          {!isLoading && exercises.length === 0 ? (
             <Text className="text-sm text-muted">Nenhum exercício cadastrado ainda.</Text>
           ) : null}
           {exercises.map((exercise) => (

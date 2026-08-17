@@ -1,21 +1,7 @@
-/** Visual tokens aligned with the student fitness reference (light UI, coral accent). */
+import { lightPalette } from './palettes';
 
-export const colors = {
-  background: '#FFFFFF',
-  surface: '#F6F6F6',
-  elevated: '#FFFFFF',
-  overlay: '#111111',
-  primary: '#E8573A',
-  primaryMuted: '#F07A63',
-  cyan: '#2F6FED',
-  ink: '#1A1A1A',
-  muted: '#6F6F6F',
-  faint: '#9B9B9B',
-  line: '#ECECEC',
-  danger: '#E11D48',
-  warning: '#D97706',
-  onPrimary: '#FFFFFF',
-} as const;
+/** Paleta clara padrão. Telas que precisam seguir o tema devem usar `useThemeColors`. */
+export const colors = lightPalette;
 
 export const radii = {
   sm: 12,
@@ -32,8 +18,8 @@ export const spacing = {
 } as const;
 
 export const gradients = {
-  splash: [colors.background, '#FFF3EF', colors.background] as const,
-  hero: ['transparent', 'rgba(0,0,0,0.15)', 'rgba(0,0,0,0.72)'] as const,
+  splash: [colors.gym, '#0B2218', colors.gym] as const,
+  hero: ['transparent', 'rgba(7,20,15,0.2)', 'rgba(7,20,15,0.82)'] as const,
   card: [colors.elevated, colors.surface] as const,
-  primary: [colors.primary, colors.primaryMuted] as const,
+  primary: [colors.primary, colors.primaryDark] as const,
 } as const;

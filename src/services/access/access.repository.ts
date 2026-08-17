@@ -5,6 +5,7 @@ import { isSupabaseConfigured } from '../supabase/client';
 import type { AccessGrantRow } from '../supabase/types';
 import {
   assertSupabaseConfigured,
+  DataServiceError,
   mapAccessGrantRow,
   mapSupabaseDataError,
 } from '../shared';
@@ -61,6 +62,14 @@ export async function createAccessGrant(input: {
     .single();
 
   if (error) {
+    const message = error.message?.toLowerCase() ?? '';
+    if (error.code === '42501' || message.includes('permission denied') || message.includes('row-level security')) {
+      throw new DataServiceError(
+        'forbidden',
+        error,
+        'O banco ainda não reconheceu esta conta como admin. Execute supabase/lock-admin-email.sql e toque em Sou admin de novo.',
+      );
+    }
     throw mapSupabaseDataError(error);
   }
 

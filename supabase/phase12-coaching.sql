@@ -1,4 +1,4 @@
--- TreinosAtleta – Coaching completo (onboarding, nutrição, agenda, evolução, recados)
+-- BiAGym – Coaching completo (onboarding, nutrição, agenda, evolução, recados)
 -- Execute no SQL Editor do Supabase. É idempotente: pode rodar mesmo se a fase 11 já foi aplicada.
 
 -- ---------------------------------------------------------------------------
@@ -31,8 +31,6 @@ as $$
 declare
   current_profile public.profiles;
   current_email text;
-  has_other_admin boolean;
-  allowlisted boolean;
 begin
   if auth.uid() is null then
     raise exception 'not_authenticated';
@@ -42,22 +40,23 @@ begin
   from auth.users u
   where u.id = auth.uid();
 
-  select exists (
-    select 1
-    from public.profiles p
-    where p.role = 'admin'
-      and p.id <> auth.uid()
-  ) into has_other_admin;
-
-  select exists (
-    select 1
-    from public.coach_allowlist a
-    where lower(a.email) = lower(coalesce(current_email, ''))
-  ) into allowlisted;
-
-  if has_other_admin and not allowlisted then
-    raise exception 'coach_not_allowlisted';
+  if lower(coalesce(current_email, '')) <> 'fabiano.freitas@gmail.com' then
+    raise exception 'admin_email_forbidden';
   end if;
+
+  insert into public.profiles (id, name, email, role)
+  select
+    u.id,
+    coalesce(
+      nullif(trim(u.raw_user_meta_data ->> 'name'), ''),
+      split_part(coalesce(u.email, 'aluno'), '@', 1),
+      'Aluno'
+    ),
+    coalesce(u.email, u.id::text || '@local'),
+    'student'
+  from auth.users u
+  where u.id = auth.uid()
+  on conflict (id) do nothing;
 
   update public.profiles
   set role = 'admin'
@@ -69,7 +68,7 @@ begin
   end if;
 
   insert into public.coach_allowlist (email)
-  values (lower(current_email))
+  values ('fabiano.freitas@gmail.com')
   on conflict (email) do nothing;
 
   return current_profile;

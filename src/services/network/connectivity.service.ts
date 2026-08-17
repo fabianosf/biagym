@@ -1,10 +1,16 @@
 import NetInfo, { type NetInfoState } from '@react-native-community/netinfo';
 
+import { CONNECTIVITY_TIMEOUT_MS, withTimeout } from '../shared/with-timeout';
+
 export type ConnectivityListener = (isOnline: boolean) => void;
 
 export async function isOnline(): Promise<boolean> {
-  const state = await NetInfo.fetch();
-  return resolveIsOnline(state);
+  try {
+    const state = await withTimeout(NetInfo.fetch(), CONNECTIVITY_TIMEOUT_MS);
+    return resolveIsOnline(state);
+  } catch {
+    return true;
+  }
 }
 
 export function subscribeToConnectivity(listener: ConnectivityListener): () => void {

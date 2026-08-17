@@ -1,4 +1,4 @@
--- TreinosAtleta – Supabase Storage (Fase 7)
+-- BiAGym – Supabase Storage (Fase 7)
 -- Execute no Supabase SQL Editor após supabase/schema.sql
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)

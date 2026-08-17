@@ -19,6 +19,10 @@ export {
 export {
   grantTrainingPlanAccess,
   listTrainingPlanGrants,
+  listTrainingPlanGrantsForUser,
+  publishTrainingPlanToStudents,
   revokeTrainingPlanAccess,
 } from './workout.access';
 export { parseOptionalLoadKg, slugifyPlanTitle } from './workout.mapper';
+export { bootstrapSampleGymCatalog } from './sample-catalog.service';
+export type { SampleCatalogResult } from './sample-catalog.service';

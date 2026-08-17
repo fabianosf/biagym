@@ -1,14 +1,17 @@
 import type { UserRef } from '@/domain';
 import type { StudentProfile } from '@/domain/student';
 import { getDisplayPersonName } from '@/shared/utils/person-name';
+import { normalizeWhatsAppPhone } from '@/shared/utils/phone';
 
-import { assertSupabaseConfigured, mapSupabaseDataError } from '../shared';
+import { assertSupabaseConfigured, DataServiceError, mapSupabaseDataError } from '../shared';
 import { getSupabaseClient, isSupabaseConfigured } from '../supabase';
 import type { ProfileRow } from '../supabase/types';
 import { mapProfileRowToStudentProfile } from './student.mapper';
 
 const STUDENT_PROFILE_COLUMNS =
-  'id, name, email, weight_kg, height_cm, age, goal, onboarding_completed_at';
+  'id, name, email, avatar_url, phone, weight_kg, height_cm, age, goal, onboarding_completed_at';
+const STUDENT_PROFILE_COLUMNS_NO_PHONE =
+  'id, name, email, avatar_url, weight_kg, height_cm, age, goal, onboarding_completed_at';
 
 function isMissingColumnError(error: { message?: string; code?: string } | null): boolean {
   const message = error?.message?.toLowerCase() ?? '';
@@ -62,6 +65,27 @@ export async function listStudentProfiles(options?: {
   const fullResult = await fullQuery;
 
   if (fullResult.error && isMissingColumnError(fullResult.error)) {
+    let coachingQuery = supabase
+      .from('profiles')
+      .select(STUDENT_PROFILE_COLUMNS_NO_PHONE)
+      .eq('role', 'student')
+      .order('name', { ascending: true })
+      .limit(limit);
+
+    if (search) {
+      coachingQuery = coachingQuery.or(`email.ilike.%${search}%,name.ilike.%${search}%`);
+    }
+
+    const coachingResult = await coachingQuery;
+
+    if (!coachingResult.error) {
+      return (coachingResult.data ?? []).map((row) =>
+        mapProfileRowToStudentProfile(
+          row as Parameters<typeof mapProfileRowToStudentProfile>[0],
+        ),
+      );
+    }
+
     let basicQuery = supabase
       .from('profiles')
       .select('id, name, email')
@@ -87,6 +111,8 @@ export async function listStudentProfiles(options?: {
         email: profile.email,
         metrics: null,
         onboardingCompleted: false,
+        avatarUrl: undefined,
+        phone: undefined,
       };
     });
   }
@@ -124,4 +150,99 @@ export async function getProfileById(userId: string): Promise<UserRef | null> {
     name: getDisplayPersonName(row.name) ?? row.name,
     email: row.email,
   };
+}
+
+export async function getStudentProfileById(userId: string): Promise<StudentProfile | null> {
+  assertSupabaseConfigured(isSupabaseConfigured());
+
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from('profiles')
+    .select(STUDENT_PROFILE_COLUMNS)
+    .eq('id', userId)
+    .eq('role', 'student')
+    .maybeSingle();
+
+  if (error && isMissingColumnError(error)) {
+    const { data: coaching, error: coachingError } = await supabase
+      .from('profiles')
+      .select(STUDENT_PROFILE_COLUMNS_NO_PHONE)
+      .eq('id', userId)
+      .eq('role', 'student')
+      .maybeSingle();
+
+    if (!coachingError && coaching) {
+      return mapProfileRowToStudentProfile(
+        coaching as Parameters<typeof mapProfileRowToStudentProfile>[0],
+      );
+    }
+
+    const { data: basic, error: basicError } = await supabase
+      .from('profiles')
+      .select('id, name, email')
+      .eq('id', userId)
+      .eq('role', 'student')
+      .maybeSingle();
+
+    if (basicError) {
+      throw mapSupabaseDataError(basicError);
+    }
+
+    if (!basic) {
+      return null;
+    }
+
+    const row = basic as Pick<ProfileRow, 'id' | 'name' | 'email'>;
+    return {
+      userId: row.id,
+      name: getDisplayPersonName(row.name) ?? row.name,
+      email: row.email,
+      metrics: null,
+      onboardingCompleted: false,
+      phone: undefined,
+    };
+  }
+
+  if (error) {
+    throw mapSupabaseDataError(error);
+  }
+
+  if (!data) {
+    return null;
+  }
+
+  return mapProfileRowToStudentProfile(data as Parameters<typeof mapProfileRowToStudentProfile>[0]);
+}
+
+export async function updateOwnProfilePhone(userId: string, phone: string): Promise<string> {
+  assertSupabaseConfigured(isSupabaseConfigured());
+
+  const normalized = normalizeWhatsAppPhone(phone);
+  if (!normalized) {
+    throw new DataServiceError(
+      'validation_error',
+      undefined,
+      'WhatsApp inválido. Use DDD + número.',
+    );
+  }
+
+  const supabase = getSupabaseClient();
+  const { error } = await supabase.from('profiles').update({ phone: normalized }).eq('id', userId);
+
+  if (error && isMissingColumnError(error)) {
+    const { error: metadataError } = await supabase.auth.updateUser({
+      data: { phone: normalized },
+    });
+    if (metadataError) {
+      throw mapSupabaseDataError(metadataError);
+    }
+    return normalized;
+  }
+
+  if (error) {
+    throw mapSupabaseDataError(error);
+  }
+
+  await supabase.auth.updateUser({ data: { phone: normalized } });
+  return normalized;
 }

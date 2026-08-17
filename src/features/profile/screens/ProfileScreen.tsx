@@ -2,23 +2,65 @@ import { useAuth } from '@/features/auth';
 import { useAuthStore } from '@/features/auth/store/auth.store';
 import { OfflineBanner } from '@/features/offline';
 import { NotificationSettingsCard } from '@/features/notifications';
-import { Button, Card, LoadingIndicator } from '@/shared/components';
+import { AppearanceSettingsCard } from '@/features/profile/components/AppearanceSettingsCard';
+import { getDataErrorMessage, updateOwnProfilePhone } from '@/services';
+import { Button, Card, LoadingIndicator, TextField } from '@/shared/components';
 import { APP_BUILD, APP_NAME, APP_VERSION, getSupabaseSqlEditorUrl } from '@/shared/constants/app';
 import { routes } from '@/shared/constants/routes';
-import { getDisplayPersonName, getNameInitials } from '@/shared/utils/person-name';
+import { STUDENT_GOAL_LABELS } from '@/domain/student';
+import { useT, useThemeColors } from '@/shared/theme';
+import { getDisplayPersonName, getGivenAndFamilyName, getNameInitials } from '@/shared/utils/person-name';
+import { formatPhoneDisplay, parseRequiredWhatsAppPhone } from '@/shared/utils/phone';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Linking from 'expo-linking';
 import { useRouter } from 'expo-router';
 import type { Href } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const t = useT();
+  const colors = useThemeColors();
   const { user, signOut, isLoading, isAdmin, canOpenAdmin, becomeAdmin } = useAuth();
-  const displayName = getDisplayPersonName(user?.name) ?? 'Aluno';
+  const [phoneDraft, setPhoneDraft] = useState(user?.phone ? formatPhoneDisplay(user.phone) : '');
+  const [phoneError, setPhoneError] = useState<string | null>(null);
+  const [isSavingPhone, setIsSavingPhone] = useState(false);
+  const displayName =
+    getGivenAndFamilyName(user?.name) ?? getDisplayPersonName(user?.name) ?? 'Aluno';
   const initials = getNameInitials(user?.name);
+
+  useEffect(() => {
+    if (user?.phone) {
+      setPhoneDraft((current) => (current.trim().length > 0 ? current : formatPhoneDisplay(user.phone ?? '')));
+    }
+  }, [user?.phone]);
+
+  async function handleSavePhone() {
+    if (!user) {
+      return;
+    }
+
+    const parsed = parseRequiredWhatsAppPhone(phoneDraft);
+    if ('error' in parsed) {
+      setPhoneError(parsed.error);
+      return;
+    }
+
+    setIsSavingPhone(true);
+    setPhoneError(null);
+    try {
+      const saved = await updateOwnProfilePhone(user.id, parsed.phone);
+      useAuthStore.setState({ user: { ...user, phone: saved } });
+      setPhoneDraft(formatPhoneDisplay(saved));
+    } catch (err) {
+      setPhoneError(getDataErrorMessage(err));
+    } finally {
+      setIsSavingPhone(false);
+    }
+  }
 
   async function handleOpenAdmin() {
     try {
@@ -86,8 +128,27 @@ export function ProfileScreen() {
               <Text className="mt-3 text-center text-sm text-muted">
                 {user.bodyMetrics.weightKg} kg · {user.bodyMetrics.heightCm} cm ·{' '}
                 {user.bodyMetrics.age} anos
+                {'\n'}
+                Objetivo: {STUDENT_GOAL_LABELS[user.bodyMetrics.goal]}
               </Text>
             ) : null}
+            <View className="mt-4 w-full gap-3">
+              <TextField
+                label={t('phone.label')}
+                value={phoneDraft}
+                onChangeText={setPhoneDraft}
+                placeholder={t('phone.placeholder')}
+                keyboardType="phone-pad"
+                autoComplete="tel"
+                icon="logo-whatsapp"
+                error={phoneError}
+              />
+              <Button
+                label="Salvar WhatsApp"
+                loading={isSavingPhone}
+                onPress={() => void handleSavePhone()}
+              />
+            </View>
           </Card>
         )}
 
@@ -96,13 +157,13 @@ export function ProfileScreen() {
           className="min-h-[72px] flex-row items-center rounded-card border border-line bg-surface px-4"
         >
           <View className="mr-3 h-11 w-11 items-center justify-center rounded-2xl bg-primary/10">
-            <Ionicons name="trending-up-outline" size={22} color="#E8573A" />
+            <Ionicons name="trending-up-outline" size={22} color={colors.primary} />
           </View>
           <View className="flex-1">
             <Text className="text-base font-bold text-ink">Minha evolução</Text>
             <Text className="mt-0.5 text-sm text-muted">Peso, fotos e histórico físico</Text>
           </View>
-          <Ionicons name="chevron-forward" size={18} color="#E8573A" />
+          <Ionicons name="chevron-forward" size={18} color={colors.primary} />
         </Pressable>
 
         <Pressable
@@ -110,13 +171,13 @@ export function ProfileScreen() {
           className="min-h-[72px] flex-row items-center rounded-card border border-line bg-surface px-4"
         >
           <View className="mr-3 h-11 w-11 items-center justify-center rounded-2xl bg-primary/10">
-            <Ionicons name="chatbubbles-outline" size={22} color="#E8573A" />
+            <Ionicons name="chatbubbles-outline" size={22} color={colors.primary} />
           </View>
           <View className="flex-1">
             <Text className="text-base font-bold text-ink">Recados da treinadora</Text>
             <Text className="mt-0.5 text-sm text-muted">Tire dúvidas e receba orientações</Text>
           </View>
-          <Ionicons name="chevron-forward" size={18} color="#E8573A" />
+          <Ionicons name="chevron-forward" size={18} color={colors.primary} />
         </Pressable>
 
         {canOpenAdmin ? (
@@ -135,9 +196,11 @@ export function ProfileScreen() {
                   : 'Toque para entrar e cadastrar treinos'}
               </Text>
             </View>
-            <Ionicons name="chevron-forward" size={18} color="#E8573A" />
+            <Ionicons name="chevron-forward" size={18} color={colors.primary} />
           </Pressable>
         ) : null}
+
+        {user ? <AppearanceSettingsCard /> : null}
 
         {user ? <NotificationSettingsCard /> : null}
 

@@ -5,7 +5,7 @@ import {
 } from '@/features/admin/components';
 import { adminRoutes } from '@/shared/constants/admin-routes';
 import { Button, ErrorState, LoadingIndicator } from '@/shared/components';
-import { slugify } from '@/shared/utils';
+import { resolveRouteParam, slugify } from '@/shared/utils';
 import {
   adminCreateProgram,
   adminUpdateProgram,
@@ -32,7 +32,8 @@ const EMPTY_FORM: ProgramFormValues = {
 
 export function AdminProgramFormScreen() {
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id?: string }>();
+  const params = useLocalSearchParams<{ id?: string | string[] }>();
+  const id = resolveRouteParam(params.id);
   const isEditing = Boolean(id);
 
   const [categories, setCategories] = useState<Category[]>([]);

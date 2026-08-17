@@ -10,7 +10,7 @@ import type {
 import { assertSupabaseConfigured, mapSupabaseDataError } from '../shared';
 import { getSupabaseClient, isSupabaseConfigured } from '../supabase';
 import type { ExerciseRow, TrainingPlanRow, WorkoutExerciseRow, WorkoutSessionRow } from '../supabase/types';
-import { mapExerciseRow, mapTrainingPlan, mapTrainingPlanSummary, mapWorkoutExercise, slugifyPlanTitle } from './workout.mapper';
+import { mapExerciseRow, mapTrainingPlan, mapTrainingPlanSummary, mapWorkoutExercise, placeholderExercise, slugifyPlanTitle } from './workout.mapper';
 
 function isMissing(error: { message?: string; code?: string }): boolean {
   const message = error.message?.toLowerCase() ?? '';
@@ -25,38 +25,52 @@ function isMissing(error: { message?: string; code?: string }): boolean {
 }
 
 async function hydratePlan(row: TrainingPlanRow): Promise<TrainingPlan> {
-  const supabase = getSupabaseClient();
-  const { data, error } = await supabase
-    .from('workout_exercises')
-    .select('*')
-    .eq('plan_id', row.id)
-    .order('sort_order', { ascending: true });
+  try {
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase
+      .from('workout_exercises')
+      .select('*')
+      .eq('plan_id', row.id)
+      .order('sort_order', { ascending: true });
 
-  if (error) {
-    throw mapSupabaseDataError(error);
+    if (error) {
+      return mapTrainingPlan(row, []);
+    }
+
+    const items = (data ?? []) as WorkoutExerciseRow[];
+    const exerciseIds = [...new Set(items.map((item) => item.exercise_id).filter(Boolean))];
+
+    let exerciseRows: ExerciseRow[] = [];
+    if (exerciseIds.length > 0) {
+      const { data: exerciseData, error: exerciseError } = await supabase
+        .from('exercises')
+        .select('*')
+        .in('id', exerciseIds);
+
+      if (!exerciseError) {
+        exerciseRows = (exerciseData ?? []) as ExerciseRow[];
+      }
+    }
+
+    const exercisesById = new Map(
+      exerciseRows.map((exercise) => [exercise.id, mapExerciseRow(exercise)]),
+    );
+
+    return mapTrainingPlan(
+      row,
+      items.map((item, index) =>
+        mapWorkoutExercise(
+          {
+            ...item,
+            sort_order: Number.isFinite(item.sort_order) ? item.sort_order : index,
+          },
+          exercisesById.get(item.exercise_id) ?? placeholderExercise(item.exercise_id),
+        ),
+      ),
+    );
+  } catch {
+    return mapTrainingPlan(row, []);
   }
-
-  const items = (data ?? []) as WorkoutExerciseRow[];
-  const exerciseIds = [...new Set(items.map((item) => item.exercise_id))];
-
-  const exercisesById = new Map(
-    (exerciseIds.length
-      ? (
-          (
-            await supabase.from('exercises').select('*').in('id', exerciseIds)
-          ).data ?? []
-        ) as ExerciseRow[]
-      : []
-    ).map((exercise) => [exercise.id, mapExerciseRow(exercise)]),
-  );
-
-  return mapTrainingPlan(
-    row,
-    items.flatMap((item) => {
-      const exercise = exercisesById.get(item.exercise_id);
-      return exercise ? [mapWorkoutExercise(item, exercise)] : [];
-    }),
-  );
 }
 
 export async function listTrainingPlans(options?: { publishedOnly?: boolean }): Promise<TrainingPlanSummary[]> {
@@ -186,8 +200,7 @@ export async function updateTrainingPlan(
   const { error } = await supabase
     .from('training_plans')
     .update({
-      title: input.title.trim(),
-      slug: slugifyPlanTitle(input.title),
+      title: input.title.trim() || 'Treino',
       description: input.description?.trim() || null,
       is_published: input.isPublished,
       sort_order: input.sortOrder,
@@ -297,7 +310,9 @@ export async function completeWorkoutSession(input: {
     id: row.id,
     userId: row.user_id,
     planId: row.plan_id,
-    completedExerciseIds: row.completed_exercise_ids,
+    completedExerciseIds: Array.isArray(row.completed_exercise_ids)
+      ? row.completed_exercise_ids.filter((id): id is string => typeof id === 'string')
+      : [],
     completedAt: row.completed_at,
   };
 }

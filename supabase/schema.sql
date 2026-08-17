@@ -30,6 +30,7 @@ create table if not exists public.profiles (
   email text not null,
   role text not null default 'student' check (role in ('student', 'admin')),
   avatar_url text,
+  phone text,
   push_notifications_enabled boolean not null default false,
   expo_push_token text,
   push_platform text check (push_platform is null or push_platform in ('ios', 'android', 'web')),
@@ -37,6 +38,9 @@ create table if not exists public.profiles (
   created_at timestamptz not null default timezone('utc', now()),
   updated_at timestamptz not null default timezone('utc', now())
 );
+
+alter table public.profiles
+  add column if not exists phone text;
 
 create table if not exists public.categories (
   id uuid primary key default gen_random_uuid(),

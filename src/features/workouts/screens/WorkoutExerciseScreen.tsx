@@ -1,81 +1,174 @@
-import { GymScreen } from '@/features/workouts/components';
-import { VideoPlayer } from '@/features/programs/components';
+import { colors } from '@/shared/theme';
+import {
+  ExerciseMediaHero,
+  GymFinishButton,
+  GymScreen,
+  LoadEditorModal,
+  PrescriptionStatCard,
+} from '@/features/workouts/components';
+import { useResolvedExerciseVideoUrl } from '@/features/workouts/hooks/useResolvedExerciseVideoUrl';
+import { useWorkoutRunStore } from '@/features/workouts/store/workout-run.store';
+import { exerciseThumbnailSource } from '@/features/workouts/utils/exercise-media';
+import { formatSetsReps, resolveDisplayedLoadKg } from '@/features/workouts/utils/format';
 import type { WorkoutExercise } from '@/domain/workout';
-import { getTrainingPlan } from '@/services';
-import { MUSCLE_GROUP_LABELS } from '@/domain/workout';
-import { isPlayableVideoUrl } from '@/shared/utils';
-import { Button } from '@/shared/components';
+import { DATA_FETCH_TIMEOUT_MS, getDataErrorMessage, getTrainingPlan, withTimeout } from '@/services';
+import { resolveRouteParam } from '@/shared/utils';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import * as Haptics from 'expo-haptics';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 
 export function WorkoutExerciseScreen() {
   const router = useRouter();
-  const { id, exerciseId } = useLocalSearchParams<{ id: string; exerciseId: string }>();
+  const params = useLocalSearchParams<{ id?: string | string[]; exerciseId?: string | string[] }>();
+  const planId = resolveRouteParam(params.id);
+  const exerciseId = resolveRouteParam(params.exerciseId);
   const [item, setItem] = useState<WorkoutExercise | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [loadEditorOpen, setLoadEditorOpen] = useState(false);
+  const markCompleted = useWorkoutRunStore((state) => state.markCompleted);
+  const setItemLoad = useWorkoutRunStore((state) => state.setItemLoad);
+  const loadOverride = useWorkoutRunStore((state) =>
+    exerciseId ? state.loadByItemId[exerciseId] : undefined,
+  );
 
-  useEffect(() => {
-    if (typeof id !== 'string' || typeof exerciseId !== 'string') {
+  const load = useCallback(async () => {
+    if (!planId || !exerciseId) {
+      setItem(null);
+      setError('Exercício inválido.');
+      setIsLoading(false);
       return;
     }
 
-    void getTrainingPlan(id).then((plan) => {
-      setItem(plan?.exercises.find((entry) => entry.id === exerciseId) ?? null);
-    });
-  }, [exerciseId, id]);
+    setIsLoading(true);
+    setError(null);
+    try {
+      const plan = await withTimeout(
+        getTrainingPlan(planId),
+        DATA_FETCH_TIMEOUT_MS,
+        'O exercício demorou demais para carregar. Tente novamente.',
+      );
+      const found = plan?.exercises.find((entry) => entry.id === exerciseId) ?? null;
+      setItem(found);
+      if (!found) {
+        setError('Este exercício não está mais neste treino.');
+      }
+    } catch (err) {
+      setError(getDataErrorMessage(err));
+    } finally {
+      setIsLoading(false);
+    }
+  }, [exerciseId, planId]);
 
-  const load = item?.loadKg != null ? `${item.loadKg} kg` : 'Peso corporal';
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const displayedLoad = item ? resolveDisplayedLoadKg(item, loadOverride) : 0;
+  const { videoUrl: resolvedVideoUrl, isResolving: isResolvingVideo } =
+    useResolvedExerciseVideoUrl(item?.exercise);
+
+  function handleComplete() {
+    if (planId && exerciseId) {
+      markCompleted(planId, exerciseId);
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(
+        () => undefined,
+      );
+    }
+    router.back();
+  }
 
   return (
     <GymScreen>
-      <View className="flex-row items-center px-5 pb-3 pt-2">
+      <LinearGradient
+        colors={['rgba(245,196,0,0.20)', 'transparent']}
+        pointerEvents="none"
+        style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 160 }}
+      />
+
+      <View className="relative z-10 h-12 flex-row items-center px-4">
         <Pressable
           onPress={() => router.back()}
-          className="mr-3 h-11 w-11 items-center justify-center rounded-full border border-gymLine bg-gymCard"
+          className="absolute left-2 z-10 h-11 w-11 items-center justify-center"
+          accessibilityRole="button"
+          accessibilityLabel="Voltar"
         >
-          <Ionicons name="chevron-back" size={22} color="#FFFFFF" />
+          <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
         </Pressable>
-        <Text className="flex-1 text-xl font-bold text-white" numberOfLines={1}>
-          {item?.exercise.name ?? 'Exercício'}
+        <Text className="flex-1 px-12 text-center text-lg font-semibold text-white" numberOfLines={1}>
+          {item?.exercise?.name ?? 'Exercício'}
         </Text>
       </View>
 
-      <ScrollView className="flex-1" contentContainerClassName="gap-4 px-5 pb-12">
-        {item && isPlayableVideoUrl(item.exercise.videoUrl) ? (
-          <VideoPlayer
-            videoUrl={item.exercise.videoUrl}
-            appearance="dark"
-            showCompletionHint={false}
+      {isLoading ? (
+        <View className="flex-1 items-center justify-center px-5">
+          <ActivityIndicator size="large" color={colors.gymAccent} />
+          <Text className="mt-4 text-sm text-gymMuted">Carregando exercício...</Text>
+        </View>
+      ) : (
+        <>
+          <ScrollView className="flex-1" contentContainerClassName="gap-5 px-5 pb-6">
+            {error ? (
+              <View className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4">
+                <Text className="text-sm text-red-300">{error}</Text>
+                <Pressable className="mt-3" onPress={() => void load()}>
+                  <Text className="text-sm font-semibold text-gymAccent">Tentar novamente</Text>
+                </Pressable>
+              </View>
+            ) : null}
+
+            {item ? (
+              <>
+                <ExerciseMediaHero
+                  videoUrl={resolvedVideoUrl}
+                  thumbnail={exerciseThumbnailSource(item.exercise)}
+                  title={item.exercise?.name ?? 'Exercício'}
+                  isResolvingVideo={isResolvingVideo}
+                />
+
+                <Text className="text-[28px] font-bold leading-8 text-white">
+                  {item.exercise?.name ?? 'Exercício'}
+                </Text>
+
+                <View className="flex-row gap-3">
+                  <PrescriptionStatCard
+                    label="Séries e Repetições"
+                    value={formatSetsReps(item.sets, item.reps)}
+                  />
+                  <PrescriptionStatCard
+                    label="Carga (kg)"
+                    value={String(displayedLoad)}
+                    editable
+                    onPress={() => setLoadEditorOpen(true)}
+                  />
+                </View>
+
+                {item.notes ? (
+                  <Text className="text-sm leading-5 text-gymMuted">Obs.: {item.notes}</Text>
+                ) : null}
+              </>
+            ) : null}
+          </ScrollView>
+
+          {item ? (
+            <GymFinishButton label="Concluir exercício" onPress={handleComplete} />
+          ) : null}
+
+          <LoadEditorModal
+            visible={loadEditorOpen}
+            currentLoadKg={displayedLoad}
+            onClose={() => setLoadEditorOpen(false)}
+            onSave={(loadKg) => {
+              if (item) {
+                setItemLoad(item.id, loadKg);
+              }
+            }}
           />
-        ) : (
-          <View className="rounded-2xl border border-gymLine bg-gymCard p-6">
-            <Text className="text-gymMuted">Este exercício ainda não tem vídeo.</Text>
-          </View>
-        )}
-
-        {item ? (
-          <View className="rounded-2xl border border-gymLine bg-gymCard p-5">
-            <Text className="text-xs uppercase tracking-[1.4px] text-primary">
-              {MUSCLE_GROUP_LABELS[item.exercise.muscleGroup]}
-            </Text>
-            <Text className="mt-3 text-2xl font-bold text-white">
-              {item.sets} × {item.reps}
-            </Text>
-            <Text className="mt-2 text-base text-gymMuted">
-              Carga {load} · Descanso {item.restSeconds}s
-            </Text>
-            {item.exercise.description ? (
-              <Text className="mt-3 text-sm leading-5 text-gymMuted">{item.exercise.description}</Text>
-            ) : null}
-            {item.notes ? (
-              <Text className="mt-3 text-sm text-white">Obs.: {item.notes}</Text>
-            ) : null}
-          </View>
-        ) : null}
-
-        <Button label="Voltar para o treino" onPress={() => router.back()} />
-      </ScrollView>
+        </>
+      )}
     </GymScreen>
   );
 }

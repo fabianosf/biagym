@@ -1,4 +1,4 @@
--- TreinosAtleta – Fase 8: progresso avançado + offline
+-- BiAGym – Fase 8: progresso avançado + offline
 -- Execute no Supabase SQL Editor após supabase/schema.sql
 
 alter table public.user_progress

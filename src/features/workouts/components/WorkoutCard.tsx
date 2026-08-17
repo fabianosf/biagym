@@ -16,7 +16,7 @@ export function WorkoutCard({ plan, onPress }: WorkoutCardProps) {
       <Text className="text-xs font-semibold uppercase tracking-[1.8px] text-primary">
         Academia
       </Text>
-      <Text className="mt-2 text-3xl font-bold text-white">{plan.title}</Text>
+      <Text className="mt-2 text-3xl font-bold text-white">{plan.title || 'Treino'}</Text>
       {plan.description ? (
         <Text className="mt-2 text-sm leading-5 text-gymMuted">{plan.description}</Text>
       ) : null}

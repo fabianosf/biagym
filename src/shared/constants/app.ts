@@ -9,7 +9,9 @@ export const APP_BUILD =
   Constants.expoConfig?.ios?.buildNumber ??
   String(Constants.expoConfig?.android?.versionCode ?? '1');
 
-export const BUNDLE_IDENTIFIER = 'com.treinosatleta.app';
+export const BUNDLE_IDENTIFIER = 'com.biagym.app';
+
+export { BRAND_ICON, BRAND_LOGO } from './brand';
 
 export function getSupabaseSqlEditorUrl(): string | null {
   const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;

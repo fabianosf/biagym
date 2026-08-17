@@ -97,10 +97,12 @@ async function fetchLessonStats(
       totalDurationSeconds: 0,
     };
 
+    const durationSeconds = Number(row.duration_seconds);
     map.set(row.program_id, {
       programId: row.program_id,
       totalLessons: current.totalLessons + 1,
-      totalDurationSeconds: current.totalDurationSeconds + row.duration_seconds,
+      totalDurationSeconds:
+        current.totalDurationSeconds + (Number.isFinite(durationSeconds) ? durationSeconds : 0),
     });
   }
 
@@ -231,12 +233,39 @@ export async function getProgramById(programId: string): Promise<ProgramDetail |
 
   const lessonRows = (lessonsData ?? []) as LessonRow[];
   const lessonsByWeek = new Map<string, ReturnType<typeof mapLessonRow>[]>();
+  const orphanLessons: ReturnType<typeof mapLessonRow>[] = [];
 
   for (const lessonRow of lessonRows) {
-    const mapped = mapLessonRow(lessonRow);
-    const current = lessonsByWeek.get(lessonRow.week_id) ?? [];
-    current.push(mapped);
-    lessonsByWeek.set(lessonRow.week_id, current);
+    try {
+      const mapped = mapLessonRow(lessonRow);
+      if (!lessonRow.week_id) {
+        orphanLessons.push(mapped);
+        continue;
+      }
+
+      const current = lessonsByWeek.get(lessonRow.week_id) ?? [];
+      current.push(mapped);
+      lessonsByWeek.set(lessonRow.week_id, current);
+    } catch {
+      continue;
+    }
+  }
+
+  const weeks = weekRows.map((weekRow) => ({
+    week: mapWeekRow(weekRow),
+    lessons: lessonsByWeek.get(weekRow.id) ?? [],
+  }));
+
+  if (orphanLessons.length > 0) {
+    weeks.push({
+      week: {
+        id: `${programId}-unassigned`,
+        programId,
+        weekNumber: weeks.length + 1,
+        title: 'Outras aulas',
+      },
+      lessons: orphanLessons,
+    });
   }
 
   return {
@@ -244,10 +273,7 @@ export async function getProgramById(programId: string): Promise<ProgramDetail |
       ...mapProgramRow(programRow, categoryIds),
       categories,
     },
-    weeks: weekRows.map((weekRow) => ({
-      week: mapWeekRow(weekRow),
-      lessons: lessonsByWeek.get(weekRow.id) ?? [],
-    })),
+    weeks,
   };
 }
 

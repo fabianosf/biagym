@@ -35,28 +35,66 @@ export function parseFullPersonName(value: string): string | null {
   return cleaned;
 }
 
+/** Primeiro nome + último sobrenome. Ignora e-mail e nomes gerados. */
+export function toGivenAndFamilyName(value: string): string | null {
+  const parsed = parseFullPersonName(value);
+  if (!parsed) {
+    return null;
+  }
+
+  const parts = parsed.split(' ').filter((part) => part.length >= 2);
+  const first = parts[0];
+  const last = parts.length >= 2 ? parts[parts.length - 1] : undefined;
+  if (!first || !last) {
+    return null;
+  }
+
+  return `${first} ${last}`;
+}
+
 /** Exige nome e sobrenome no cadastro / onboarding. */
 export function parseRequiredFullName(value: string): { name: string } | { error: string } {
   const trimmed = value.trim().replace(/\s+/g, ' ');
   if (trimmed.length < 3) {
-    return { error: 'Informe seu nome completo.' };
+    return { error: 'Escreva seu nome e sobrenome, como no documento.' };
   }
 
   if (looksLikeGeneratedAccountName(trimmed)) {
-    return { error: 'Informe seu nome e sobrenome, não o e-mail.' };
+    return { error: 'Use seu nome e sobrenome, não o e-mail.' };
   }
 
   const parts = trimmed.split(' ');
   if (parts.length < 2 || parts.some((part) => part.length < 2)) {
-    return { error: 'Informe nome e sobrenome.' };
+    return { error: 'Falta o sobrenome. Exemplo: Ana Souza.' };
   }
 
   return { name: toTitleCaseName(trimmed) };
 }
 
+export function getGivenAndFamilyName(
+  ...candidates: Array<string | null | undefined>
+): string | null {
+  for (const candidate of candidates) {
+    if (!candidate) {
+      continue;
+    }
+    const parsed = toGivenAndFamilyName(candidate);
+    if (parsed) {
+      return parsed;
+    }
+  }
+
+  return null;
+}
+
 export function getDisplayPersonName(
   ...candidates: Array<string | null | undefined>
 ): string | null {
+  const givenAndFamily = getGivenAndFamilyName(...candidates);
+  if (givenAndFamily) {
+    return givenAndFamily;
+  }
+
   for (const candidate of candidates) {
     if (!candidate) {
       continue;
@@ -71,12 +109,12 @@ export function getDisplayPersonName(
 }
 
 export function formatHelloGreeting(...candidates: Array<string | null | undefined>): string {
-  const name = getDisplayPersonName(...candidates);
+  const name = getGivenAndFamilyName(...candidates);
   return name ? `Olá, ${name}` : 'Olá!';
 }
 
 export function getNameInitials(name: string | null | undefined, fallback = 'BG'): string {
-  const display = getDisplayPersonName(name);
+  const display = getGivenAndFamilyName(name) ?? getDisplayPersonName(name);
   if (!display) {
     return fallback;
   }

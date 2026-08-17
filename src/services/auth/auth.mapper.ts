@@ -24,6 +24,7 @@ export type AuthUserMetadata = {
   height_cm?: number;
   age?: number;
   goal?: StudentGoal | string;
+  phone?: string;
 };
 
 function parseRole(value: unknown): UserRole {
@@ -59,41 +60,41 @@ export function extractMetadataMetrics(user: SupabaseAuthUser): StudentBodyMetri
   return { weightKg, heightCm, age, goal };
 }
 
+function mergeBodyMetrics(
+  profile: ProfileRow | null | undefined,
+  authUser?: SupabaseAuthUser,
+): StudentBodyMetrics | null {
+  const metadata = (authUser?.user_metadata ?? {}) as AuthUserMetadata;
+  const goal = parseGoal(profile?.goal) ?? parseGoal(metadata.goal);
+  const weightKg = parseNumber(profile?.weight_kg) ?? parseNumber(metadata.weight_kg);
+  const heightCm = parseNumber(profile?.height_cm) ?? parseNumber(metadata.height_cm);
+  const age = parseNumber(profile?.age) ?? parseNumber(metadata.age);
+
+  if (weightKg == null || heightCm == null || age == null || goal == null) {
+    return null;
+  }
+
+  return { weightKg, heightCm, age, goal };
+}
+
 function metadataOnboardingCompleted(user: SupabaseAuthUser): boolean {
   const metadata = (user.user_metadata ?? {}) as AuthUserMetadata;
   return metadata.onboarding_completed === true || extractMetadataMetrics(user) !== null;
 }
 
 function mapProfileToAuthUser(profile: ProfileRow, authUser?: SupabaseAuthUser): AuthUser {
-  const goal = parseGoal(profile.goal);
-  const hasMetrics =
-    profile.weight_kg != null &&
-    profile.height_cm != null &&
-    profile.age != null &&
-    goal !== null;
-
-  const metadataMetrics = authUser ? extractMetadataMetrics(authUser) : null;
   const schemaPending = profile.onboarding_completed_at === 'schema-pending';
+  const metadata = (authUser?.user_metadata ?? {}) as AuthUserMetadata;
 
   return {
     id: profile.id,
     email: profile.email,
     name:
-      getDisplayPersonName(
-        profile.name,
-        (authUser?.user_metadata as AuthUserMetadata | undefined)?.name,
-        (authUser?.user_metadata as AuthUserMetadata | undefined)?.full_name,
-      ) ?? '',
+      getDisplayPersonName(profile.name, metadata.name, metadata.full_name) ?? '',
     role: profile.role,
     avatarUrl: profile.avatar_url ?? undefined,
-    bodyMetrics: hasMetrics
-      ? {
-          weightKg: Number(profile.weight_kg),
-          heightCm: Number(profile.height_cm),
-          age: Number(profile.age),
-          goal,
-        }
-      : metadataMetrics,
+    phone: profile.phone?.trim() || metadata.phone || undefined,
+    bodyMetrics: mergeBodyMetrics(profile, authUser),
     onboardingCompleted:
       profile.role === 'admin' ||
       Boolean(profile.onboarding_completed_at && !schemaPending) ||
@@ -111,6 +112,7 @@ function mapMetadataToAuthUser(user: SupabaseAuthUser): AuthUser {
     name,
     role: parseRole(metadata.role),
     avatarUrl: metadata.avatar_url,
+    phone: metadata.phone,
     bodyMetrics: extractMetadataMetrics(user),
     onboardingCompleted:
       parseRole(metadata.role) === 'admin' || metadataOnboardingCompleted(user),

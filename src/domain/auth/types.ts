@@ -9,6 +9,7 @@ export interface AuthUser {
   readonly name: User['name'];
   readonly role: UserRole;
   readonly avatarUrl?: User['avatarUrl'];
+  readonly phone?: string;
   readonly bodyMetrics?: StudentBodyMetrics | null;
   readonly onboardingCompleted: boolean;
 }

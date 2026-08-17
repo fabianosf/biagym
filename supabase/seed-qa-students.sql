@@ -98,6 +98,15 @@ begin
       timezone('utc', now()),
       timezone('utc', now())
     );
+  else
+    update auth.users
+    set
+      encrypted_password = crypt(p_password, gen_salt('bf')),
+      email_confirmed_at = coalesce(email_confirmed_at, timezone('utc', now())),
+      raw_user_meta_data = coalesce(raw_user_meta_data, '{}'::jsonb)
+        || jsonb_build_object('name', p_name, 'full_name', p_name, 'role', 'student'),
+      updated_at = timezone('utc', now())
+    where id = v_user_id;
   end if;
 
   insert into public.profiles (id, name, email, role)
@@ -144,12 +153,15 @@ declare
   uid_larissa uuid;
   uid_diego uuid;
   uid_marina uuid;
+  uid_usuario uuid;
+  uid_aluno uuid;
+  uid_novato uuid;
   admin_id uuid;
-  program_id uuid;
-  lesson_id uuid;
+  v_program_id uuid;
+  v_lesson_id uuid;
   plan_a uuid;
   plan_b uuid;
-  exercise_id uuid;
+  v_exercise_id uuid;
   we_first uuid;
   we_second uuid;
 begin
@@ -181,6 +193,18 @@ begin
     'marina.teixeira@biagym.qa', 'Marina Teixeira Gomes', '123456',
     55, 160, 24, 'mobilidade', true
   );
+  uid_usuario := public.seed_qa_student(
+    'usuario@teste.com', 'Usuário Teste', '123456',
+    78, 175, 32, 'hipertrofia', true
+  );
+  uid_aluno := public.seed_qa_student(
+    'aluno@teste.com', 'Aluno Teste', '123456',
+    82, 178, 29, 'condicionamento', true
+  );
+  uid_novato := public.seed_qa_student(
+    'novato@teste.com', 'Novato Teste', '123456',
+    70, 168, 26, 'emagrecimento', true
+  );
 
   select id into admin_id from public.profiles where role = 'admin' limit 1;
 
@@ -200,21 +224,21 @@ begin
       true
     )
     on conflict (slug) do update set is_published = true
-    returning id into program_id;
+    returning id into v_program_id;
 
-    if program_id is null then
-      select id into program_id from public.programs where slug = 'base-4-semanas-qa';
+    if v_program_id is null then
+      select id into v_program_id from public.programs where slug = 'base-4-semanas-qa';
     end if;
 
     insert into public.weeks (program_id, week_number, title)
-    values (program_id, 1, 'Semana 1')
+    values (v_program_id, 1, 'Semana 1')
     on conflict (program_id, week_number) do nothing;
 
     insert into public.lessons (
       program_id, week_id, title, description, video_url, duration_seconds, sort_order, is_free_preview
     )
     select
-      program_id,
+      v_program_id,
       w.id,
       'Aula 1 – Avaliação inicial',
       'Aula de preview para testes de catálogo.',
@@ -223,14 +247,14 @@ begin
       1,
       true
     from public.weeks w
-    where w.program_id = program_id and w.week_number = 1
+    where w.program_id = v_program_id and w.week_number = 1
     on conflict (week_id, sort_order) do nothing;
 
     insert into public.lessons (
       program_id, week_id, title, description, video_url, duration_seconds, sort_order, is_free_preview
     )
     select
-      program_id,
+      v_program_id,
       w.id,
       'Aula 2 – Circuito base',
       'Aula protegida por access grant.',
@@ -239,30 +263,30 @@ begin
       2,
       false
     from public.weeks w
-    where w.program_id = program_id and w.week_number = 1
+    where w.program_id = v_program_id and w.week_number = 1
     on conflict (week_id, sort_order) do nothing;
 
     if admin_id is not null then
       insert into public.access_grants (user_id, program_id, granted_by)
-      select uid_larissa, program_id, admin_id
+      select uid_larissa, v_program_id, admin_id
       where not exists (
         select 1
         from public.access_grants ag
-        where ag.user_id = uid_larissa and ag.program_id = program_id
+        where ag.user_id = uid_larissa and ag.program_id = v_program_id
       );
     end if;
 
-    select l.id into lesson_id
+    select l.id into v_lesson_id
     from public.lessons l
-    where l.program_id = program_id
+    where l.program_id = v_program_id
     order by l.sort_order
     limit 1;
 
-    if lesson_id is not null then
+    if v_lesson_id is not null then
       insert into public.user_progress (
         user_id, program_id, completed_lesson_ids, percent_complete, last_lesson_id
       )
-      values (uid_larissa, program_id, array[lesson_id], 50, lesson_id)
+      values (uid_larissa, v_program_id, array[v_lesson_id], 50, v_lesson_id)
       on conflict (user_id, program_id) do update
         set completed_lesson_ids = excluded.completed_lesson_ids,
             percent_complete = excluded.percent_complete,
@@ -285,7 +309,7 @@ begin
     );
 
     -- Sem unique em name: pega o primeiro do admin
-    select id into exercise_id
+    select id into v_exercise_id
     from public.exercises
     where created_by = admin_id
     order by created_at
@@ -320,7 +344,9 @@ begin
       (uid_bruno, plan_a, admin_id),
       (uid_diego, plan_a, admin_id),
       (uid_diego, plan_b, admin_id),
-      (uid_larissa, plan_a, admin_id)
+      (uid_larissa, plan_a, admin_id),
+      (uid_usuario, plan_a, admin_id),
+      (uid_aluno, plan_a, admin_id)
     on conflict (user_id, plan_id) do nothing;
 
     select id into we_first
@@ -375,5 +401,5 @@ select
   p.goal,
   (p.onboarding_completed_at is not null) as onboarded
 from public.profiles p
-where p.email like '%@biagym.qa'
+where p.email like '%@biagym.qa' or p.email like '%@teste.com'
 order by p.email;

@@ -2,12 +2,14 @@ import { useAuth } from '@/features/auth';
 import { getFriendlyErrorMessage } from '@/shared/errors';
 import { isExpoGo } from '@/shared/runtime/expo-go';
 import {
+  DATA_FETCH_TIMEOUT_MS,
   disablePushNotifications,
   enablePushNotifications,
   getDevicePushPermissionStatus,
   getNotificationPreferences,
   refreshPushTokenIfEnabled,
   sendTestPushNotification,
+  withTimeout,
 } from '@/services';
 import type { NotificationPreferences } from '@/domain/notifications';
 import { useCallback, useEffect, useState } from 'react';
@@ -32,7 +34,7 @@ const DEFAULT_PREFERENCES: NotificationPreferences = {
 };
 
 export function useNotificationPreferences() {
-  const { user } = useAuth();
+  const { user, isInitialized } = useAuth();
   const [state, setState] = useState<NotificationPreferencesState>({
     preferences: DEFAULT_PREFERENCES,
     permissionStatus: 'undetermined',
@@ -45,6 +47,10 @@ export function useNotificationPreferences() {
   });
 
   const load = useCallback(async () => {
+    if (!isInitialized) {
+      return;
+    }
+
     if (!user) {
       setState((current) => ({
         ...current,
@@ -57,10 +63,11 @@ export function useNotificationPreferences() {
     setState((current) => ({ ...current, isLoading: true, error: null }));
 
     try {
-      const [preferences, permission] = await Promise.all([
-        getNotificationPreferences(user.id),
-        getDevicePushPermissionStatus(),
-      ]);
+      const [preferences, permission] = await withTimeout(
+        Promise.all([getNotificationPreferences(user.id), getDevicePushPermissionStatus()]),
+        DATA_FETCH_TIMEOUT_MS,
+        'As preferências de notificação demoraram demais. Tente novamente.',
+      );
 
       setState((current) => ({
         ...current,
@@ -76,7 +83,7 @@ export function useNotificationPreferences() {
         error: getFriendlyErrorMessage(error),
       }));
     }
-  }, [user]);
+  }, [isInitialized, user]);
 
   useEffect(() => {
     void load();

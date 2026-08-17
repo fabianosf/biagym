@@ -27,12 +27,15 @@ export interface StudentProfile {
   readonly userId: string;
   readonly name: string;
   readonly email: string;
+  readonly avatarUrl?: string;
+  readonly phone?: string;
   readonly metrics: StudentBodyMetrics | null;
   readonly onboardingCompleted: boolean;
 }
 
 export interface CompleteOnboardingInput {
   readonly name: string;
+  readonly phone: string;
   readonly weightKg: number;
   readonly heightCm: number;
   readonly age: number;

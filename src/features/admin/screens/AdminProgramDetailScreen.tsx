@@ -1,3 +1,4 @@
+import { colors } from '@/shared/theme';
 import { AdminShell } from '@/features/admin/components';
 import { adminRoutes } from '@/shared/constants/admin-routes';
 import { ErrorState, LoadingIndicator } from '@/shared/components';
@@ -11,14 +12,15 @@ import {
   getDataErrorMessage,
 } from '@/services';
 import type { ProgramDetail } from '@/domain/program';
+import { resolveRouteParam } from '@/shared/utils';
 import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Alert, Pressable, RefreshControl, ScrollView, Text, TextInput, View } from 'react-native';
 
 export function AdminProgramDetailScreen() {
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const programId = typeof id === 'string' ? id : undefined;
+  const params = useLocalSearchParams<{ id?: string | string[] }>();
+  const programId = resolveRouteParam(params.id);
 
   const [detail, setDetail] = useState<ProgramDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -28,6 +30,9 @@ export function AdminProgramDetailScreen() {
 
   const load = useCallback(async () => {
     if (!programId) {
+      setDetail(null);
+      setError('Identificador do programa inválido.');
+      setIsLoading(false);
       return;
     }
 
@@ -148,7 +153,7 @@ export function AdminProgramDetailScreen() {
           className="flex-1"
           contentContainerClassName="gap-4 px-5 py-4 pb-10"
           refreshControl={
-            <RefreshControl refreshing={false} onRefresh={() => void load()} tintColor="#E8573A" />
+            <RefreshControl refreshing={false} onRefresh={() => void load()} tintColor={colors.primary} />
           }
         >
           <View className="flex-row flex-wrap gap-2">

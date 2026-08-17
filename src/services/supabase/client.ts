@@ -6,8 +6,22 @@ import type { Database } from './types';
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
+function isPlaceholder(value: string | undefined): boolean {
+  if (!value) {
+    return true;
+  }
+
+  const normalized = value.trim().toLowerCase();
+  return (
+    normalized.length === 0 ||
+    normalized.includes('seu-projeto') ||
+    normalized.includes('sua-chave') ||
+    normalized === 'your-anon-key'
+  );
+}
+
 export function isSupabaseConfigured(): boolean {
-  return Boolean(supabaseUrl && supabaseAnonKey);
+  return !isPlaceholder(supabaseUrl) && !isPlaceholder(supabaseAnonKey);
 }
 
 function createSupabaseClient(): SupabaseClient<Database> {

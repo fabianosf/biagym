@@ -1,4 +1,6 @@
 # TreinosAtleta — Documentação Completa do Projeto
+
+> O produto chama-se **BiAGym**. Este documento conserva o nome temporário usado na fase inicial.
 **Versão:** 1.0  
 **Data:** 15/08/2026  
 **Status:** MVP Implementado (Fases 1 a 9)

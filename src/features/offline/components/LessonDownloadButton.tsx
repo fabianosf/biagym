@@ -1,3 +1,4 @@
+import { colors } from '@/shared/theme';
 import { useLessonDownload } from '@/features/offline/hooks/useOfflineSync';
 import { useOfflineStore } from '@/features/offline/store/offline.store';
 import {
@@ -70,7 +71,7 @@ export function LessonDownloadButton({
   if (downloadState === 'downloading') {
     return (
       <View className={`flex-row items-center ${compact ? '' : 'gap-2'}`}>
-        <ActivityIndicator size="small" color="#E8573A" />
+        <ActivityIndicator size="small" color={colors.primary} />
         {!compact ? (
           <Text className="text-xs text-primary">
             Baixando {Math.round(downloadProgress * 100)}%
@@ -88,7 +89,7 @@ export function LessonDownloadButton({
           compact ? 'px-2 py-1' : 'px-3 py-1.5'
         }`}
       >
-        <Ionicons name="checkmark-circle" size={14} color="#E8573A" />
+        <Ionicons name="checkmark-circle" size={14} color={colors.primary} />
         {!compact ? (
           <Text className="ml-1 text-xs text-primary">Offline · remover</Text>
         ) : null}

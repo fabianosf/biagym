@@ -76,7 +76,9 @@ export function MessagesThread({ studentUserId, title, onBack }: MessagesThreadP
       ) : null}
       <ScrollView className="flex-1" contentContainerClassName="gap-3 px-5 pb-6">
         {messages.length === 0 ? (
-          <Text className="text-muted">Nenhum recado ainda. Envie o primeiro.</Text>
+          <Text className="text-muted">
+            Nenhum recado ainda. Escreva aqui se tiver dúvida sobre o treino ou a alimentação.
+          </Text>
         ) : (
           messages.map((message) => {
             const mine = message.senderId === user?.id;

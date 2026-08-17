@@ -22,14 +22,15 @@ import {
   LoadingIndicator,
   ScreenHeader,
 } from '@/shared/components';
+import { isPlayableVideoUrl, resolveRouteParam } from '@/shared/utils';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ScrollView, Text, View } from 'react-native';
 
 export function LessonPlayerScreen() {
   const router = useRouter();
-  const { id, lessonId } = useLocalSearchParams<{ id: string; lessonId: string }>();
-  const programId = typeof id === 'string' ? id : undefined;
-  const selectedLessonId = typeof lessonId === 'string' ? lessonId : undefined;
+  const params = useLocalSearchParams<{ id?: string | string[]; lessonId?: string | string[] }>();
+  const programId = resolveRouteParam(params.id);
+  const selectedLessonId = resolveRouteParam(params.lessonId);
   const { runSync } = useOfflineSync();
 
   const { detail, progress, hasAccess, isLoading, error, refetch, setProgress } =
@@ -45,7 +46,10 @@ export function LessonPlayerScreen() {
   const wasAlreadyCompleted = Boolean(
     lesson && progress?.completedLessonIds.includes(lesson.id),
   );
-  const resolvedVideoUrl = useResolvedLessonVideoUrl(lesson?.id, lesson?.videoUrl);
+  const { videoUrl: resolvedVideoUrl, isResolving: isResolvingVideo } = useResolvedLessonVideoUrl(
+    lesson?.id,
+    lesson?.videoUrl,
+  );
 
   const {
     canMarkComplete,
@@ -67,9 +71,11 @@ export function LessonPlayerScreen() {
   });
 
   const lessonCompleted = wasAlreadyCompleted || isCompleted;
+  const hasRemoteVideo = Boolean(lesson && isPlayableVideoUrl(lesson.videoUrl));
   const isOfflineVideo = Boolean(
-    lesson && resolvedVideoUrl && resolvedVideoUrl !== lesson.videoUrl,
+    hasRemoteVideo && resolvedVideoUrl && lesson && resolvedVideoUrl !== lesson.videoUrl,
   );
+  const isSampleFallback = Boolean(resolvedVideoUrl && !hasRemoteVideo);
 
   return (
     <View className="flex-1 bg-background">
@@ -95,7 +101,7 @@ export function LessonPlayerScreen() {
           <EmptyState
             icon="lock-closed-outline"
             title="Aula bloqueada"
-            description="Peça ao administrador para liberar o acesso a este programa."
+            description="Peça à treinadora para liberar o acesso a este programa."
           />
         </View>
       ) : null}
@@ -104,22 +110,33 @@ export function LessonPlayerScreen() {
         <ScrollView className="flex-1" contentContainerClassName="gap-5 px-5 pb-12 pt-2">
           {!showDisclaimer ? (
             <>
-              {resolvedVideoUrl ? (
+              {isResolvingVideo ? (
+                <View className="aspect-video items-center justify-center rounded-card border border-line bg-elevated">
+                  <Text className="text-sm text-muted">Carregando vídeo...</Text>
+                </View>
+              ) : resolvedVideoUrl ? (
                 <VideoPlayer
                   videoUrl={resolvedVideoUrl}
                   onPlaybackProgress={handlePlaybackProgress}
                 />
               ) : (
-                <View className="aspect-video items-center justify-center rounded-card border border-line bg-elevated">
-                  <Text className="text-sm text-muted">Vídeo indisponível.</Text>
+                <View className="aspect-video items-center justify-center rounded-card border border-line bg-elevated px-6">
+                  <Text className="text-center text-sm leading-6 text-muted">
+                    Ainda não há vídeo nesta aula. No painel admin, abra a aula e envie um MP4 da
+                    pasta videos/.
+                  </Text>
                 </View>
               )}
 
               <View className="flex-row items-center justify-between">
                 <Text className="text-xs font-medium text-muted">
-                  {isOfflineVideo ? 'Versão offline' : 'Streaming online'}
+                  {isOfflineVideo
+                    ? 'Versão offline'
+                    : isSampleFallback
+                      ? 'Vídeo de exemplo da pasta videos/'
+                      : 'Streaming online'}
                 </Text>
-                {resolvedVideoUrl ? (
+                {hasRemoteVideo ? (
                   <LessonDownloadButton
                     lessonId={lesson.id}
                     programId={programId}
@@ -155,7 +172,7 @@ export function LessonPlayerScreen() {
                     disabled={!canMarkComplete}
                     loading={isMarking}
                   />
-                  {!canMarkComplete ? (
+                  {!canMarkComplete && resolvedVideoUrl ? (
                     <Text className="text-center text-xs leading-5 text-faint">
                       Assista pelo menos 80% do vídeo para liberar a conclusão automática.
                     </Text>

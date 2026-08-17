@@ -1,4 +1,4 @@
--- TreinosAtleta – Fase 10: notificações push
+-- BiAGym – Fase 10: notificações push
 -- Execute no Supabase SQL Editor após supabase/schema.sql
 
 alter table public.profiles

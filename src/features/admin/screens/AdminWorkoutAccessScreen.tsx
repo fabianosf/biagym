@@ -3,14 +3,16 @@ import { useAuth } from '@/features/auth';
 import type { StudentProfile } from '@/domain/student';
 import type { TrainingPlanGrant, TrainingPlanSummary } from '@/domain/workout';
 import {
+  DATA_FETCH_TIMEOUT_MS,
   getDataErrorMessage,
   getProfileById,
   grantTrainingPlanAccess,
   listTrainingPlanGrants,
   listTrainingPlans,
   revokeTrainingPlanAccess,
+  withTimeout,
 } from '@/services';
-import { Button } from '@/shared/components';
+import { Button, EmptyState, ErrorState, LoadingIndicator } from '@/shared/components';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
@@ -25,14 +27,27 @@ export function AdminWorkoutAccessScreen() {
   const [selectedStudent, setSelectedStudent] = useState<StudentProfile | null>(null);
   const [grants, setGrants] = useState<GrantWithName[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isGranting, setIsGranting] = useState(false);
 
   const loadPlans = useCallback(async () => {
-    const data = await listTrainingPlans();
-    setPlans(data);
-    if (data[0] && !selectedPlanId) {
-      setSelectedPlanId(data[0].id);
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await withTimeout(
+        listTrainingPlans(),
+        DATA_FETCH_TIMEOUT_MS,
+        'Os treinos demoraram demais para carregar. Tente novamente.',
+      );
+      setPlans(data);
+      setSelectedPlanId((current) => current || data[0]?.id || '');
+    } catch (err) {
+      setError(getDataErrorMessage(err));
+    } finally {
+      setIsLoading(false);
     }
-  }, [selectedPlanId]);
+  }, []);
 
   const loadGrants = useCallback(async () => {
     if (!selectedPlanId) {
@@ -40,22 +55,34 @@ export function AdminWorkoutAccessScreen() {
       return;
     }
 
-    const rows = await listTrainingPlanGrants(selectedPlanId);
-    const withNames = await Promise.all(
-      rows.map(async (grant) => {
-        const profile = await getProfileById(grant.userId);
-        return { ...grant, studentName: profile?.name ?? grant.userId };
-      }),
-    );
-    setGrants(withNames);
+    try {
+      const rows = await withTimeout(
+        listTrainingPlanGrants(selectedPlanId),
+        DATA_FETCH_TIMEOUT_MS,
+        'As liberações demoraram demais para carregar. Tente novamente.',
+      );
+      const withNames = await Promise.all(
+        rows.map(async (grant) => {
+          try {
+            const profile = await getProfileById(grant.userId);
+            return { ...grant, studentName: profile?.name ?? grant.userId };
+          } catch {
+            return { ...grant, studentName: grant.userId };
+          }
+        }),
+      );
+      setGrants(withNames);
+    } catch (err) {
+      setError(getDataErrorMessage(err));
+    }
   }, [selectedPlanId]);
 
   useEffect(() => {
-    void loadPlans().catch((err) => setError(getDataErrorMessage(err)));
+    void loadPlans();
   }, [loadPlans]);
 
   useEffect(() => {
-    void loadGrants().catch((err) => setError(getDataErrorMessage(err)));
+    void loadGrants();
   }, [loadGrants]);
 
   async function handleGrant() {
@@ -64,6 +91,9 @@ export function AdminWorkoutAccessScreen() {
       return;
     }
 
+    setIsGranting(true);
+    setError(null);
+    setSuccess(null);
     try {
       await grantTrainingPlanAccess({
         userId: selectedStudent.userId,
@@ -71,53 +101,99 @@ export function AdminWorkoutAccessScreen() {
         grantedBy: user.id,
       });
       setSelectedStudent(null);
+      setSuccess(`Treino liberado para ${selectedStudent.name}.`);
       await loadGrants();
     } catch (err) {
       setError(getDataErrorMessage(err));
+    } finally {
+      setIsGranting(false);
     }
   }
 
   return (
     <AdminShell
       title="Liberar treinos"
-      subtitle="Liberar um aluno publica o treino automaticamente. Sem nenhuma liberação, todos veem o treino publicado."
+      subtitle="Quem receber a liberação é o único aluno que vê esse treino."
       showBack
       onBack={() => router.back()}
     >
-      <ScrollView className="flex-1" contentContainerClassName="gap-4 px-5 pb-12">
-        {error ? <Text className="text-sm text-red-400">{error}</Text> : null}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <View className="flex-row gap-2">
-            {plans.map((plan) => (
-              <Pressable
-                key={plan.id}
-                onPress={() => setSelectedPlanId(plan.id)}
-                className={`rounded-full px-3 py-2 ${
-                  selectedPlanId === plan.id ? 'bg-primary' : 'bg-elevated'
-                }`}
-              >
-                <Text className={selectedPlanId === plan.id ? 'font-semibold text-white' : 'text-ink'}>
-                  {plan.title}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-        </ScrollView>
+      {isLoading ? <LoadingIndicator fullScreen message="Carregando liberações..." /> : null}
 
-        <View className="rounded-card border border-line bg-surface p-5">
-          <AdminStudentSearch selected={selectedStudent} onSelect={setSelectedStudent} />
-          <Button className="mt-4" label="Liberar este treino" onPress={() => void handleGrant()} />
+      {!isLoading && error && plans.length === 0 ? (
+        <View className="px-5 pt-4">
+          <ErrorState message={error} onRetry={() => void loadPlans()} />
         </View>
+      ) : null}
 
-        {grants.map((grant) => (
-          <View key={grant.id} className="flex-row items-center rounded-card border border-line bg-surface p-4">
-            <Text className="flex-1 font-medium text-ink">{grant.studentName}</Text>
-            <Pressable onPress={() => void revokeTrainingPlanAccess(grant.id).then(loadGrants)}>
-              <Text className="text-sm text-red-400">Remover</Text>
-            </Pressable>
+      {!isLoading && !error && plans.length === 0 ? (
+        <View className="px-5 pt-4">
+          <EmptyState
+            title="Nenhum treino cadastrado"
+            description="Crie um Treino A/B/C antes de liberar para os alunos."
+          />
+        </View>
+      ) : null}
+
+      {!isLoading && plans.length > 0 ? (
+        <ScrollView className="flex-1" contentContainerClassName="gap-4 px-5 pb-12">
+          {error ? <Text className="text-sm text-red-400">{error}</Text> : null}
+          {success ? <Text className="text-sm text-primary">{success}</Text> : null}
+
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <View className="flex-row gap-2">
+              {plans.map((plan) => (
+                <Pressable
+                  key={plan.id}
+                  onPress={() => setSelectedPlanId(plan.id)}
+                  className={`rounded-full px-3 py-2 ${
+                    selectedPlanId === plan.id ? 'bg-primary' : 'bg-elevated'
+                  }`}
+                >
+                  <Text className={selectedPlanId === plan.id ? 'font-semibold text-white' : 'text-ink'}>
+                    {plan.title}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </ScrollView>
+
+          <View className="rounded-card border border-line bg-surface p-5">
+            <AdminStudentSearch selected={selectedStudent} onSelect={setSelectedStudent} />
+            <Button
+              className="mt-4"
+              label={
+                selectedStudent
+                  ? `Liberar só para ${selectedStudent.name}`
+                  : 'Escolha o aluno para liberar'
+              }
+              loading={isGranting}
+              disabled={!selectedStudent || isGranting}
+              onPress={() => void handleGrant()}
+            />
           </View>
-        ))}
-      </ScrollView>
+
+          {grants.length === 0 ? (
+            <Text className="text-sm text-muted">
+              Nenhuma liberação neste treino. Nenhum aluno o vê até você liberar.
+            </Text>
+          ) : (
+            grants.map((grant) => (
+              <View key={grant.id} className="flex-row items-center rounded-card border border-line bg-surface p-4">
+                <Text className="flex-1 font-medium text-ink">{grant.studentName}</Text>
+                <Pressable
+                  onPress={() =>
+                    void revokeTrainingPlanAccess(grant.id)
+                      .then(loadGrants)
+                      .catch((err) => setError(getDataErrorMessage(err)))
+                  }
+                >
+                  <Text className="text-sm text-red-400">Remover</Text>
+                </Pressable>
+              </View>
+            ))
+          )}
+        </ScrollView>
+      ) : null}
     </AdminShell>
   );
 }

@@ -15,6 +15,7 @@ export type ProfileRow = {
   age: number | null;
   goal: string | null;
   onboarding_completed_at: string | null;
+  phone: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -232,12 +233,14 @@ export interface Database {
           email: string;
           role?: UserRole;
           avatar_url?: string | null;
+          phone?: string | null;
         },
         {
           name?: string;
           email?: string;
           role?: UserRole;
           avatar_url?: string | null;
+          phone?: string | null;
           push_notifications_enabled?: boolean;
           expo_push_token?: string | null;
           push_platform?: string | null;

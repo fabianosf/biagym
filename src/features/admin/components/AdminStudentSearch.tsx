@@ -1,5 +1,7 @@
+import { colors } from '@/shared/theme';
 import type { StudentProfile } from '@/domain/student';
-import { listStudentProfiles, searchStudentProfiles } from '@/services';
+import { DATA_FETCH_TIMEOUT_MS, listStudentProfiles, searchStudentProfiles, withTimeout } from '@/services';
+import { getDataErrorMessage } from '@/services';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native';
 
@@ -19,13 +21,21 @@ export function AdminStudentSearch({
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<StudentProfile[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const loadDefault = useCallback(async () => {
+    setError(null);
     try {
-      const students = await listStudentProfiles({ limit: 12 });
+      const students = await withTimeout(
+        listStudentProfiles({ limit: 12 }),
+        DATA_FETCH_TIMEOUT_MS,
+        'A busca de alunos demorou demais. Tente novamente.',
+      );
       setResults(students);
-    } catch {
+    } catch (err) {
       setResults([]);
+      setError(getDataErrorMessage(err));
     }
   }, []);
 
@@ -35,12 +45,20 @@ export function AdminStudentSearch({
 
   async function handleSearch() {
     setIsSearching(true);
+    setHasSearched(true);
+    setError(null);
     try {
-      const students =
+      const students = await withTimeout(
         query.trim().length < 2
-          ? await listStudentProfiles({ limit: 12 })
-          : await searchStudentProfiles(query);
+          ? listStudentProfiles({ limit: 12 })
+          : searchStudentProfiles(query),
+        DATA_FETCH_TIMEOUT_MS,
+        'A busca de alunos demorou demais. Tente novamente.',
+      );
       setResults(students);
+    } catch (err) {
+      setResults([]);
+      setError(getDataErrorMessage(err));
     } finally {
       setIsSearching(false);
     }
@@ -59,14 +77,17 @@ export function AdminStudentSearch({
       />
       <Pressable
         onPress={() => void handleSearch()}
+        disabled={isSearching}
         className="mt-2 min-h-[44px] items-center justify-center rounded-2xl border border-primary/40"
       >
         {isSearching ? (
-          <ActivityIndicator color="#E8573A" />
+          <ActivityIndicator color={colors.primary} />
         ) : (
           <Text className="font-semibold text-primary">Buscar aluno</Text>
         )}
       </Pressable>
+
+      {error ? <Text className="mt-2 text-sm text-red-400">{error}</Text> : null}
 
       {allowEmptySelection ? (
         <Pressable
@@ -80,6 +101,14 @@ export function AdminStudentSearch({
       ) : null}
 
       <View className="mt-2 gap-2">
+        {!error && !isSearching && results.length === 0 ? (
+          <Text className="text-sm text-muted">
+            {hasSearched
+              ? 'Nenhum aluno encontrado. Cadastre o aluno ou busque por outro nome/e-mail.'
+              : 'Nenhum aluno listado ainda.'}
+          </Text>
+        ) : null}
+
         {results.map((student) => (
           <Pressable
             key={student.userId}

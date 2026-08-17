@@ -1,4 +1,4 @@
-# TreinosAtleta
+# BiAGym
 
 Aplicativo de treinos multiplataforma (iOS, Android e Web) para alunas consumirem programas em vídeo, acompanharem progresso e assistirem aulas offline.
 
@@ -170,7 +170,7 @@ npm run submit:ios
 
 ### App Store Connect (iOS)
 
-- [ ] Criar app com bundle ID `com.treinosatleta.app`
+- [ ] Criar app com bundle ID `com.biagym.app`
 - [ ] Preencher metadados (nome, subtítulo, descrição, keywords)
 - [ ] Screenshots (6.7", 6.5", iPad se suportado)
 - [ ] Política de privacidade (URL pública)
@@ -180,7 +180,7 @@ npm run submit:ios
 
 ### Google Play Console (Android)
 
-- [ ] Criar app com package `com.treinosatleta.app`
+- [ ] Criar app com package `com.biagym.app`
 - [ ] Ficha da loja (descrição curta/longa, ícone, feature graphic)
 - [ ] Screenshots phone + tablet
 - [ ] Política de privacidade (URL)

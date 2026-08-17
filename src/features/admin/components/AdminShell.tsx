@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { useAuth } from '@/features/auth';
 import { routes } from '@/shared/constants/routes';
+import { useThemeColors } from '@/shared/theme';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Link } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
@@ -23,6 +24,7 @@ export function AdminShell({
 }: AdminShellProps) {
   const insets = useSafeAreaInsets();
   const { signOut } = useAuth();
+  const colors = useThemeColors();
 
   return (
     <View className="flex-1 bg-background">
@@ -47,7 +49,7 @@ export function AdminShell({
               onPress={onBack}
               className="mr-3 h-11 w-11 items-center justify-center rounded-full border border-line bg-elevated"
             >
-              <Ionicons name="chevron-back" size={22} color="#1A1A1A" />
+              <Ionicons name="chevron-back" size={22} color={colors.ink} />
             </Pressable>
           ) : null}
           <View className="flex-1">

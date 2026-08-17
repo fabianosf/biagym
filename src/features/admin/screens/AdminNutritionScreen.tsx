@@ -1,4 +1,6 @@
 import { AdminStudentSearch, AdminShell } from '@/features/admin/components';
+import { useAdminFocusedStudent } from '@/features/admin/hooks/useAdminFocusedStudent';
+import { getStudentFirstName } from '@/features/admin/utils/student-label';
 import { useAuth } from '@/features/auth';
 import { MEAL_TYPE_LABELS, MEAL_TYPES, type NutritionPlan } from '@/domain/nutrition';
 import type { StudentProfile } from '@/domain/student';
@@ -9,9 +11,8 @@ import {
   listNutritionPlans,
 } from '@/services';
 import { Button, ErrorState, LoadingIndicator, TextField } from '@/shared/components';
-import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 const EMPTY_MEALS = MEAL_TYPES.map((mealType) => ({
   mealType,
@@ -42,8 +43,8 @@ function formatMacros(plan: NutritionPlan): string | null {
 }
 
 export function AdminNutritionScreen() {
-  const router = useRouter();
   const { user } = useAuth();
+  const { focusedStudentId, student: focusedStudent, goBackToStudent } = useAdminFocusedStudent();
   const [plans, setPlans] = useState<NutritionPlan[]>([]);
   const [selectedStudent, setSelectedStudent] = useState<StudentProfile | null>(null);
   const [title, setTitle] = useState('Plano alimentar da semana');
@@ -73,6 +74,21 @@ export function AdminNutritionScreen() {
     void loadPlans();
   }, [loadPlans]);
 
+  useEffect(() => {
+    if (focusedStudent) {
+      setSelectedStudent(focusedStudent);
+    }
+  }, [focusedStudent]);
+
+  const firstName = focusedStudent ? getStudentFirstName(focusedStudent.name) : null;
+  const visiblePlans = useMemo(
+    () =>
+      focusedStudentId
+        ? plans.filter((plan) => plan.studentUserId === focusedStudentId)
+        : plans,
+    [focusedStudentId, plans],
+  );
+
   async function handleCreate() {
     if (!user) {
       return;
@@ -90,7 +106,7 @@ export function AdminNutritionScreen() {
       await adminCreateNutritionPlan({
         title,
         description: description || undefined,
-        studentUserId: selectedStudent?.userId,
+        studentUserId: focusedStudentId ?? selectedStudent?.userId,
         createdBy: user.id,
         macros: {
           caloriesKcal: parseMacro(calories),
@@ -131,25 +147,43 @@ export function AdminNutritionScreen() {
 
   return (
     <AdminShell
-      title="Nutrição"
-      subtitle="Monte planos de alimentação para a turma ou para um aluno específico."
+      title={firstName ? `Nutrição de ${firstName}` : 'Nutrição'}
+      subtitle={
+        focusedStudent
+          ? `Este plano fica só com ${focusedStudent.name}.`
+          : 'Monte um plano para um aluno específico.'
+      }
       showBack
-      onBack={() => router.back()}
+      onBack={goBackToStudent}
     >
       {isLoading ? <LoadingIndicator fullScreen message="Carregando planos..." /> : null}
 
-      {!isLoading ? (
+      {!isLoading && error && plans.length === 0 ? (
+        <View className="px-5 pt-2">
+          <ErrorState message={error} onRetry={() => void loadPlans()} />
+        </View>
+      ) : null}
+
+      {!isLoading && (plans.length > 0 || !error) ? (
         <ScrollView className="flex-1" contentContainerClassName="gap-5 px-5 pb-12">
           {error ? <Text className="text-sm text-red-400">{error}</Text> : null}
 
           <View className="rounded-card border border-line bg-surface p-5 gap-4">
-            <Text className="text-lg font-semibold text-ink">Novo plano</Text>
-            <AdminStudentSearch
-              selected={selectedStudent}
-              onSelect={setSelectedStudent}
-              allowEmptySelection
-              onClear={() => setSelectedStudent(null)}
-            />
+            <Text className="text-lg font-semibold text-ink">
+              {firstName ? `Novo plano de ${firstName}` : 'Novo plano'}
+            </Text>
+            {focusedStudentId ? (
+              <Text className="text-sm text-muted">
+                Individual: {focusedStudent?.name ?? 'este aluno'}
+              </Text>
+            ) : (
+              <AdminStudentSearch
+                selected={selectedStudent}
+                onSelect={setSelectedStudent}
+                allowEmptySelection
+                onClear={() => setSelectedStudent(null)}
+              />
+            )}
             <TextField
               label="Título"
               value={title}
@@ -240,18 +274,24 @@ export function AdminNutritionScreen() {
               </View>
             ))}
             <Button
-              label="Salvar plano"
+              label={firstName ? `Salvar nutrição de ${firstName}` : 'Salvar plano'}
               loading={isSaving}
               onPress={() => void handleCreate()}
             />
           </View>
 
           <View className="gap-3">
-            <Text className="text-lg font-semibold text-ink">Planos cadastrados</Text>
-            {plans.length === 0 ? (
-              <Text className="text-muted">Nenhum plano ainda. Crie o primeiro acima.</Text>
+            <Text className="text-lg font-semibold text-ink">
+              {firstName ? `Planos de ${firstName}` : 'Planos cadastrados'}
+            </Text>
+            {visiblePlans.length === 0 ? (
+              <Text className="text-muted">
+                {firstName
+                  ? `Nenhum plano ainda para ${firstName}.`
+                  : 'Nenhum plano ainda. Crie o primeiro acima.'}
+              </Text>
             ) : (
-              plans.map((plan) => (
+              visiblePlans.map((plan) => (
                 <View key={plan.id} className="rounded-card border border-line bg-surface p-5">
                   <Text className="font-semibold text-ink">{plan.title}</Text>
                   <Text className="mt-1 text-xs text-muted">
@@ -272,12 +312,6 @@ export function AdminNutritionScreen() {
             )}
           </View>
         </ScrollView>
-      ) : null}
-
-      {!isLoading && error && plans.length === 0 ? (
-        <View className="px-5 pt-2">
-          <ErrorState message={error} onRetry={() => void loadPlans()} />
-        </View>
       ) : null}
     </AdminShell>
   );

@@ -1,5 +1,7 @@
 # TreinosAtleta — Prompts Completos das Fases 1 a 10
 
+> O produto chama-se **BiAGym**. Este arquivo é histórico; o nome temporário era TreinosAtleta.
+
 **Projeto:** TreinosAtleta  
 **Stack:** React Native + Expo + TypeScript + NativeWind + Supabase  
 **Data:** 15/08/2026

@@ -9,6 +9,7 @@ export { AdminProgramFormScreen } from '@/features/admin/screens/AdminProgramFor
 export { AdminProgramsListScreen } from '@/features/admin/screens/AdminProgramsListScreen';
 export { AdminScheduleScreen } from '@/features/admin/screens/AdminScheduleScreen';
 export { AdminStudentsScreen } from '@/features/admin/screens/AdminStudentsScreen';
+export { AdminStudentSpaceScreen } from '@/features/admin/screens/AdminStudentSpaceScreen';
 export { AdminVideosScreen } from '@/features/admin/screens/AdminVideosScreen';
 export { AdminWorkoutAccessScreen } from '@/features/admin/screens/AdminWorkoutAccessScreen';
 export { AdminWorkoutDetailScreen } from '@/features/admin/screens/AdminWorkoutDetailScreen';

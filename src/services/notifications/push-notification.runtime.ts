@@ -1,5 +1,6 @@
 import Constants from 'expo-constants';
 import * as Device from 'expo-device';
+import { Platform } from 'react-native';
 
 import { DataServiceError } from '../shared';
 
@@ -8,7 +9,7 @@ export function isExpoGoRuntime(): boolean {
 }
 
 export function isRemotePushSupportedInRuntime(): boolean {
-  return !isExpoGoRuntime() && Device.isDevice;
+  return Platform.OS !== 'web' && !isExpoGoRuntime() && Device.isDevice;
 }
 
 export function getExpoGoPushLimitationMessage(): string {
@@ -16,6 +17,14 @@ export function getExpoGoPushLimitationMessage(): string {
 }
 
 export function assertRemotePushSupported(): void {
+  if (Platform.OS === 'web') {
+    throw new DataServiceError(
+      'validation_error',
+      undefined,
+      'Notificações push não estão disponíveis na versão web.',
+    );
+  }
+
   if (!Device.isDevice) {
     throw new DataServiceError(
       'validation_error',

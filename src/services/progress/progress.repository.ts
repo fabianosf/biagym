@@ -22,17 +22,19 @@ export async function getUserProgressByProgram(
     .select('*')
     .eq('user_id', userId)
     .eq('program_id', programId)
-    .maybeSingle();
+    .order('last_accessed_at', { ascending: false })
+    .limit(1);
 
   if (error) {
     throw mapSupabaseDataError(error);
   }
 
-  if (!data) {
+  const row = ((data ?? []) as UserProgressRow[])[0];
+  if (!row) {
     return null;
   }
 
-  return mapUserProgressRow(data as UserProgressRow);
+  return mapUserProgressRow(row);
 }
 
 export async function listUserProgress(userId: EntityId): Promise<UserProgress[]> {

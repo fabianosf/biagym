@@ -1,42 +1,60 @@
 import { AdminStudentSearch, AdminShell } from '@/features/admin/components';
+import { useAdminFocusedStudent } from '@/features/admin/hooks/useAdminFocusedStudent';
+import { getStudentFirstName } from '@/features/admin/utils/student-label';
 import { MessagesThread } from '@/features/coaching';
 import type { StudentProfile } from '@/domain/student';
 import { listBodyLogs } from '@/services';
 import type { BodyLog } from '@/domain/student';
 import { AppImage } from '@/shared/components';
-import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 
 export function AdminMessagesScreen() {
-  const router = useRouter();
+  const { focusedStudentId, student: focusedStudent, goBackToStudent } = useAdminFocusedStudent();
   const [selectedStudent, setSelectedStudent] = useState<StudentProfile | null>(null);
   const [logs, setLogs] = useState<BodyLog[]>([]);
 
   useEffect(() => {
-    if (!selectedStudent) {
+    if (focusedStudent) {
+      setSelectedStudent(focusedStudent);
+    }
+  }, [focusedStudent]);
+
+  const activeStudent = focusedStudent ?? selectedStudent;
+  const firstName = activeStudent ? getStudentFirstName(activeStudent.name) : null;
+
+  useEffect(() => {
+    if (!activeStudent) {
       setLogs([]);
       return;
     }
 
-    void listBodyLogs(selectedStudent.userId)
+    void listBodyLogs(activeStudent.userId)
       .then(setLogs)
       .catch(() => setLogs([]));
-  }, [selectedStudent]);
+  }, [activeStudent]);
 
   return (
     <AdminShell
-      title="Recados"
-      subtitle="Fale com o aluno e acompanhe a evolução física."
+      title={firstName ? `Recados de ${firstName}` : 'Recados'}
+      subtitle={
+        activeStudent
+          ? `Dicas e orientação só para ${activeStudent.name}.`
+          : 'Escolha um aluno para mandar um recado.'
+      }
       showBack
-      onBack={() => router.back()}
+      onBack={goBackToStudent}
     >
       <View className="px-5 pb-4">
-        <AdminStudentSearch selected={selectedStudent} onSelect={setSelectedStudent} />
-        {selectedStudent?.metrics ? (
+        {focusedStudentId ? (
+          <Text className="text-sm text-muted">Individual: {focusedStudent?.name ?? 'este aluno'}</Text>
+        ) : (
+          <AdminStudentSearch selected={selectedStudent} onSelect={setSelectedStudent} />
+        )}
+        {activeStudent?.metrics ? (
           <Text className="mt-3 text-sm text-muted">
-            {selectedStudent.metrics.weightKg} kg · {selectedStudent.metrics.heightCm} cm ·{' '}
-            {selectedStudent.metrics.age} anos
+            {activeStudent.metrics.weightKg} kg · {activeStudent.metrics.heightCm} cm ·{' '}
+            {activeStudent.metrics.age} anos
           </Text>
         ) : null}
         {logs[0] ? (
@@ -49,8 +67,8 @@ export function AdminMessagesScreen() {
           </View>
         ) : null}
       </View>
-      {selectedStudent ? (
-        <MessagesThread studentUserId={selectedStudent.userId} />
+      {activeStudent ? (
+        <MessagesThread studentUserId={activeStudent.userId} />
       ) : (
         <Text className="px-5 text-muted">Selecione um aluno para enviar um recado.</Text>
       )}

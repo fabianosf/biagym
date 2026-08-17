@@ -7,8 +7,12 @@
     "setup": "rm -rf node_modules package-lock.json .expo && npm install && npx expo install --fix",
     "seed:demo": "node scripts/seed-demo-content.mjs",
     "seed:workouts": "node scripts/seed-workouts.mjs",
-    "start": "expo start",
-    "start:clear": "expo start -c",
+    "seed:users": "node scripts/seed-test-users.mjs",
+    "start": "expo start --lan --port 8081",
+    "start:lan": "expo start --lan --port 8081",
+    "start:clear": "expo start --lan --port 8081 -c",
+    "start:go": "expo start --tunnel --port 8081",
+    "start:ngrok": "ngrok http 8081 --host-header=localhost:8081",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
@@ -56,6 +60,7 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@expo/ngrok": "^4.1.3",
     "@types/react": "~19.1.10",
     "babel-preset-expo": "~54.0.10",
     "tailwindcss": "~3.4.17",

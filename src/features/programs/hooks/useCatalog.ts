@@ -1,12 +1,14 @@
 import type { ProgramSummary } from '@/domain';
 import type { UserProgress } from '@/domain/progress';
 import { useAuth } from '@/features/auth';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import {
+  DATA_FETCH_TIMEOUT_MS,
   listAccessiblePrograms,
   listMergedUserProgress,
   listPublishedPrograms,
+  withTimeout,
 } from '@/services';
 import { getFriendlyErrorMessage } from '@/shared/errors';
 
@@ -19,7 +21,8 @@ type CatalogState = {
 };
 
 export function useCatalog() {
-  const { user } = useAuth();
+  const { user, isInitialized } = useAuth();
+  const userId = user?.id;
   const [state, setState] = useState<CatalogState>({
     catalog: [],
     myItems: [],
@@ -27,12 +30,26 @@ export function useCatalog() {
     isLoading: true,
     error: null,
   });
-
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const requestIdRef = useRef(0);
 
   const load = useCallback(async (isRefresh = false) => {
-    if (!user) {
-      setState((current) => ({ ...current, isLoading: false }));
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
+
+    if (!isInitialized) {
+      return;
+    }
+
+    if (!userId) {
+      setState({
+        catalog: [],
+        myItems: [],
+        progressByProgramId: {},
+        isLoading: false,
+        error: null,
+      });
+      setIsRefreshing(false);
       return;
     }
 
@@ -43,11 +60,19 @@ export function useCatalog() {
     }
 
     try {
-      const [catalog, myItems, progressItems] = await Promise.all([
-        listPublishedPrograms(),
-        listAccessiblePrograms(user.id),
-        listMergedUserProgress(user.id),
-      ]);
+      const [catalog, myItems, progressItems] = await withTimeout(
+        Promise.all([
+          listPublishedPrograms(),
+          listAccessiblePrograms(userId),
+          listMergedUserProgress(userId),
+        ]),
+        DATA_FETCH_TIMEOUT_MS,
+        'O catálogo demorou demais para carregar. Tente novamente.',
+      );
+
+      if (requestId !== requestIdRef.current) {
+        return;
+      }
 
       const progressByProgramId = progressItems.reduce<Record<string, UserProgress>>(
         (accumulator, progress) => {
@@ -65,26 +90,57 @@ export function useCatalog() {
         error: null,
       });
     } catch (error) {
+      if (requestId !== requestIdRef.current) {
+        return;
+      }
+
       setState((current) => ({
         ...current,
         isLoading: false,
         error: getFriendlyErrorMessage(error),
       }));
     } finally {
-      setIsRefreshing(false);
+      if (requestId === requestIdRef.current) {
+        setIsRefreshing(false);
+      }
     }
-  }, [user]);
+  }, [isInitialized, userId]);
 
   useEffect(() => {
     void load(false);
+
+    return () => {
+      requestIdRef.current += 1;
+    };
   }, [load]);
 
+  useEffect(() => {
+    if (isInitialized) {
+      return;
+    }
+
+    const timeoutId = setTimeout(() => {
+      setState((current) =>
+        current.isLoading
+          ? {
+              ...current,
+              isLoading: false,
+              error: 'Não foi possível iniciar a sessão. Feche e abra o aplicativo novamente.',
+            }
+          : current,
+      );
+    }, DATA_FETCH_TIMEOUT_MS);
+
+    return () => clearTimeout(timeoutId);
+  }, [isInitialized]);
+
   const myItemIds = new Set(state.myItems.map((program) => program.id));
+  const refetch = useCallback(() => load(true), [load]);
 
   return {
     ...state,
     isRefreshing,
     myItemIds,
-    refetch: () => load(true),
+    refetch,
   };
 }

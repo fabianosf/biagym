@@ -1,5 +1,9 @@
 export { AdminNavCard } from './AdminNavCard';
+export { AdminRecipientPicker } from './AdminRecipientPicker';
 export { AdminShell } from './AdminShell';
+export { AdminStudentActionCard } from './AdminStudentActionCard';
+export { AdminStudentAvatar } from './AdminStudentAvatar';
+export { AdminStudentRoster } from './AdminStudentRoster';
 export { AdminStudentSearch } from './AdminStudentSearch';
 export { ProgramFormFields } from './ProgramFormFields';
 export type { ProgramFormValues } from './ProgramFormFields';

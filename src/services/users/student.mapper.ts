@@ -27,7 +27,8 @@ export function mapProfileRowToStudentProfile(
     | 'age'
     | 'goal'
     | 'onboarding_completed_at'
-  >,
+    | 'phone'
+  > & { avatar_url?: string | null },
 ): StudentProfile {
   const goal = parseStudentGoal(row.goal);
   const hasMetrics =
@@ -37,6 +38,8 @@ export function mapProfileRowToStudentProfile(
     userId: row.id,
     name: getDisplayPersonName(row.name) ?? row.name,
     email: row.email,
+    avatarUrl: row.avatar_url ?? undefined,
+    phone: row.phone?.trim() || undefined,
     metrics: hasMetrics
       ? {
           weightKg: Number(row.weight_kg),

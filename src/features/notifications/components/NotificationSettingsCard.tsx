@@ -1,3 +1,4 @@
+import { colors } from '@/shared/theme';
 import { useNotificationPreferences } from '@/features/notifications/hooks/useNotificationPreferences';
 import { getExpoGoPushLimitationMessage } from '@/services/notifications/push-notification.runtime';
 import { Button, Card, FeedbackBanner } from '@/shared/components';
@@ -32,7 +33,7 @@ export function NotificationSettingsCard() {
 
       {isLoading ? (
         <View className="py-6">
-          <ActivityIndicator color="#E8573A" />
+          <ActivityIndicator color={colors.primary} />
         </View>
       ) : (
         <>
@@ -47,7 +48,7 @@ export function NotificationSettingsCard() {
               value={preferences.enabled}
               disabled={isSaving || isPushLimitedInRuntime}
               onValueChange={(value) => void toggleNotifications(value)}
-              trackColor={{ false: '#ECECEC', true: '#E8573A' }}
+              trackColor={{ false: '#ECECEC', true: colors.primary }}
               thumbColor="#FFFFFF"
             />
           </View>

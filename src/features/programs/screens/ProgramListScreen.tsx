@@ -1,3 +1,4 @@
+import { colors } from '@/shared/theme';
 import { ProgramCard } from '@/features/programs/components';
 import { useCatalog } from '@/features/programs/hooks';
 import { OfflineBanner } from '@/features/offline';
@@ -52,7 +53,7 @@ export function ProgramListScreen() {
             <RefreshControl
               refreshing={isRefreshing}
               onRefresh={() => void refetch()}
-              tintColor="#E8573A"
+              tintColor={colors.primary}
             />
           }
           showsVerticalScrollIndicator={false}

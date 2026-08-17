@@ -1,10 +1,11 @@
+import { colors } from '@/shared/theme';
 import { BrandHeader, ContinueWatchBar, ProgramCarousel } from '@/features/programs/components';
 import { useCatalog } from '@/features/programs/hooks';
 import { OfflineBanner } from '@/features/offline';
 import { useAuth } from '@/features/auth';
 import { EmptyState, ErrorState, LoadingIndicator } from '@/shared/components';
 import { routes } from '@/shared/constants/routes';
-import { formatHelloGreeting } from '@/shared/utils/person-name';
+import { formatHelloGreeting, getGivenAndFamilyName } from '@/shared/utils/person-name';
 import { useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, Text, View } from 'react-native';
 import type { Href } from 'expo-router';
@@ -54,6 +55,9 @@ export function HomeScreen() {
       <BrandHeader />
       <View className="px-5 pb-2">
         <Text className="text-[28px] font-bold text-ink">{formatHelloGreeting(user?.name)}</Text>
+        {getGivenAndFamilyName(user?.name) ? null : (
+          <Text className="mt-1 text-sm text-muted">Pronto para treinar?</Text>
+        )}
       </View>
       <OfflineBanner />
 
@@ -73,7 +77,7 @@ export function HomeScreen() {
             <RefreshControl
               refreshing={isRefreshing}
               onRefresh={() => void refetch()}
-              tintColor="#E8573A"
+              tintColor={colors.primary}
             />
           }
           showsVerticalScrollIndicator={false}
@@ -92,8 +96,8 @@ export function HomeScreen() {
             <View className="px-5">
               <EmptyState
                 icon="barbell-outline"
-                title="Nenhum treino ainda"
-                description="Quando a treinadora publicar treinos, eles aparecem aqui."
+                title="Nada por aqui ainda"
+                description="Seus programas aparecem nesta tela. Os Treinos A, B e C ficam na aba Treinos, depois que a treinadora liberar o seu."
               />
             </View>
           ) : null}

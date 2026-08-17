@@ -1,6 +1,6 @@
 import { ActivityIndicator, Text, View } from 'react-native';
 
-import { colors } from '@/shared/theme';
+import { useThemeColors } from '@/shared/theme';
 
 type LoadingIndicatorProps = {
   message?: string;
@@ -11,6 +11,8 @@ export function LoadingIndicator({
   message = 'Carregando...',
   fullScreen = false,
 }: LoadingIndicatorProps) {
+  const colors = useThemeColors();
+
   return (
     <View
       style={fullScreen ? { flex: 1, backgroundColor: colors.background } : undefined}

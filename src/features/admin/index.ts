@@ -10,6 +10,7 @@ export {
   AdminProgramsListScreen,
   AdminScheduleScreen,
   AdminStudentsScreen,
+  AdminStudentSpaceScreen,
   AdminVideosScreen,
   AdminWorkoutAccessScreen,
   AdminWorkoutDetailScreen,

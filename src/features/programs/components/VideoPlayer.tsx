@@ -1,9 +1,10 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useVideoPlayer, VideoView } from 'expo-video';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { ProgressBar } from '@/shared/components/ui/ProgressBar';
+import { isPlayableVideoUrl } from '@/shared/utils';
 
 const COMPLETION_THRESHOLD = 0.8;
 
@@ -24,21 +25,49 @@ export function VideoPlayer({
 }: VideoPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackProgress, setPlaybackProgress] = useState(0);
+  const [playbackError, setPlaybackError] = useState<string | null>(null);
+  const playableUrl = isPlayableVideoUrl(videoUrl) ? videoUrl.trim() : null;
+  const lastUrlRef = useRef<string | null>(null);
 
-  const player = useVideoPlayer(videoUrl, (instance) => {
+  const player = useVideoPlayer(playableUrl, (instance) => {
     instance.timeUpdateEventInterval = 0.5;
   });
+
+  useEffect(() => {
+    if (!playableUrl) {
+      lastUrlRef.current = null;
+      return;
+    }
+
+    if (lastUrlRef.current === playableUrl) {
+      return;
+    }
+
+    const shouldReplace = lastUrlRef.current !== null;
+    lastUrlRef.current = playableUrl;
+    setPlaybackError(null);
+
+    if (!shouldReplace) {
+      return;
+    }
+
+    try {
+      player.replace(playableUrl);
+    } catch {
+      setPlaybackError('Não foi possível carregar este vídeo. Tente abrir o exercício de novo.');
+    }
+  }, [playableUrl, player]);
 
   useEffect(() => {
     const timeSubscription = player.addListener('timeUpdate', ({ currentTime }) => {
       const duration = player.duration;
 
-      if (duration <= 0) {
+      if (!Number.isFinite(duration) || duration <= 0) {
         return;
       }
 
       const progress = currentTime / duration;
-      setPlaybackProgress(progress);
+      setPlaybackProgress(Number.isFinite(progress) ? progress : 0);
       onPlaybackProgress?.(progress);
     });
 
@@ -48,7 +77,12 @@ export function VideoPlayer({
 
     const statusSubscription = player.addListener('statusChange', ({ status }) => {
       if (status === 'readyToPlay') {
+        setPlaybackError(null);
         onReady?.();
+      }
+
+      if (status === 'error') {
+        setPlaybackError('O vídeo não reproduziu. Confira se o MP4 foi enviado e tente de novo.');
       }
     });
 
@@ -58,6 +92,20 @@ export function VideoPlayer({
       statusSubscription.remove();
     };
   }, [onPlaybackProgress, onReady, player]);
+
+  if (!playableUrl) {
+    return (
+      <View
+        className={`aspect-video items-center justify-center rounded-card border ${
+          appearance === 'dark' ? 'border-gymLine bg-gymCard' : 'border-line bg-elevated'
+        }`}
+      >
+        <Text className={appearance === 'dark' ? 'text-sm text-gymMuted' : 'text-sm text-muted'}>
+          Vídeo indisponível.
+        </Text>
+      </View>
+    );
+  }
 
   function togglePlayback() {
     if (player.playing) {
@@ -74,12 +122,17 @@ export function VideoPlayer({
         player={player}
         style={{ width: '100%', aspectRatio: 16 / 9 }}
         contentFit="contain"
-        nativeControls={false}
+        nativeControls
         allowsFullscreen
         allowsPictureInPicture
       />
 
       <View className={`gap-4 p-5 ${appearance === 'dark' ? 'bg-gymCard' : 'bg-surface'}`}>
+        {playbackError ? (
+          <Text className={appearance === 'dark' ? 'text-sm text-red-300' : 'text-sm text-red-400'}>
+            {playbackError}
+          </Text>
+        ) : null}
         <ProgressBar value={playbackProgress * 100} showPercentage={false} size="sm" />
 
         <View className="flex-row items-center justify-between">

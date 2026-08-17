@@ -1,3 +1,4 @@
+import { colors } from '@/shared/theme';
 import { WeekLessonList } from '@/features/programs/components';
 import { useProgramDetail } from '@/features/programs/hooks';
 import {
@@ -20,17 +21,18 @@ import {
   SectionHeader,
 } from '@/shared/components';
 import { programLessonPath } from '@/shared/constants/routes';
-import { programCoverSource } from '@/shared/utils';
+import { programCoverSource, resolveRouteParam } from '@/shared/utils';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 
 export function ProgramDetailScreen() {
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const programId = typeof id === 'string' ? id : undefined;
+  const params = useLocalSearchParams<{ id?: string | string[] }>();
+  const programId = resolveRouteParam(params.id);
   const { runSync } = useOfflineSync();
+  const skipNextFocusRefresh = useRef(true);
 
   const {
     detail,
@@ -44,6 +46,11 @@ export function ProgramDetailScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      if (skipNextFocusRefresh.current) {
+        skipNextFocusRefresh.current = false;
+        return;
+      }
+
       void refetch();
     }, [refetch]),
   );
@@ -54,6 +61,7 @@ export function ProgramDetailScreen() {
     : null;
   const completedLessonIds = progress?.completedLessonIds ?? [];
   const percentComplete = progress?.percentComplete ?? 0;
+  const totalLessons = detail?.weeks.reduce((count, week) => count + week.lessons.length, 0) ?? 0;
 
   const accessibleTotal = detail
     ? countAccessibleLessons(detail, hasAccess)
@@ -124,7 +132,7 @@ export function ProgramDetailScreen() {
             <RefreshControl
               refreshing={isRefreshing}
               onRefresh={() => void refetch()}
-              tintColor="#E8573A"
+              tintColor={colors.primary}
             />
           }
           showsVerticalScrollIndicator={false}
@@ -145,7 +153,7 @@ export function ProgramDetailScreen() {
             <View className="mt-4 flex-row items-center">
               <View className="mr-3 h-9 w-9 items-center justify-center rounded-full bg-primary">
                 <Text className="text-xs font-bold text-white">
-                  {detail.program.trainerName.charAt(0).toUpperCase()}
+                  {(detail.program.trainerName.charAt(0) || 'B').toUpperCase()}
                 </Text>
               </View>
               <Text className="font-medium text-ink">{detail.program.trainerName}</Text>
@@ -200,13 +208,18 @@ export function ProgramDetailScreen() {
 
           <View>
             <SectionHeader title="Estrutura do programa" subtitle="Semanas, aulas e status" />
-            {!hasAccess &&
-            detail.weeks.every(({ lessons }) =>
-              lessons.every((lesson) => !lesson.isFreePreview),
-            ) ? (
+            {totalLessons === 0 ? (
+              <EmptyState
+                title="Nenhuma aula cadastrada"
+                description="Este programa ainda não tem aulas. Volte mais tarde ou avise a treinadora."
+              />
+            ) : !hasAccess &&
+              detail.weeks.every(({ lessons }) =>
+                lessons.every((lesson) => !lesson.isFreePreview),
+              ) ? (
               <EmptyState
                 title="Conteúdo bloqueado"
-                description="Peça ao administrador para liberar o acesso a este programa."
+                description="Peça à treinadora para liberar o acesso a este programa."
               />
             ) : (
               <WeekLessonList
@@ -227,6 +240,15 @@ export function ProgramDetailScreen() {
           <EmptyState
             title="Programa não encontrado"
             description="Verifique se o programa ainda está disponível no catálogo."
+          />
+        </View>
+      ) : null}
+
+      {!isLoading && !error && !programId ? (
+        <View className="flex-1 px-5 pt-2">
+          <EmptyState
+            title="Programa inválido"
+            description="Não foi possível identificar o programa. Volte à lista e tente novamente."
           />
         </View>
       ) : null}

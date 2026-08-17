@@ -50,11 +50,16 @@ export function WeekLessonList({
     };
   }, [weeks, downloadStates]);
 
-  if (weeks.length === 0) {
+  const hasVisibleLessons = weeks.some(({ lessons }) =>
+    lessons.some((lesson) => hasFullAccess || lesson.isFreePreview),
+  );
+
+  if (weeks.length === 0 || !hasVisibleLessons) {
     return (
       <View className="rounded-card border border-line bg-surface p-5">
         <Text className="text-muted">
-          Nenhuma aula disponível. Solicite acesso ao programa para ver o conteúdo completo.
+          Nenhuma aula disponível neste programa. Peça à treinadora para cadastrar o conteúdo ou
+          liberar o acesso.
         </Text>
       </View>
     );

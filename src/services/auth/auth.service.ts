@@ -5,9 +5,11 @@ import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 
 import { APP_SCHEME } from '@/shared/constants/app';
 import { getDisplayPersonName, parseRequiredFullName } from '@/shared/utils/person-name';
+import { parseRequiredWhatsAppPhone } from '@/shared/utils/phone';
 
 import { getSupabaseClient, isSupabaseConfigured } from '../supabase';
 import type { ProfileRow } from '../supabase/types';
+import { DATA_FETCH_TIMEOUT_MS, withTimeout } from '../shared/with-timeout';
 import {
   AuthServiceError,
   mapSupabaseAuthError,
@@ -20,6 +22,7 @@ import {
 const PROFILE_BASE_COLUMNS = 'id, name, email, role, avatar_url, created_at, updated_at';
 const PROFILE_COACHING_COLUMNS =
   `${PROFILE_BASE_COLUMNS}, weight_kg, height_cm, age, goal, onboarding_completed_at`;
+const PROFILE_COACHING_COLUMNS_WITH_PHONE = `${PROFILE_COACHING_COLUMNS}, phone`;
 
 function isMissingColumnError(error: { message?: string; code?: string } | null): boolean {
   const message = error?.message?.toLowerCase() ?? '';
@@ -33,11 +36,20 @@ function isMissingColumnError(error: { message?: string; code?: string } | null)
 
 async function fetchProfile(userId: string): Promise<ProfileRow | null> {
   const supabase = getSupabaseClient();
-  const fullResult = await supabase
+  const withPhone = await supabase
     .from('profiles')
-    .select(PROFILE_COACHING_COLUMNS)
+    .select(PROFILE_COACHING_COLUMNS_WITH_PHONE)
     .eq('id', userId)
     .maybeSingle();
+
+  const fullResult =
+    withPhone.error && isMissingColumnError(withPhone.error)
+      ? await supabase
+          .from('profiles')
+          .select(PROFILE_COACHING_COLUMNS)
+          .eq('id', userId)
+          .maybeSingle()
+      : withPhone;
 
   const source =
     fullResult.error && isMissingColumnError(fullResult.error)
@@ -73,6 +85,7 @@ async function fetchProfile(userId: string): Promise<ProfileRow | null> {
     onboarding_completed_at: coachingReady
       ? (row.onboarding_completed_at ?? null)
       : 'schema-pending',
+    phone: row.phone ?? null,
     created_at: row.created_at,
     updated_at: row.updated_at,
   };
@@ -126,6 +139,10 @@ export async function signUpWithEmail(input: SignUpInput): Promise<AuthSession |
   const supabase = getSupabaseClient();
   const email = input.email.trim();
   const name = requireFullPersonName(input.name);
+  const parsedPhone = input.phone ? parseRequiredWhatsAppPhone(input.phone) : { phone: undefined };
+  if ('error' in parsedPhone) {
+    throw new AuthServiceError('unknown', undefined, parsedPhone.error);
+  }
 
   const { data, error } = await supabase.auth.signUp({
     email,
@@ -135,6 +152,7 @@ export async function signUpWithEmail(input: SignUpInput): Promise<AuthSession |
         name,
         full_name: name,
         role: 'student',
+        phone: parsedPhone.phone,
       },
     },
   });
@@ -153,6 +171,7 @@ export async function signUpWithEmail(input: SignUpInput): Promise<AuthSession |
       name,
       email,
       role: 'student',
+      ...(parsedPhone.phone ? { phone: parsedPhone.phone } : {}),
     },
     { onConflict: 'id' },
   );
@@ -228,7 +247,7 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
 }
 
 const ADMIN_SQL_HINT =
-  'No SQL Editor do Supabase, cole e execute o arquivo supabase/fix-admin.sql. Depois toque em Sou admin de novo.';
+  'No SQL Editor do Supabase, cole e execute o arquivo supabase/lock-admin-email.sql. Depois toque em Sou admin de novo.';
 
 function isMissingRpcError(error: { message?: string; code?: string }): boolean {
   const message = error.message?.toLowerCase() ?? '';
@@ -327,6 +346,27 @@ export async function promoteCurrentUserToAdmin(): Promise<AuthSession> {
 
   await ensureOwnProfileRow(user);
 
+  try {
+    return await withTimeout(
+      completeAdminPromotion(user.id),
+      DATA_FETCH_TIMEOUT_MS,
+      `A promoção a admin demorou demais. ${ADMIN_SQL_HINT}`,
+    );
+  } catch (error) {
+    if (error instanceof AuthServiceError) {
+      throw error;
+    }
+
+    throw new AuthServiceError(
+      'unknown',
+      error,
+      `Não foi possível promover esta conta a admin. ${ADMIN_SQL_HINT}`,
+    );
+  }
+}
+
+async function completeAdminPromotion(userId: string): Promise<AuthSession> {
+  const supabase = getSupabaseClient();
   const rpcResult = await supabase.rpc('claim_coach_role');
 
   if (rpcResult.error) {
@@ -337,7 +377,7 @@ export async function promoteCurrentUserToAdmin(): Promise<AuthSession> {
     const { data: updated, error: updateError } = await supabase
       .from('profiles')
       .update({ role: 'admin' })
-      .eq('id', user.id)
+      .eq('id', userId)
       .select('id, role')
       .maybeSingle();
 
@@ -357,13 +397,21 @@ export async function promoteCurrentUserToAdmin(): Promise<AuthSession> {
     }
   }
 
-  const session = await getCurrentSession();
+  const promotedProfile =
+    rpcResult.data && !rpcResult.error ? (rpcResult.data as ProfileRow) : await fetchProfile(userId);
 
-  if (!session) {
+  const {
+    data: { session },
+    error: sessionError,
+  } = await supabase.auth.getSession();
+
+  if (sessionError || !session) {
     throw new AuthServiceError('session_expired');
   }
 
-  if (session.user.role !== 'admin') {
+  const mapped = mapSupabaseUserToAuthUser(session.user, promotedProfile);
+
+  if (mapped.role !== 'admin') {
     throw new AuthServiceError(
       'unknown',
       undefined,
@@ -371,7 +419,7 @@ export async function promoteCurrentUserToAdmin(): Promise<AuthSession> {
     );
   }
 
-  return session;
+  return mapSupabaseSessionToAuthSession(session, mapped);
 }
 
 export async function completeStudentOnboarding(
@@ -390,81 +438,167 @@ export async function completeStudentOnboarding(
   }
 
   const name = requireFullPersonName(input.name);
+  const parsedPhone = parseRequiredWhatsAppPhone(input.phone);
+  if ('error' in parsedPhone) {
+    throw new AuthServiceError('unknown', undefined, parsedPhone.error);
+  }
+  const phone = parsedPhone.phone;
+  const weightKg = Math.round(input.weightKg * 100) / 100;
+  const heightCm = Math.round(input.heightCm * 10) / 10;
+  const age = Math.round(input.age);
+  const completedAt = new Date().toISOString();
 
-  const { error } = await supabase
+  await ensureOwnProfileRow(user);
+
+  const coachingPayload = {
+    name,
+    phone,
+    weight_kg: weightKg,
+    height_cm: heightCm,
+    age,
+    goal: input.goal,
+    onboarding_completed_at: completedAt,
+  };
+
+  const updated = await supabase
     .from('profiles')
-    .update({
-      name,
-      weight_kg: input.weightKg,
-      height_cm: input.heightCm,
-      age: input.age,
-      goal: input.goal,
-      onboarding_completed_at: new Date().toISOString(),
-    })
-    .eq('id', user.id);
+    .update(coachingPayload)
+    .eq('id', user.id)
+    .select(PROFILE_COACHING_COLUMNS_WITH_PHONE)
+    .maybeSingle();
+
+  let savedProfile: ProfileRow | null = null;
+
+  if (updated.error && isMissingColumnError(updated.error)) {
+    const { error: retryWithoutPhone } = await supabase
+      .from('profiles')
+      .update({
+        name,
+        weight_kg: weightKg,
+        height_cm: heightCm,
+        age,
+        goal: input.goal,
+        onboarding_completed_at: completedAt,
+      })
+      .eq('id', user.id);
+    if (retryWithoutPhone && isMissingColumnError(retryWithoutPhone)) {
+      const { error: nameError } = await supabase.from('profiles').update({ name }).eq('id', user.id);
+      if (nameError && !isMissingColumnError(nameError)) {
+        throw new AuthServiceError(
+          'unknown',
+          nameError,
+          'Não foi possível salvar seu nome. Tente novamente.',
+        );
+      }
+    } else if (retryWithoutPhone) {
+      throw new AuthServiceError(
+        'unknown',
+        retryWithoutPhone,
+        'Não foi possível salvar peso, altura, idade e objetivo. Tente novamente.',
+      );
+    }
+  } else if (updated.error) {
+    throw new AuthServiceError(
+      'unknown',
+      updated.error,
+      'Não foi possível salvar peso, altura, idade e objetivo. Tente novamente.',
+    );
+  } else if (updated.data) {
+    savedProfile = await fetchProfile(user.id);
+  } else {
+    const { error: upsertError } = await supabase.from('profiles').upsert(
+      {
+        id: user.id,
+        name,
+        email: user.email ?? `${user.id}@local`,
+        role: 'student',
+      },
+      { onConflict: 'id' },
+    );
+
+    if (upsertError && !isMissingColumnError(upsertError)) {
+      throw new AuthServiceError(
+        'unknown',
+        upsertError,
+        'Não foi possível salvar seus dados. Tente novamente.',
+      );
+    }
+
+    const { error: retryError } = await supabase
+      .from('profiles')
+      .update(coachingPayload)
+      .eq('id', user.id);
+
+    if (retryError && !isMissingColumnError(retryError)) {
+      throw new AuthServiceError(
+        'unknown',
+        retryError,
+        'Não foi possível salvar peso, altura, idade e objetivo. Tente novamente.',
+      );
+    }
+
+    savedProfile = await fetchProfile(user.id);
+  }
 
   const { error: metadataError } = await supabase.auth.updateUser({
     data: {
       name,
       full_name: name,
-      weight_kg: input.weightKg,
-      height_cm: input.heightCm,
-      age: input.age,
+      weight_kg: weightKg,
+      height_cm: heightCm,
+      age,
       goal: input.goal,
+      phone,
       onboarding_completed: true,
     },
   });
-
-  if (error && !isMissingColumnError(error)) {
-    throw new AuthServiceError('unknown', error, error.message);
-  }
 
   if (metadataError) {
     throw mapSupabaseAuthError(metadataError);
   }
 
-  if (!error) {
-    await supabase.from('body_logs').insert({
-      user_id: user.id,
-      weight_kg: input.weightKg,
-      recorded_at: new Date().toISOString().slice(0, 10),
-    });
-  }
+  await supabase.from('body_logs').insert({
+    user_id: user.id,
+    weight_kg: weightKg,
+    recorded_at: new Date().toISOString().slice(0, 10),
+  });
 
   const {
     data: { user: refreshedUser },
   } = await supabase.auth.getUser();
-  const session = await getCurrentSession();
+  const {
+    data: { session },
+    error: sessionError,
+  } = await supabase.auth.getSession();
 
-  if (!session) {
+  if (sessionError || !session) {
     throw new AuthServiceError('session_expired');
   }
 
-  if (refreshedUser) {
-    return {
-      ...session,
-      user: mapSupabaseUserToAuthUser(refreshedUser, {
-        id: session.user.id,
-        name,
-        email: session.user.email,
-        role: session.user.role,
-        avatar_url: session.user.avatarUrl ?? null,
-        push_notifications_enabled: false,
-        expo_push_token: null,
-        push_platform: null,
-        push_token_updated_at: null,
-        weight_kg: input.weightKg,
-        height_cm: input.heightCm,
-        age: input.age,
-        goal: input.goal,
-        onboarding_completed_at: new Date().toISOString(),
-        created_at: '',
-        updated_at: '',
-      }),
-    };
-  }
+  const overlayProfile: ProfileRow = {
+    id: user.id,
+    name,
+    email: refreshedUser?.email ?? user.email ?? session.user.email ?? '',
+    role: savedProfile?.role ?? 'student',
+    avatar_url: savedProfile?.avatar_url ?? null,
+    push_notifications_enabled: savedProfile?.push_notifications_enabled ?? false,
+    expo_push_token: savedProfile?.expo_push_token ?? null,
+    push_platform: savedProfile?.push_platform ?? null,
+    push_token_updated_at: savedProfile?.push_token_updated_at ?? null,
+    weight_kg: savedProfile?.weight_kg ?? weightKg,
+    height_cm: savedProfile?.height_cm ?? heightCm,
+    age: savedProfile?.age ?? age,
+    goal: savedProfile?.goal ?? input.goal,
+    onboarding_completed_at: savedProfile?.onboarding_completed_at ?? completedAt,
+    phone: savedProfile?.phone ?? phone,
+    created_at: savedProfile?.created_at ?? completedAt,
+    updated_at: savedProfile?.updated_at ?? completedAt,
+  };
 
-  return session;
+  return mapSupabaseSessionToAuthSession(
+    session,
+    mapSupabaseUserToAuthUser(refreshedUser ?? user, overlayProfile),
+  );
 }
 
 export function onAuthStateChange(
@@ -483,10 +617,19 @@ export function onAuthStateChange(
         return;
       }
 
-      const authSession = await buildAuthSession(session);
+      const authSession = await withTimeout(
+        buildAuthSession(session),
+        DATA_FETCH_TIMEOUT_MS,
+        'Não foi possível validar a sessão. Tente entrar novamente.',
+      );
       callback(authSession);
     } catch {
-      callback(null);
+      if (!session) {
+        callback(null);
+        return;
+      }
+
+      callback(mapSupabaseSessionToAuthSession(session, mapSupabaseUserToAuthUser(session.user)));
     }
   });
 

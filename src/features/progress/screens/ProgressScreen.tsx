@@ -1,3 +1,4 @@
+import { colors } from '@/shared/theme';
 import { CoachingPlanSection, CompletionHistorySection, ProgressProgramCard } from '@/features/progress/components';
 import { useStudentProgress } from '@/features/progress/hooks';
 import { OfflineBanner, SyncStatusBanner } from '@/features/offline';
@@ -45,7 +46,7 @@ export function ProgressScreen() {
             <RefreshControl
               refreshing={isRefreshing}
               onRefresh={() => void refetch()}
-              tintColor="#E8573A"
+              tintColor={colors.primary}
             />
           }
           showsVerticalScrollIndicator={false}
@@ -60,7 +61,7 @@ export function ProgressScreen() {
           {!isLoading && !error && items.length === 0 ? (
             <EmptyState
               title="Nenhum progresso ainda"
-              description="Entre em um programa, assista uma aula e marque como concluída para começar a acompanhar sua evolução."
+              description="Quando você assistir e concluir aulas de um programa, o histórico aparece aqui. Os treinos da academia ficam na aba Treinos."
             />
           ) : (
             items.map((item) => <ProgressProgramCard key={item.program.id} item={item} />)

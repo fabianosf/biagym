@@ -1,3 +1,4 @@
+import { colors } from '@/shared/theme';
 import {
   AdminShell,
   VideoUploadField,
@@ -15,6 +16,7 @@ import {
   uploadLessonVideo,
 } from '@/services';
 import type { Week } from '@/domain/program';
+import { resolveRouteParam } from '@/shared/utils';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
@@ -28,15 +30,16 @@ import {
 
 export function AdminLessonFormScreen() {
   const router = useRouter();
-  const { id, lessonId, weekId: weekIdParam } = useLocalSearchParams<{
-    id: string;
-    lessonId?: string;
-    weekId?: string;
+  const params = useLocalSearchParams<{
+    id?: string | string[];
+    lessonId?: string | string[];
+    weekId?: string | string[];
   }>();
 
-  const programId = typeof id === 'string' ? id : undefined;
-  const isEditing = Boolean(lessonId);
-  const selectedLessonId = typeof lessonId === 'string' ? lessonId : undefined;
+  const programId = resolveRouteParam(params.id);
+  const isEditing = Boolean(resolveRouteParam(params.lessonId));
+  const selectedLessonId = resolveRouteParam(params.lessonId);
+  const weekIdParam = resolveRouteParam(params.weekId);
 
   const [weeks, setWeeks] = useState<Week[]>([]);
   const [selectedWeekId, setSelectedWeekId] = useState<string>('');
@@ -56,6 +59,8 @@ export function AdminLessonFormScreen() {
 
   const load = useCallback(async () => {
     if (!programId) {
+      setError('Identificador do programa inválido.');
+      setIsLoading(false);
       return;
     }
 
@@ -70,10 +75,7 @@ export function AdminLessonFormScreen() {
       const weekList = detail.weeks.map(({ week }) => week);
       setWeeks(weekList);
 
-      const initialWeekId =
-        (typeof weekIdParam === 'string' ? weekIdParam : undefined) ??
-        weekList[0]?.id ??
-        '';
+      const initialWeekId = weekIdParam ?? weekList[0]?.id ?? '';
 
       if (isEditing && selectedLessonId) {
         const lesson = detail.weeks
@@ -287,7 +289,7 @@ export function AdminLessonFormScreen() {
             <Switch
               value={isFreePreview}
               onValueChange={setIsFreePreview}
-              trackColor={{ false: '#ECECEC', true: '#E8573A' }}
+              trackColor={{ false: '#ECECEC', true: colors.primary }}
               thumbColor="#FFFFFF"
             />
           </View>

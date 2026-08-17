@@ -2,10 +2,10 @@ import { Link } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 
-import { APP_NAME } from '@/shared/constants/app';
 import { routes } from '@/shared/constants/routes';
 import {
   AppScreen,
+  BrandMark,
   Button,
   Card,
   FeedbackBanner,
@@ -85,7 +85,7 @@ export function SignInScreen() {
   }
 
   return (
-    <View className="flex-1 bg-background" style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+    <View className="flex-1 bg-background">
       <AppScreen edges={['top', 'left', 'right', 'bottom']} className="bg-background">
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -98,9 +98,7 @@ export function SignInScreen() {
             showsVerticalScrollIndicator={false}
           >
             <View className="mb-8 items-center">
-              <Text className="text-[22px] font-extrabold tracking-[1.8px] text-primary">
-                {APP_NAME.toUpperCase()}
-              </Text>
+              <BrandMark size={56} showName={false} />
               <Text className="mt-3 text-center text-base leading-6 text-muted">
                 Treinos, aulas e progresso no seu ritmo.
               </Text>

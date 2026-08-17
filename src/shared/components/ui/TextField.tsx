@@ -2,14 +2,16 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useState } from 'react';
 import { Text, TextInput, View } from 'react-native';
 
+import { useThemeColors } from '@/shared/theme';
+
 type TextFieldProps = {
   label: string;
   value: string;
   onChangeText: (value: string) => void;
   placeholder?: string;
-  keyboardType?: 'default' | 'email-address' | 'numeric' | 'decimal-pad' | 'number-pad';
+  keyboardType?: 'default' | 'email-address' | 'numeric' | 'decimal-pad' | 'number-pad' | 'phone-pad';
   autoCapitalize?: 'none' | 'words';
-  autoComplete?: 'email' | 'name';
+  autoComplete?: 'email' | 'name' | 'tel';
   icon?: keyof typeof Ionicons.glyphMap;
   error?: string | null;
 };
@@ -26,6 +28,7 @@ export function TextField({
   error,
 }: TextFieldProps) {
   const [focused, setFocused] = useState(false);
+  const colors = useThemeColors();
 
   return (
     <View>
@@ -35,7 +38,7 @@ export function TextField({
           error ? 'border-red-500/60' : focused ? 'border-primary/50' : 'border-line'
         }`}
       >
-        <Ionicons name={icon} size={18} color={focused ? '#E8573A' : '#9B9B9B'} />
+        <Ionicons name={icon} size={18} color={focused ? colors.primary : colors.faint} />
         <TextInput
           autoCapitalize={autoCapitalize}
           autoComplete={autoComplete}
@@ -43,7 +46,7 @@ export function TextField({
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor="#9B9B9B"
+          placeholderTextColor={colors.faint}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
           className="flex-1 px-3 py-3.5 text-base text-ink"

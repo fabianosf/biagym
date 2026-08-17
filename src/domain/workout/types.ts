@@ -124,6 +124,7 @@ export interface WorkoutSession {
   readonly completedAt: string;
 }
 
+/** Libera um treino do catálogo para um aluno. Sem grant, o aluno não vê o treino. */
 export interface TrainingPlanGrant {
   readonly id: string;
   readonly userId: string;

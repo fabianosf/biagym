@@ -14,6 +14,7 @@ import {
 import { isSupabaseConfigured } from '@/services/supabase';
 
 import { parseRequiredFullName } from '@/shared/utils/person-name';
+import { parseOptionalWhatsAppPhone } from '@/shared/utils/phone';
 
 import { useAuth } from '../hooks/useAuth';
 
@@ -21,6 +22,7 @@ export function SignUpScreen() {
   const { signUp, isLoading, error, infoMessage, clearError, clearInfoMessage } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [validationError, setValidationError] = useState<string | null>(null);
 
@@ -42,6 +44,12 @@ export function SignUpScreen() {
       return;
     }
 
+    const parsedPhone = parseOptionalWhatsAppPhone(phone);
+    if ('error' in parsedPhone) {
+      setValidationError(parsedPhone.error);
+      return;
+    }
+
     if (password.length < 6) {
       setValidationError('A senha deve ter pelo menos 6 caracteres.');
       return;
@@ -52,6 +60,7 @@ export function SignUpScreen() {
         name: parsedName.name,
         email: email.trim(),
         password,
+        phone: parsedPhone.phone,
       });
     } catch {
       // Erro já tratado no store.
@@ -59,7 +68,7 @@ export function SignUpScreen() {
   }
 
   return (
-    <View className="flex-1 bg-background" style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+    <View className="flex-1 bg-background">
       <AppScreen edges={['top', 'left', 'right', 'bottom']} className="bg-background">
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -110,6 +119,15 @@ export function SignUpScreen() {
                   placeholder="seu@email.com"
                   keyboardType="email-address"
                   autoComplete="email"
+                />
+                <TextField
+                  label="WhatsApp"
+                  value={phone}
+                  onChangeText={setPhone}
+                  placeholder="(11) 98888-8888"
+                  keyboardType="phone-pad"
+                  autoComplete="tel"
+                  icon="logo-whatsapp"
                 />
                 <PasswordField
                   label="Senha"

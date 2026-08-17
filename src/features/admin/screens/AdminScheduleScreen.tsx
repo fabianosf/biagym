@@ -1,4 +1,6 @@
 import { AdminStudentSearch, AdminShell } from '@/features/admin/components';
+import { useAdminFocusedStudent } from '@/features/admin/hooks/useAdminFocusedStudent';
+import { getStudentFirstName } from '@/features/admin/utils/student-label';
 import { useAuth } from '@/features/auth';
 import { WEEKDAY_LABELS, WEEKDAYS, type TrainingSlot, type Weekday } from '@/domain/schedule';
 import type { StudentProfile } from '@/domain/student';
@@ -8,14 +10,13 @@ import {
   getDataErrorMessage,
   listTrainingSlots,
 } from '@/services';
-import { Button, LoadingIndicator, TextField } from '@/shared/components';
-import { useRouter } from 'expo-router';
+import { Button, ErrorState, LoadingIndicator, TextField } from '@/shared/components';
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
 export function AdminScheduleScreen() {
-  const router = useRouter();
   const { user } = useAuth();
+  const { focusedStudentId, student: focusedStudent, goBackToStudent } = useAdminFocusedStudent();
   const [slots, setSlots] = useState<TrainingSlot[]>([]);
   const [selectedStudent, setSelectedStudent] = useState<StudentProfile | null>(null);
   const [weekday, setWeekday] = useState<Weekday>(1);
@@ -30,21 +31,30 @@ export function AdminScheduleScreen() {
   const loadSlots = useCallback(async () => {
     setError(null);
     try {
-      const data = await listTrainingSlots();
+      const data = await listTrainingSlots(focusedStudentId || undefined);
       setSlots(data);
     } catch (err) {
       setError(getDataErrorMessage(err));
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [focusedStudentId]);
 
   useEffect(() => {
     void loadSlots();
   }, [loadSlots]);
 
+  useEffect(() => {
+    if (focusedStudent) {
+      setSelectedStudent(focusedStudent);
+    }
+  }, [focusedStudent]);
+
+  const firstName = focusedStudent ? getStudentFirstName(focusedStudent.name) : null;
+  const targetStudent = focusedStudent ?? selectedStudent;
+
   async function handleCreate() {
-    if (!user || !selectedStudent) {
+    if (!user || !targetStudent) {
       setError('Selecione um aluno para agendar o treino.');
       return;
     }
@@ -65,7 +75,7 @@ export function AdminScheduleScreen() {
 
     try {
       await adminCreateTrainingSlot({
-        studentUserId: selectedStudent.userId,
+        studentUserId: targetStudent.userId,
         weekday,
         startTime: startTime.trim(),
         durationMinutes,
@@ -93,19 +103,35 @@ export function AdminScheduleScreen() {
 
   return (
     <AdminShell
-      title="Agenda"
-      subtitle="Defina os horários de treino de cada aluno."
+      title={firstName ? `Agenda de ${firstName}` : 'Agenda'}
+      subtitle={
+        focusedStudent
+          ? `Horários só de ${focusedStudent.name}.`
+          : 'Defina os horários de treino de cada aluno.'
+      }
       showBack
-      onBack={() => router.back()}
+      onBack={goBackToStudent}
     >
       {isLoading ? <LoadingIndicator fullScreen message="Carregando agenda..." /> : null}
 
-      {!isLoading ? (
+      {!isLoading && error && slots.length === 0 ? (
+        <View className="px-5 pt-2">
+          <ErrorState message={error} onRetry={() => void loadSlots()} />
+        </View>
+      ) : null}
+
+      {!isLoading && (slots.length > 0 || !error) ? (
         <ScrollView className="flex-1" contentContainerClassName="gap-5 px-5 pb-12">
           {error ? <Text className="text-sm text-red-400">{error}</Text> : null}
 
           <View className="rounded-card border border-line bg-surface p-5 gap-4">
-            <AdminStudentSearch selected={selectedStudent} onSelect={setSelectedStudent} />
+            {focusedStudentId ? (
+              <Text className="text-sm text-muted">
+                Individual: {focusedStudent?.name ?? 'este aluno'}
+              </Text>
+            ) : (
+              <AdminStudentSearch selected={selectedStudent} onSelect={setSelectedStudent} />
+            )}
             <Text className="text-sm font-medium text-muted">Dia da semana</Text>
             <View className="flex-row flex-wrap gap-2">
               {WEEKDAYS.map((day) => (
@@ -152,14 +178,16 @@ export function AdminScheduleScreen() {
               icon="chatbubble-outline"
             />
             <Button
-              label="Agendar treino"
+              label={firstName ? `Salvar horário de ${firstName}` : 'Agendar treino'}
               loading={isSaving}
               onPress={() => void handleCreate()}
             />
           </View>
 
           <View className="gap-3">
-            <Text className="text-lg font-semibold text-ink">Horários cadastrados</Text>
+            <Text className="text-lg font-semibold text-ink">
+              {firstName ? `Horários de ${firstName}` : 'Horários cadastrados'}
+            </Text>
             {slots.length === 0 ? (
               <Text className="text-muted">Nenhum horário ainda.</Text>
             ) : (

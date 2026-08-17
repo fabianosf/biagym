@@ -1,3 +1,4 @@
+import { colors } from '@/shared/theme';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Link, type Href } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
@@ -14,7 +15,7 @@ export function AdminNavCard({ title, description, href, icon }: AdminNavCardPro
     <Link href={href} asChild>
       <Pressable className="flex-row items-center rounded-card border border-line bg-surface p-5 active:opacity-90">
         <View className="mr-4 h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
-          <Ionicons name={icon} size={24} color="#E8573A" />
+          <Ionicons name={icon} size={24} color={colors.primary} />
         </View>
         <View className="flex-1">
           <Text className="text-base font-semibold text-ink">{title}</Text>

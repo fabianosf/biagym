@@ -1,6 +1,8 @@
+import { BrandMark } from '@/shared/components';
+import { colors } from '@/shared/theme';
 import { useAuth } from '@/features/auth';
 import { useAuthStore } from '@/features/auth/store/auth.store';
-import { APP_NAME, getSupabaseSqlEditorUrl } from '@/shared/constants/app';
+import { getSupabaseSqlEditorUrl } from '@/shared/constants/app';
 import { routes } from '@/shared/constants/routes';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Linking from 'expo-linking';
@@ -71,22 +73,12 @@ export function BrandHeader({ showBrand = true, title }: BrandHeaderProps) {
   }
 
   return (
-    <View
-      className="bg-background px-5 pb-3"
-      style={{ paddingTop: insets.top + 6, backgroundColor: '#FFFFFF' }}
-    >
+    <View className="bg-background px-5 pb-3" style={{ paddingTop: insets.top + 6 }}>
       <View className="flex-row items-center justify-between">
         {showBrand ? (
-          <Text
-            className="text-[18px] font-extrabold tracking-[1.4px] text-primary"
-            style={{ color: '#E8573A', fontWeight: '800', fontSize: 18 }}
-          >
-            {APP_NAME.toUpperCase()}
-          </Text>
+          <BrandMark />
         ) : (
-          <Text className="text-[28px] font-bold text-ink" style={{ color: '#1A1A1A' }}>
-            {title}
-          </Text>
+          <Text className="text-[28px] font-bold text-ink">{title}</Text>
         )}
 
         <View className="flex-row items-center gap-2">
@@ -95,7 +87,6 @@ export function BrandHeader({ showBrand = true, title }: BrandHeaderProps) {
               onPress={() => void handleAdminPress()}
               disabled={isLoading}
               className="rounded-full bg-primary px-3 py-1.5"
-              style={{ backgroundColor: '#E8573A' }}
               accessibilityRole="button"
               accessibilityLabel="Abrir painel admin"
             >
@@ -110,7 +101,7 @@ export function BrandHeader({ showBrand = true, title }: BrandHeaderProps) {
             accessibilityRole="button"
             accessibilityLabel="Notificações"
           >
-            <Ionicons name="notifications-outline" size={22} color="#1A1A1A" />
+            <Ionicons name="notifications-outline" size={22} color={colors.ink} />
           </Pressable>
         </View>
       </View>

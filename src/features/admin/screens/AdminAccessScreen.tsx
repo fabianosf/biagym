@@ -1,13 +1,16 @@
+import { colors } from '@/shared/theme';
 import { AdminShell } from '@/features/admin/components';
 import { useAuth } from '@/features/auth';
-import { Button, ErrorState, LoadingIndicator } from '@/shared/components';
+import { Button, EmptyState, ErrorState, LoadingIndicator } from '@/shared/components';
 import {
   adminGrantProgramAccess,
   adminListProgramAccessGrants,
   adminRevokeAccessGrant,
   adminSearchStudents,
+  DATA_FETCH_TIMEOUT_MS,
   getDataErrorMessage,
   listAdminPrograms,
+  withTimeout,
 } from '@/services';
 import type { AccessGrantWithUser } from '@/services';
 import type { ProgramSummary, UserRef } from '@/domain';
@@ -41,8 +44,13 @@ export function AdminAccessScreen() {
 
   const loadPrograms = useCallback(async () => {
     setError(null);
+    setIsLoading(true);
     try {
-      const data = await listAdminPrograms();
+      const data = await withTimeout(
+        listAdminPrograms(),
+        DATA_FETCH_TIMEOUT_MS,
+        'Os programas demoraram demais para carregar. Tente novamente.',
+      );
       setPrograms(data);
       if (data[0]) {
         setSelectedProgramId(data[0].id);
@@ -61,7 +69,11 @@ export function AdminAccessScreen() {
     }
 
     try {
-      const data = await adminListProgramAccessGrants(selectedProgramId);
+      const data = await withTimeout(
+        adminListProgramAccessGrants(selectedProgramId),
+        DATA_FETCH_TIMEOUT_MS,
+        'As liberações demoraram demais para carregar. Tente novamente.',
+      );
       setGrants(data);
     } catch (err) {
       setError(getDataErrorMessage(err));
@@ -77,11 +89,23 @@ export function AdminAccessScreen() {
   }, [loadGrants]);
 
   async function handleSearch() {
+    if (searchQuery.trim().length < 2) {
+      setError('Digite pelo menos 2 caracteres para buscar o aluno.');
+      return;
+    }
+
     setIsSearching(true);
     setError(null);
     try {
-      const results = await adminSearchStudents(searchQuery);
+      const results = await withTimeout(
+        adminSearchStudents(searchQuery),
+        DATA_FETCH_TIMEOUT_MS,
+        'A busca de alunos demorou demais. Tente novamente.',
+      );
       setStudents(results);
+      if (results.length === 0) {
+        setError(null);
+      }
     } catch (err) {
       setError(getDataErrorMessage(err));
     } finally {
@@ -136,7 +160,22 @@ export function AdminAccessScreen() {
     >
       {isLoading ? <LoadingIndicator fullScreen message="Carregando..." /> : null}
 
-      {!isLoading ? (
+      {!isLoading && error && programs.length === 0 ? (
+        <View className="px-5 pt-4">
+          <ErrorState message={error} onRetry={() => void loadPrograms()} />
+        </View>
+      ) : null}
+
+      {!isLoading && !error && programs.length === 0 ? (
+        <View className="px-5 pt-4">
+          <EmptyState
+            title="Nenhum programa cadastrado"
+            description="Crie e publique um programa antes de liberar o acesso dos alunos."
+          />
+        </View>
+      ) : null}
+
+      {!isLoading && programs.length > 0 ? (
         <ScrollView className="flex-1" contentContainerClassName="gap-5 px-5 py-4 pb-10">
           <View>
             <Text className="mb-2 text-sm text-muted">Programa</Text>
@@ -180,13 +219,16 @@ export function AdminAccessScreen() {
               className="mt-3 min-h-[48px] items-center justify-center rounded-2xl border border-primary/40"
             >
               {isSearching ? (
-                <ActivityIndicator color="#E8573A" />
+                <ActivityIndicator color={colors.primary} />
               ) : (
                 <Text className="font-semibold text-primary">Buscar</Text>
               )}
             </Pressable>
 
             <View className="mt-3 gap-2">
+              {searchQuery.trim().length >= 2 && students.length === 0 && !isSearching ? (
+                <Text className="text-sm text-muted">Nenhum aluno encontrado para essa busca.</Text>
+              ) : null}
               {students.map((student) => (
                 <Pressable
                   key={student.id}
@@ -242,12 +284,6 @@ export function AdminAccessScreen() {
           {error ? <Text className="text-sm text-red-400">{error}</Text> : null}
           {success ? <Text className="text-sm text-primary">{success}</Text> : null}
         </ScrollView>
-      ) : null}
-
-      {!isLoading && error && programs.length === 0 ? (
-        <View className="px-5 pt-4">
-          <ErrorState message={error} onRetry={() => void loadPrograms()} />
-        </View>
       ) : null}
     </AdminShell>
   );

@@ -117,7 +117,7 @@ async function ensureProgram() {
       slug: PROGRAM_SLUG,
       description: 'Programa introdutório com aulas em vídeo de exemplo.',
       cover_url: 'https://placehold.co/800x450',
-      trainer_name: 'Coach TreinosAtleta',
+      trainer_name: 'Coach BiAGym',
       level: 'iniciante',
       duration_weeks: 4,
       is_published: true,

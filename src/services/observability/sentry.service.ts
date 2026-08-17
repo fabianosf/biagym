@@ -50,7 +50,7 @@ export function initSentry(): void {
     dsn: SENTRY_DSN,
     enabled: shouldEnableSentry(),
     environment: APP_ENV,
-    release: `${Constants.expoConfig?.slug ?? 'treinos-atleta'}@${Constants.expoConfig?.version ?? '1.0.0'}`,
+    release: `${Constants.expoConfig?.slug ?? 'biagym'}@${Constants.expoConfig?.version ?? '1.0.0'}`,
     dist:
       Constants.expoConfig?.ios?.buildNumber ??
       String(Constants.expoConfig?.android?.versionCode ?? '1'),
@@ -63,7 +63,7 @@ export function initSentry(): void {
     },
   });
 
-  Sentry.setTag('app.slug', Constants.expoConfig?.slug ?? 'treinos-atleta');
+  Sentry.setTag('app.slug', Constants.expoConfig?.slug ?? 'biagym');
   isInitialized = true;
 }
 

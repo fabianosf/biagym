@@ -1,12 +1,14 @@
 import type { ProgramDetail } from '@/domain/program';
 import type { UserProgress } from '@/domain/progress';
 import { useAuth } from '@/features/auth';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import {
+  DATA_FETCH_TIMEOUT_MS,
   getMergedProgramProgress,
   getProgramDetail,
   userHasProgramAccess,
+  withTimeout,
 } from '@/services';
 import { getFriendlyErrorMessage } from '@/shared/errors';
 
@@ -19,36 +21,85 @@ type ProgramDetailState = {
   error: string | null;
 };
 
+const INITIAL_STATE: ProgramDetailState = {
+  detail: null,
+  progress: null,
+  hasAccess: false,
+  isLoading: true,
+  isRefreshing: false,
+  error: null,
+};
+
 export function useProgramDetail(programId: string | undefined) {
-  const { user } = useAuth();
-  const [state, setState] = useState<ProgramDetailState>({
-    detail: null,
-    progress: null,
-    hasAccess: false,
-    isLoading: true,
-    isRefreshing: false,
-    error: null,
-  });
+  const { user, isInitialized } = useAuth();
+  const userId = user?.id;
+  const [state, setState] = useState<ProgramDetailState>(INITIAL_STATE);
+  const requestIdRef = useRef(0);
 
   const load = useCallback(
     async (isRefresh = false) => {
-      if (!programId || !user) {
-        setState((current) => ({ ...current, isLoading: false }));
+      const requestId = requestIdRef.current + 1;
+      requestIdRef.current = requestId;
+
+      const isStale = () => requestId !== requestIdRef.current;
+
+      if (!isInitialized) {
+        return;
+      }
+
+      if (!programId) {
+        setState({
+          ...INITIAL_STATE,
+          isLoading: false,
+          error: 'Identificador do programa inválido.',
+        });
+        return;
+      }
+
+      if (!userId) {
+        setState({
+          ...INITIAL_STATE,
+          isLoading: false,
+          error: 'Faça login para abrir este programa.',
+        });
         return;
       }
 
       if (isRefresh) {
         setState((current) => ({ ...current, isRefreshing: true, error: null }));
       } else {
-        setState((current) => ({ ...current, isLoading: true, error: null }));
+        setState((current) => ({
+          ...current,
+          isLoading: current.detail ? false : true,
+          isRefreshing: Boolean(current.detail),
+          error: null,
+        }));
       }
 
       try {
-        const [detail, progress, hasAccess] = await Promise.all([
-          getProgramDetail(programId),
-          getMergedProgramProgress(user.id, programId),
-          userHasProgramAccess(user.id, programId),
-        ]);
+        const [detailResult, progressResult, accessResult] = await withTimeout(
+          Promise.allSettled([
+            getProgramDetail(programId),
+            getMergedProgramProgress(userId, programId),
+            userHasProgramAccess(userId, programId),
+          ]),
+          DATA_FETCH_TIMEOUT_MS,
+          'O carregamento do programa demorou demais. Tente novamente.',
+        );
+
+        if (isStale()) {
+          return;
+        }
+
+        if (detailResult.status === 'rejected') {
+          throw detailResult.reason;
+        }
+
+        const detail = detailResult.value;
+        const progress =
+          progressResult.status === 'fulfilled' ? progressResult.value : null;
+        const hasAccess =
+          accessResult.status === 'fulfilled' ? accessResult.value : false;
 
         if (!detail) {
           setState({
@@ -71,6 +122,10 @@ export function useProgramDetail(programId: string | undefined) {
           error: null,
         });
       } catch (error) {
+        if (isStale()) {
+          return;
+        }
+
         setState((current) => ({
           ...current,
           isLoading: false,
@@ -79,20 +134,46 @@ export function useProgramDetail(programId: string | undefined) {
         }));
       }
     },
-    [programId, user],
+    [isInitialized, programId, userId],
   );
 
   useEffect(() => {
     void load(false);
+
+    return () => {
+      requestIdRef.current += 1;
+    };
   }, [load]);
+
+  useEffect(() => {
+    if (isInitialized) {
+      return;
+    }
+
+    const timeoutId = setTimeout(() => {
+      setState((current) =>
+        current.isLoading
+          ? {
+              ...current,
+              isLoading: false,
+              error: 'Não foi possível iniciar a sessão. Feche e abra o aplicativo novamente.',
+            }
+          : current,
+      );
+    }, DATA_FETCH_TIMEOUT_MS);
+
+    return () => clearTimeout(timeoutId);
+  }, [isInitialized]);
 
   const setProgress = useCallback((progress: UserProgress) => {
     setState((current) => ({ ...current, progress }));
   }, []);
 
+  const refetch = useCallback(() => load(true), [load]);
+
   return {
     ...state,
-    refetch: () => load(true),
+    refetch,
     setProgress,
   };
 }

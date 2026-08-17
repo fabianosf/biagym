@@ -1,3 +1,4 @@
+import { colors } from '@/shared/theme';
 import { AdminShell } from '@/features/admin/components';
 import { adminRoutes } from '@/shared/constants/admin-routes';
 import { ErrorState, LoadingIndicator } from '@/shared/components';
@@ -50,7 +51,7 @@ export function AdminProgramsListScreen() {
           className="flex-1"
           contentContainerClassName="gap-4 px-5 py-4 pb-10"
           refreshControl={
-            <RefreshControl refreshing={false} onRefresh={() => void load()} tintColor="#E8573A" />
+            <RefreshControl refreshing={false} onRefresh={() => void load()} tintColor={colors.primary} />
           }
         >
           <Link href={adminRoutes.programNew} asChild>

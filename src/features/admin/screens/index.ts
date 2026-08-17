@@ -1,0 +1,15 @@
+export { AdminAccessScreen } from '@/features/admin/screens/AdminAccessScreen';
+export { AdminExercisesScreen } from '@/features/admin/screens/AdminExercisesScreen';
+export { AdminHomeScreen } from '@/features/admin/screens/AdminHomeScreen';
+export { AdminLessonFormScreen } from '@/features/admin/screens/AdminLessonFormScreen';
+export { AdminMessagesScreen } from '@/features/admin/screens/AdminMessagesScreen';
+export { AdminNutritionScreen } from '@/features/admin/screens/AdminNutritionScreen';
+export { AdminProgramDetailScreen } from '@/features/admin/screens/AdminProgramDetailScreen';
+export { AdminProgramFormScreen } from '@/features/admin/screens/AdminProgramFormScreen';
+export { AdminProgramsListScreen } from '@/features/admin/screens/AdminProgramsListScreen';
+export { AdminScheduleScreen } from '@/features/admin/screens/AdminScheduleScreen';
+export { AdminStudentsScreen } from '@/features/admin/screens/AdminStudentsScreen';
+export { AdminVideosScreen } from '@/features/admin/screens/AdminVideosScreen';
+export { AdminWorkoutAccessScreen } from '@/features/admin/screens/AdminWorkoutAccessScreen';
+export { AdminWorkoutDetailScreen } from '@/features/admin/screens/AdminWorkoutDetailScreen';
+export { AdminWorkoutsScreen } from '@/features/admin/screens/AdminWorkoutsScreen';

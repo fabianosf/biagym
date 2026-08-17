@@ -1,0 +1,211 @@
+import { useAuth } from '@/features/auth';
+import { getFriendlyErrorMessage } from '@/shared/errors';
+import { isExpoGo } from '@/shared/runtime/expo-go';
+import {
+  disablePushNotifications,
+  enablePushNotifications,
+  getDevicePushPermissionStatus,
+  getNotificationPreferences,
+  refreshPushTokenIfEnabled,
+  sendTestPushNotification,
+} from '@/services';
+import type { NotificationPreferences } from '@/domain/notifications';
+import { useCallback, useEffect, useState } from 'react';
+import { AppState, type AppStateStatus } from 'react-native';
+
+type NotificationPreferencesState = {
+  preferences: NotificationPreferences;
+  permissionStatus: string;
+  isLoading: boolean;
+  isSaving: boolean;
+  isSendingTest: boolean;
+  error: string | null;
+  success: string | null;
+  isPushLimitedInRuntime: boolean;
+};
+
+const DEFAULT_PREFERENCES: NotificationPreferences = {
+  enabled: false,
+  expoPushToken: null,
+  platform: null,
+  updatedAt: null,
+};
+
+export function useNotificationPreferences() {
+  const { user } = useAuth();
+  const [state, setState] = useState<NotificationPreferencesState>({
+    preferences: DEFAULT_PREFERENCES,
+    permissionStatus: 'undetermined',
+    isLoading: true,
+    isSaving: false,
+    isSendingTest: false,
+    error: null,
+    success: null,
+    isPushLimitedInRuntime: isExpoGo(),
+  });
+
+  const load = useCallback(async () => {
+    if (!user) {
+      setState((current) => ({
+        ...current,
+        preferences: DEFAULT_PREFERENCES,
+        isLoading: false,
+      }));
+      return;
+    }
+
+    setState((current) => ({ ...current, isLoading: true, error: null }));
+
+    try {
+      const [preferences, permission] = await Promise.all([
+        getNotificationPreferences(user.id),
+        getDevicePushPermissionStatus(),
+      ]);
+
+      setState((current) => ({
+        ...current,
+        preferences,
+        permissionStatus: permission,
+        isLoading: false,
+        isPushLimitedInRuntime: isExpoGo(),
+      }));
+    } catch (error) {
+      setState((current) => ({
+        ...current,
+        isLoading: false,
+        error: getFriendlyErrorMessage(error),
+      }));
+    }
+  }, [user]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  useEffect(() => {
+    if (!user) {
+      return;
+    }
+
+    const handleAppState = (nextState: AppStateStatus) => {
+      if (nextState === 'active') {
+        void refreshPushTokenIfEnabled(user.id)
+          .then((preferences) => {
+            setState((current) => ({ ...current, preferences }));
+          })
+          .catch(() => undefined);
+      }
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppState);
+    return () => subscription.remove();
+  }, [user]);
+
+  const enableNotifications = useCallback(async () => {
+    if (!user) {
+      return;
+    }
+
+    setState((current) => ({
+      ...current,
+      isSaving: true,
+      error: null,
+      success: null,
+    }));
+
+    try {
+      const preferences = await enablePushNotifications(user.id);
+      const permission = await getDevicePushPermissionStatus();
+
+      setState((current) => ({
+        ...current,
+        preferences,
+        permissionStatus: permission,
+        isSaving: false,
+        success: 'Notificações ativadas.',
+      }));
+    } catch (error) {
+      setState((current) => ({
+        ...current,
+        isSaving: false,
+        error: getFriendlyErrorMessage(error),
+      }));
+    }
+  }, [user]);
+
+  const disableNotifications = useCallback(async () => {
+    if (!user) {
+      return;
+    }
+
+    setState((current) => ({
+      ...current,
+      isSaving: true,
+      error: null,
+      success: null,
+    }));
+
+    try {
+      const preferences = await disablePushNotifications(user.id);
+      setState((current) => ({
+        ...current,
+        preferences,
+        isSaving: false,
+        success: 'Notificações desativadas.',
+      }));
+    } catch (error) {
+      setState((current) => ({
+        ...current,
+        isSaving: false,
+        error: getFriendlyErrorMessage(error),
+      }));
+    }
+  }, [user]);
+
+  const toggleNotifications = useCallback(
+    async (nextEnabled: boolean) => {
+      if (nextEnabled) {
+        await enableNotifications();
+        return;
+      }
+
+      await disableNotifications();
+    },
+    [disableNotifications, enableNotifications],
+  );
+
+  const sendTestNotification = useCallback(async () => {
+    if (!user) {
+      return;
+    }
+
+    setState((current) => ({
+      ...current,
+      isSendingTest: true,
+      error: null,
+      success: null,
+    }));
+
+    try {
+      await sendTestPushNotification(user.id);
+      setState((current) => ({
+        ...current,
+        isSendingTest: false,
+        success: 'Notificação de teste enviada.',
+      }));
+    } catch (error) {
+      setState((current) => ({
+        ...current,
+        isSendingTest: false,
+        error: getFriendlyErrorMessage(error),
+      }));
+    }
+  }, [user]);
+
+  return {
+    ...state,
+    refetch: load,
+    toggleNotifications,
+    sendTestNotification,
+  };
+}

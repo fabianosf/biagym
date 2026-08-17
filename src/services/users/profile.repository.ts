@@ -1,0 +1,127 @@
+import type { UserRef } from '@/domain';
+import type { StudentProfile } from '@/domain/student';
+import { getDisplayPersonName } from '@/shared/utils/person-name';
+
+import { assertSupabaseConfigured, mapSupabaseDataError } from '../shared';
+import { getSupabaseClient, isSupabaseConfigured } from '../supabase';
+import type { ProfileRow } from '../supabase/types';
+import { mapProfileRowToStudentProfile } from './student.mapper';
+
+const STUDENT_PROFILE_COLUMNS =
+  'id, name, email, weight_kg, height_cm, age, goal, onboarding_completed_at';
+
+function isMissingColumnError(error: { message?: string; code?: string } | null): boolean {
+  const message = error?.message?.toLowerCase() ?? '';
+  return (
+    message.includes('does not exist') ||
+    message.includes('schema cache') ||
+    message.includes('could not find') ||
+    error?.code === 'PGRST204'
+  );
+}
+
+export async function searchStudents(query: string): Promise<UserRef[]> {
+  const profiles = await searchStudentProfiles(query);
+  return profiles.map((profile) => ({
+    id: profile.userId,
+    name: profile.name,
+    email: profile.email,
+  }));
+}
+
+export async function searchStudentProfiles(query: string): Promise<StudentProfile[]> {
+  const trimmed = query.trim();
+  if (trimmed.length < 2) {
+    return [];
+  }
+
+  return listStudentProfiles({ search: trimmed, limit: 20 });
+}
+
+export async function listStudentProfiles(options?: {
+  search?: string;
+  limit?: number;
+}): Promise<StudentProfile[]> {
+  assertSupabaseConfigured(isSupabaseConfigured());
+
+  const supabase = getSupabaseClient();
+  const limit = options?.limit ?? 80;
+  const search = options?.search?.trim();
+
+  let fullQuery = supabase
+    .from('profiles')
+    .select(STUDENT_PROFILE_COLUMNS)
+    .eq('role', 'student')
+    .order('name', { ascending: true })
+    .limit(limit);
+
+  if (search) {
+    fullQuery = fullQuery.or(`email.ilike.%${search}%,name.ilike.%${search}%`);
+  }
+
+  const fullResult = await fullQuery;
+
+  if (fullResult.error && isMissingColumnError(fullResult.error)) {
+    let basicQuery = supabase
+      .from('profiles')
+      .select('id, name, email')
+      .eq('role', 'student')
+      .order('name', { ascending: true })
+      .limit(limit);
+
+    if (search) {
+      basicQuery = basicQuery.or(`email.ilike.%${search}%,name.ilike.%${search}%`);
+    }
+
+    const basicResult = await basicQuery;
+
+    if (basicResult.error) {
+      throw mapSupabaseDataError(basicResult.error);
+    }
+
+    return (basicResult.data ?? []).map((row) => {
+      const profile = row as Pick<ProfileRow, 'id' | 'name' | 'email'>;
+      return {
+        userId: profile.id,
+        name: profile.name,
+        email: profile.email,
+        metrics: null,
+        onboardingCompleted: false,
+      };
+    });
+  }
+
+  if (fullResult.error) {
+    throw mapSupabaseDataError(fullResult.error);
+  }
+
+  return (fullResult.data ?? []).map((row) =>
+    mapProfileRowToStudentProfile(row as Parameters<typeof mapProfileRowToStudentProfile>[0]),
+  );
+}
+
+export async function getProfileById(userId: string): Promise<UserRef | null> {
+  assertSupabaseConfigured(isSupabaseConfigured());
+
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, name, email')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (error) {
+    throw mapSupabaseDataError(error);
+  }
+
+  if (!data) {
+    return null;
+  }
+
+  const row = data as Pick<ProfileRow, 'id' | 'name' | 'email'>;
+  return {
+    id: row.id,
+    name: getDisplayPersonName(row.name) ?? row.name,
+    email: row.email,
+  };
+}

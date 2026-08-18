@@ -44,20 +44,22 @@ export async function createAccessGrant(input: {
 }): Promise<AccessGrant> {
   assertSupabaseConfigured(isSupabaseConfigured());
 
-  const existing = await getAccessGrantByUserAndProgram(input.userId, input.programId);
-  if (existing) {
-    return existing;
-  }
-
+  // upsert atômico em vez de "checar depois inserir": duas concessões
+  // simultâneas para a mesma aluna+programa (duplo toque, duas admins) não
+  // criam mais linhas duplicadas em access_grants. Requer o índice único
+  // de supabase/fix-access-grants-unique.sql.
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from('access_grants')
-    .insert({
-      user_id: input.userId,
-      program_id: input.programId,
-      granted_by: input.grantedBy,
-      expires_at: input.expiresAt ?? null,
-    })
+    .upsert(
+      {
+        user_id: input.userId,
+        program_id: input.programId,
+        granted_by: input.grantedBy,
+        expires_at: input.expiresAt ?? null,
+      },
+      { onConflict: 'user_id,program_id' },
+    )
     .select('*')
     .single();
 

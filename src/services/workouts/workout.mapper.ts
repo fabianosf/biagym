@@ -3,6 +3,12 @@ import { MUSCLE_GROUPS } from '@/domain/workout';
 
 import type { ExerciseRow, TrainingPlanRow, WorkoutExerciseRow } from '../supabase/types';
 
+const DEFAULT_PRESCRIPTION = {
+  SETS: 3,
+  REPS: '12',
+  REST_SECONDS: 60,
+} as const;
+
 function parseMuscleGroup(value: string | null | undefined): MuscleGroup {
   return MUSCLE_GROUPS.includes(value as MuscleGroup) ? (value as MuscleGroup) : 'corpo_todo';
 }
@@ -44,10 +50,10 @@ export function mapWorkoutExercise(
     id: row.id,
     planId: row.plan_id,
     exercise,
-    sets: toPositiveInt(row.sets, 3),
-    reps: row.reps?.trim() || '12',
+    sets: toPositiveInt(row.sets, DEFAULT_PRESCRIPTION.SETS),
+    reps: row.reps?.trim() || DEFAULT_PRESCRIPTION.REPS,
     loadKg: row.load_kg != null && Number.isFinite(Number(row.load_kg)) ? Number(row.load_kg) : undefined,
-    restSeconds: toPositiveInt(row.rest_seconds, 60),
+    restSeconds: toPositiveInt(row.rest_seconds, DEFAULT_PRESCRIPTION.REST_SECONDS),
     notes: row.notes ?? undefined,
     sortOrder: Number.isFinite(row.sort_order) ? row.sort_order : 0,
   };

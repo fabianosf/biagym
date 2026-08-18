@@ -8,7 +8,7 @@ import {
 } from '@/features/workouts/utils/format';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
-import { useEffect, useState } from 'react';
+import { memo, useEffect, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 type ExerciseRunCardProps = {
@@ -17,11 +17,11 @@ type ExerciseRunCardProps = {
   done: boolean;
   isCurrent: boolean;
   displayLoadKg: number;
-  onPress: () => void;
-  onToggleDone: () => void;
+  onPress: (item: WorkoutExercise) => void;
+  onToggleDone: (itemId: string) => void;
 };
 
-export function ExerciseRunCard({
+function ExerciseRunCardComponent({
   item,
   index,
   done,
@@ -78,9 +78,12 @@ export function ExerciseRunCard({
         isCurrent && !done ? 'border border-white/25' : 'border border-transparent'
       } ${done ? 'opacity-70' : ''}`}
     >
-      <Pressable onPress={onPress} className="flex-row items-center px-3 pb-3 pt-3 active:opacity-85">
+      <Pressable
+        onPress={() => onPress(item)}
+        className="flex-row items-center px-3 pb-3 pt-3 active:opacity-85"
+      >
         <Pressable
-          onPress={onToggleDone}
+          onPress={() => onToggleDone(item.id)}
           hitSlop={8}
           className={`mr-3 h-6 w-6 items-center justify-center rounded-md border ${
             done ? 'border-gymAccent bg-gymAccent' : 'border-white/35 bg-transparent'
@@ -133,6 +136,8 @@ export function ExerciseRunCard({
     </View>
   );
 }
+
+export const ExerciseRunCard = memo(ExerciseRunCardComponent);
 
 /** Compatível com usos antigos da lista. */
 export function ExerciseRow(props: ExerciseRunCardProps) {

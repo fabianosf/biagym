@@ -46,6 +46,31 @@ export async function createWeek(input: CreateWeekInput): Promise<Week> {
   return mapWeekRow(data as WeekRow);
 }
 
+export async function createWeeksBatch(
+  programId: string,
+  weekNumbers: readonly number[],
+): Promise<void> {
+  if (weekNumbers.length === 0) {
+    return;
+  }
+
+  assertSupabaseConfigured(isSupabaseConfigured());
+
+  const supabase = getSupabaseClient();
+  const { error } = await supabase.from('weeks').upsert(
+    weekNumbers.map((weekNumber) => ({
+      program_id: programId,
+      week_number: weekNumber,
+      title: `Semana ${weekNumber}`,
+    })),
+    { onConflict: 'program_id,week_number', ignoreDuplicates: true },
+  );
+
+  if (error) {
+    throw mapSupabaseDataError(error);
+  }
+}
+
 export async function updateWeek(weekId: string, input: UpdateWeekInput): Promise<Week> {
   assertSupabaseConfigured(isSupabaseConfigured());
 

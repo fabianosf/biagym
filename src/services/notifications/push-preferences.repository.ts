@@ -63,8 +63,11 @@ export async function getNotificationPreferences(
     }
 
     return mapNotificationPreferences(data as ProfileNotificationRow);
-  } catch {
-    return DEFAULT_NOTIFICATION_PREFERENCES;
+  } catch (error) {
+    if (error instanceof DataServiceError && error.code === 'configuration_error') {
+      return DEFAULT_NOTIFICATION_PREFERENCES;
+    }
+    throw error;
   }
 }
 

@@ -13,9 +13,13 @@ export function AdminProgramsListScreen() {
   const router = useRouter();
   const [programs, setPrograms] = useState<ProgramSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (silent = false) => {
+    if (silent) {
+      setIsRefreshing(true);
+    }
     setError(null);
     try {
       const data = await listAdminPrograms();
@@ -23,7 +27,11 @@ export function AdminProgramsListScreen() {
     } catch (err) {
       setError(getDataErrorMessage(err));
     } finally {
-      setIsLoading(false);
+      if (silent) {
+        setIsRefreshing(false);
+      } else {
+        setIsLoading(false);
+      }
     }
   }, []);
 
@@ -51,7 +59,7 @@ export function AdminProgramsListScreen() {
           className="flex-1"
           contentContainerClassName="gap-4 px-5 py-4 pb-10"
           refreshControl={
-            <RefreshControl refreshing={false} onRefresh={() => void load()} tintColor={colors.primary} />
+            <RefreshControl refreshing={isRefreshing} onRefresh={() => void load(true)} tintColor={colors.primary} />
           }
         >
           <Link href={adminRoutes.programNew} asChild>

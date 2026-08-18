@@ -3,7 +3,12 @@ import type { StudentProfile } from '@/domain/student';
 import { getDisplayPersonName } from '@/shared/utils/person-name';
 import { normalizeWhatsAppPhone } from '@/shared/utils/phone';
 
-import { assertSupabaseConfigured, DataServiceError, mapSupabaseDataError } from '../shared';
+import {
+  assertSupabaseConfigured,
+  DataServiceError,
+  escapePostgrestPattern,
+  mapSupabaseDataError,
+} from '../shared';
 import { getSupabaseClient, isSupabaseConfigured } from '../supabase';
 import type { ProfileRow } from '../supabase/types';
 import { mapProfileRowToStudentProfile } from './student.mapper';
@@ -59,7 +64,8 @@ export async function listStudentProfiles(options?: {
     .limit(limit);
 
   if (search) {
-    fullQuery = fullQuery.or(`email.ilike.%${search}%,name.ilike.%${search}%`);
+    const safeSearch = escapePostgrestPattern(search);
+    fullQuery = fullQuery.or(`email.ilike.%${safeSearch}%,name.ilike.%${safeSearch}%`);
   }
 
   const fullResult = await fullQuery;
@@ -73,7 +79,8 @@ export async function listStudentProfiles(options?: {
       .limit(limit);
 
     if (search) {
-      coachingQuery = coachingQuery.or(`email.ilike.%${search}%,name.ilike.%${search}%`);
+      const safeSearch = escapePostgrestPattern(search);
+      coachingQuery = coachingQuery.or(`email.ilike.%${safeSearch}%,name.ilike.%${safeSearch}%`);
     }
 
     const coachingResult = await coachingQuery;
@@ -94,7 +101,8 @@ export async function listStudentProfiles(options?: {
       .limit(limit);
 
     if (search) {
-      basicQuery = basicQuery.or(`email.ilike.%${search}%,name.ilike.%${search}%`);
+      const safeSearch = escapePostgrestPattern(search);
+      basicQuery = basicQuery.or(`email.ilike.%${safeSearch}%,name.ilike.%${safeSearch}%`);
     }
 
     const basicResult = await basicQuery;
@@ -124,6 +132,35 @@ export async function listStudentProfiles(options?: {
   return (fullResult.data ?? []).map((row) =>
     mapProfileRowToStudentProfile(row as Parameters<typeof mapProfileRowToStudentProfile>[0]),
   );
+}
+
+export async function getProfilesByIds(userIds: readonly string[]): Promise<Map<string, UserRef>> {
+  const uniqueIds = [...new Set(userIds)];
+  if (uniqueIds.length === 0) {
+    return new Map();
+  }
+
+  assertSupabaseConfigured(isSupabaseConfigured());
+
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, name, email')
+    .in('id', uniqueIds);
+
+  if (error) {
+    throw mapSupabaseDataError(error);
+  }
+
+  const map = new Map<string, UserRef>();
+  for (const row of (data ?? []) as Pick<ProfileRow, 'id' | 'name' | 'email'>[]) {
+    map.set(row.id, {
+      id: row.id,
+      name: getDisplayPersonName(row.name) ?? row.name,
+      email: row.email,
+    });
+  }
+  return map;
 }
 
 export async function getProfileById(userId: string): Promise<UserRef | null> {

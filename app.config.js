@@ -50,6 +50,7 @@ const config = {
     'expo-asset',
     'expo-font',
     'expo-video',
+    'expo-secure-store',
     '@sentry/react-native',
     [
       'expo-notifications',

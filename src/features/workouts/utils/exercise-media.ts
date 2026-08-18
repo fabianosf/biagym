@@ -96,63 +96,44 @@ export function exerciseThumbnailSource(exercise?: ExerciseMediaInput | null): I
   );
 }
 
+const VIDEO_MATCH_RULES: readonly { test: RegExp; videoId: string }[] = [
+  { test: /(agach|squat|goblet|afundo|lunge)/, videoId: 'video2' },
+  { test: /(prancha|plank|core|abdominal|crunch)/, videoId: 'video3' },
+  { test: /(remada|row|puxada)/, videoId: 'video4' },
+  { test: /(aquec|mobilidade)/, videoId: 'video1' },
+  { test: /(condicion|cardio|circuito)/, videoId: 'video5' },
+];
+
+const VIDEO_BY_MUSCLE: Partial<Record<MuscleGroup, string>> = {
+  pernas: 'video2',
+  gluteos: 'video2',
+  core: 'video3',
+  costas: 'video4',
+  peito: 'video4',
+  ombros: 'video4',
+  biceps: 'video4',
+  triceps: 'video4',
+  cardio: 'video5',
+  corpo_todo: 'video1',
+};
+
 export function pickSampleWorkoutVideoForExercise(
   exercise?: ExerciseMediaInput | null,
 ): SampleWorkoutVideo | undefined {
-  if (!exercise || SAMPLE_WORKOUT_VIDEOS.length === 0) {
+  if (!exercise?.id || !exercise.name || SAMPLE_WORKOUT_VIDEOS.length === 0) {
     return undefined;
   }
 
-  const normalized = normalizeExerciseName(exercise.name ?? '');
-  const byTitle = SAMPLE_WORKOUT_VIDEOS.find((sample) =>
-    normalized.includes(normalizeExerciseName(sample.title)),
-  );
-
-  if (byTitle) {
-    return byTitle;
+  const normalizedName = normalizeExerciseName(exercise.name);
+  for (const rule of VIDEO_MATCH_RULES) {
+    if (rule.test.test(normalizedName)) {
+      return SAMPLE_WORKOUT_VIDEOS.find((v) => v.id === rule.videoId);
+    }
   }
 
-  if (/(agach|squat|goblet|afundo|lunge)/.test(normalized)) {
-    return SAMPLE_WORKOUT_VIDEOS.find((sample) => sample.id === 'video2');
-  }
-
-  if (/(prancha|plank|core|abdominal|crunch)/.test(normalized)) {
-    return SAMPLE_WORKOUT_VIDEOS.find((sample) => sample.id === 'video3');
-  }
-
-  if (/(remada|row|puxada)/.test(normalized)) {
-    return SAMPLE_WORKOUT_VIDEOS.find((sample) => sample.id === 'video4');
-  }
-
-  if (/(aquec|mobilidade)/.test(normalized)) {
-    return SAMPLE_WORKOUT_VIDEOS.find((sample) => sample.id === 'video1');
-  }
-
-  if (/(condicion|cardio|circuito)/.test(normalized)) {
-    return SAMPLE_WORKOUT_VIDEOS.find((sample) => sample.id === 'video5');
-  }
-
-  const byMuscle: Partial<Record<MuscleGroup, string>> = {
-    pernas: 'video2',
-    gluteos: 'video2',
-    core: 'video3',
-    costas: 'video4',
-    peito: 'video4',
-    ombros: 'video4',
-    biceps: 'video4',
-    triceps: 'video4',
-    cardio: 'video5',
-    corpo_todo: 'video1',
-  };
-
-  const muscleSampleId = byMuscle[exercise.muscleGroup];
-  const byMuscleGroup = muscleSampleId
-    ? SAMPLE_WORKOUT_VIDEOS.find((sample) => sample.id === muscleSampleId)
-    : undefined;
-
-  if (byMuscleGroup) {
-    return byMuscleGroup;
-  }
+  const videoIdByMuscle = VIDEO_BY_MUSCLE[exercise.muscleGroup];
+  const sampleByMuscle = videoIdByMuscle ? SAMPLE_WORKOUT_VIDEOS.find((v) => v.id === videoIdByMuscle) : undefined;
+  if (sampleByMuscle) return sampleByMuscle;
 
   return SAMPLE_WORKOUT_VIDEOS[hashSlot(exercise.id, SAMPLE_WORKOUT_VIDEOS.length)];
 }

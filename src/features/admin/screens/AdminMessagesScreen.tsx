@@ -29,9 +29,23 @@ export function AdminMessagesScreen() {
       return;
     }
 
+    let cancelled = false;
+
     void listBodyLogs(activeStudent.userId)
-      .then(setLogs)
-      .catch(() => setLogs([]));
+      .then((data) => {
+        if (!cancelled) {
+          setLogs(data);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setLogs([]);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [activeStudent]);
 
   return (

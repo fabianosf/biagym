@@ -1,4 +1,10 @@
-import { CONNECTIVITY_TIMEOUT_MS, getLocalLessonVideoUri, resolveSampleWorkoutVideo, withTimeout } from '@/services';
+import {
+  CONNECTIVITY_TIMEOUT_MS,
+  getLocalLessonVideoUri,
+  resolveLessonVideoPlayableUrl,
+  resolveSampleWorkoutVideo,
+  withTimeout,
+} from '@/services';
 import { SAMPLE_WORKOUT_VIDEOS } from '@/shared/constants/sample-workout-videos';
 import { isPlayableVideoUrl } from '@/shared/utils';
 import { useEffect, useState } from 'react';
@@ -36,8 +42,15 @@ export function useResolvedLessonVideoUrl(
             getLocalLessonVideoUri(lessonId),
             CONNECTIVITY_TIMEOUT_MS,
           );
-          if (!cancelled) {
-            setVideoUrl(localUri ?? playableRemote);
+          if (localUri) {
+            if (!cancelled) {
+              setVideoUrl(localUri);
+            }
+          } else {
+            const playable = await resolveLessonVideoPlayableUrl(playableRemote);
+            if (!cancelled) {
+              setVideoUrl(playable);
+            }
           }
         } catch {
           if (!cancelled) {

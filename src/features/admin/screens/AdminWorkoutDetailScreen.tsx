@@ -38,10 +38,10 @@ type PrescriptionDraft = {
 };
 
 const EMPTY_DRAFT: PrescriptionDraft = {
-  sets: '3',
-  reps: '12',
+  sets: '3', // Valor padrão para séries
+  reps: '12', // Valor padrão para repetições
   loadKg: '',
-  rest: '60',
+  rest: '60', // Valor padrão para descanso
 };
 
 export function AdminWorkoutDetailScreen() {
@@ -56,10 +56,10 @@ export function AdminWorkoutDetailScreen() {
   const [grants, setGrants] = useState<TrainingPlanGrant[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [selectedExerciseId, setSelectedExerciseId] = useState('');
-  const [sets, setSets] = useState('3');
-  const [reps, setReps] = useState('12');
-  const [loadKg, setLoadKg] = useState('');
-  const [rest, setRest] = useState('60');
+  const [sets, setSets] = useState(EMPTY_DRAFT.sets);
+  const [reps, setReps] = useState(EMPTY_DRAFT.reps);
+  const [loadKg, setLoadKg] = useState(EMPTY_DRAFT.loadKg);
+  const [rest, setRest] = useState(EMPTY_DRAFT.rest);
   const [drafts, setDrafts] = useState<Record<string, PrescriptionDraft>>({});
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -99,10 +99,10 @@ export function AdminWorkoutDetailScreen() {
           (detail?.exercises ?? []).map((item) => [
             item.id,
             {
-              sets: String(item.sets ?? 3),
-              reps: item.reps || '12',
+              sets: String(item.sets ?? EMPTY_DRAFT.sets),
+              reps: item.reps || EMPTY_DRAFT.reps,
               loadKg: item.loadKg != null ? String(item.loadKg) : '',
-              rest: String(item.restSeconds ?? 60),
+              rest: String(item.restSeconds ?? EMPTY_DRAFT.rest),
             },
           ]),
         ),
@@ -191,10 +191,10 @@ export function AdminWorkoutDetailScreen() {
       await addWorkoutExercise({
         planId,
         exerciseId: selectedExerciseId,
-        sets: Number.parseInt(sets, 10) || 3,
+        sets: Number.parseInt(sets, 10) || Number(EMPTY_DRAFT.sets),
         reps,
         loadKg: parseOptionalLoadKg(loadKg),
-        restSeconds: Number.parseInt(rest, 10) || 60,
+        restSeconds: Number.parseInt(rest, 10) || Number(EMPTY_DRAFT.rest),
       });
       await load();
     } catch (err) {

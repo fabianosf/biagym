@@ -12,6 +12,7 @@ type AppErrorBoundaryProps = {
 type AppErrorBoundaryState = {
   hasError: boolean;
   message: string;
+  retryKey: number;
 };
 
 export class AppErrorBoundary extends React.Component<
@@ -21,9 +22,10 @@ export class AppErrorBoundary extends React.Component<
   state: AppErrorBoundaryState = {
     hasError: false,
     message: '',
+    retryKey: 0,
   };
 
-  static getDerivedStateFromError(error: Error): AppErrorBoundaryState {
+  static getDerivedStateFromError(error: Error): Partial<AppErrorBoundaryState> {
     return {
       hasError: true,
       message: error.message || 'Ocorreu um erro inesperado.',
@@ -38,7 +40,15 @@ export class AppErrorBoundary extends React.Component<
   }
 
   private handleRetry = (): void => {
-    this.setState({ hasError: false, message: '' });
+    // Incrementa retryKey para forçar o remount da subárvore — se a
+    // renderização quebrou por estado interno corrompido de um filho (não
+    // só um erro transitório de rede), reabrir sem remount reproduziria o
+    // mesmo crash imediatamente.
+    this.setState((current) => ({
+      hasError: false,
+      message: '',
+      retryKey: current.retryKey + 1,
+    }));
   };
 
   render() {
@@ -64,6 +74,6 @@ export class AppErrorBoundary extends React.Component<
       );
     }
 
-    return this.props.children;
+    return <React.Fragment key={this.state.retryKey}>{this.props.children}</React.Fragment>;
   }
 }

@@ -98,17 +98,25 @@ export async function listTrainingPlans(options?: { publishedOnly?: boolean }): 
   }
 
   const rows = (data ?? []) as TrainingPlanRow[];
-  const counts = await Promise.all(
-    rows.map(async (row) => {
-      const { count } = await supabase
-        .from('workout_exercises')
-        .select('id', { count: 'exact', head: true })
-        .eq('plan_id', row.id);
-      return count ?? 0;
-    }),
-  );
+  const planIds = rows.map((row) => row.id);
 
-  return rows.map((row, index) => mapTrainingPlanSummary(row, counts[index] ?? 0));
+  const countByPlanId = new Map<string, number>();
+  if (planIds.length > 0) {
+    const { data: itemsData, error: itemsError } = await supabase
+      .from('workout_exercises')
+      .select('plan_id')
+      .in('plan_id', planIds);
+
+    if (itemsError) {
+      throw mapSupabaseDataError(itemsError);
+    }
+
+    for (const item of itemsData ?? []) {
+      countByPlanId.set(item.plan_id, (countByPlanId.get(item.plan_id) ?? 0) + 1);
+    }
+  }
+
+  return rows.map((row) => mapTrainingPlanSummary(row, countByPlanId.get(row.id) ?? 0));
 }
 
 export async function getTrainingPlan(planId: string): Promise<TrainingPlan | null> {

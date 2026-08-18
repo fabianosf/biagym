@@ -1,6 +1,11 @@
 import type { CreateNutritionPlanInput, NutritionPlan } from '@/domain/nutrition';
 
-import { assertSupabaseConfigured, DataServiceError, mapSupabaseDataError } from '../shared';
+import {
+  assertSupabaseConfigured,
+  DataServiceError,
+  escapePostgrestPattern,
+  mapSupabaseDataError,
+} from '../shared';
 import { getSupabaseClient, isSupabaseConfigured } from '../supabase';
 import type { NutritionMealRow, NutritionPlanRow } from '../supabase/types';
 import { mapNutritionPlanRow } from './nutrition.mapper';
@@ -89,7 +94,7 @@ export async function listNutritionPlansForStudent(userId: string): Promise<Nutr
     .from('nutrition_plans')
     .select('id, student_user_id')
     .eq('is_published', true)
-    .or(`student_user_id.eq.${userId},student_user_id.is.null`)
+    .or(`student_user_id.eq.${escapePostgrestPattern(userId)},student_user_id.is.null`)
     .order('created_at', { ascending: false });
 
   if (error) {

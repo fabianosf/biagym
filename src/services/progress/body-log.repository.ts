@@ -1,6 +1,7 @@
 import type { BodyLog, CreateBodyLogInput } from '@/domain/student';
 
 import { assertSupabaseConfigured, mapSupabaseDataError } from '../shared';
+import { getBodyPhotoPlayableUrls } from '../storage/body.storage';
 import { getSupabaseClient, isSupabaseConfigured } from '../supabase';
 import type { BodyLogRow } from '../supabase/types';
 
@@ -46,7 +47,13 @@ export async function listBodyLogs(userId: string): Promise<BodyLog[]> {
     throw mapSupabaseDataError(error);
   }
 
-  return ((data ?? []) as BodyLogRow[]).map(mapBodyLogRow);
+  const rows = (data ?? []) as BodyLogRow[];
+  const playablePhotoUrls = await getBodyPhotoPlayableUrls(rows.map((row) => row.photo_url));
+
+  return rows.map((row, index) => ({
+    ...mapBodyLogRow(row),
+    photoUrl: playablePhotoUrls[index],
+  }));
 }
 
 export async function createBodyLog(input: CreateBodyLogInput): Promise<BodyLog> {
@@ -71,5 +78,8 @@ export async function createBodyLog(input: CreateBodyLogInput): Promise<BodyLog>
 
   await supabase.from('profiles').update({ weight_kg: input.weightKg }).eq('id', input.userId);
 
-  return mapBodyLogRow(data as BodyLogRow);
+  const row = data as BodyLogRow;
+  const [playablePhotoUrl] = await getBodyPhotoPlayableUrls([row.photo_url]);
+
+  return { ...mapBodyLogRow(row), photoUrl: playablePhotoUrl };
 }

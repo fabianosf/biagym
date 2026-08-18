@@ -24,7 +24,7 @@ import { buildWhatsAppUrl, formatPhoneDisplay } from '@/shared/utils/phone';
 import { useStudentPinsStore } from '@/features/admin/store/student-pins.store';
 import { useFocusEffect } from '@react-navigation/native';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { Linking, Pressable, ScrollView, Text, View } from 'react-native';
 
 type AssignedPlan = {
@@ -46,8 +46,12 @@ export function AdminStudentSpaceScreen() {
   const [busyPlanId, setBusyPlanId] = useState<string | null>(null);
 
   const markOpened = useStudentPinsStore((state) => state.markOpened);
+  const requestIdRef = useRef(0);
 
   const load = useCallback(async (silent = false) => {
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
+
     if (!studentId) {
       setStudent(null);
       setError('Aluno inválido.');
@@ -69,6 +73,9 @@ export function AdminStudentSpaceScreen() {
         DATA_FETCH_TIMEOUT_MS,
         'O espaço do aluno demorou demais para carregar. Tente novamente.',
       );
+      if (requestId !== requestIdRef.current) {
+        return;
+      }
       setStudent(profile);
       setPlans(catalog);
       setGrants(studentGrants);
@@ -76,9 +83,14 @@ export function AdminStudentSpaceScreen() {
         setError('Este aluno não está cadastrado.');
       }
     } catch (err) {
+      if (requestId !== requestIdRef.current) {
+        return;
+      }
       setError(getDataErrorMessage(err));
     } finally {
-      setIsLoading(false);
+      if (requestId === requestIdRef.current) {
+        setIsLoading(false);
+      }
     }
   }, [studentId]);
 

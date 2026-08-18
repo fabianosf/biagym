@@ -102,12 +102,39 @@ export async function publishTrainingPlanToStudents(input: {
     );
   }
 
-  for (const userId of uniqueIds) {
-    await grantTrainingPlanAccess({
-      userId,
-      planId: input.planId,
-      grantedBy: input.grantedBy,
-    });
+  assertSupabaseConfigured(isSupabaseConfigured());
+  const supabase = getSupabaseClient();
+
+  // Assume constraint única (user_id, plan_id) — já usada hoje para
+  // detectar duplicata via erro 23505 em grantTrainingPlanAccess.
+  const { error } = await supabase.from('training_plan_grants').upsert(
+    uniqueIds.map((userId) => ({
+      user_id: userId,
+      plan_id: input.planId,
+      granted_by: input.grantedBy,
+    })),
+    { onConflict: 'user_id,plan_id', ignoreDuplicates: true },
+  );
+
+  if (error) {
+    const message = error.message?.toLowerCase() ?? '';
+    if (error.code === '42501' || message.includes('permission denied') || message.includes('row-level security')) {
+      throw new DataServiceError(
+        'forbidden',
+        error,
+        'O banco ainda não reconheceu esta conta como admin. Execute supabase/lock-admin-email.sql e toque em Sou admin de novo.',
+      );
+    }
+    throw mapSupabaseDataError(error);
+  }
+
+  const { error: publishError } = await supabase
+    .from('training_plans')
+    .update({ is_published: true })
+    .eq('id', input.planId);
+
+  if (publishError) {
+    throw mapSupabaseDataError(publishError);
   }
 }
 

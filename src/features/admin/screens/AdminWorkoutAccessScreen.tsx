@@ -14,7 +14,7 @@ import {
 } from '@/services';
 import { Button, EmptyState, ErrorState, LoadingIndicator } from '@/shared/components';
 import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
 type GrantWithName = TrainingPlanGrant & { studentName: string };
@@ -49,7 +49,12 @@ export function AdminWorkoutAccessScreen() {
     }
   }, []);
 
+  const grantsRequestIdRef = useRef(0);
+
   const loadGrants = useCallback(async () => {
+    const requestId = grantsRequestIdRef.current + 1;
+    grantsRequestIdRef.current = requestId;
+
     if (!selectedPlanId) {
       setGrants([]);
       return;
@@ -71,8 +76,14 @@ export function AdminWorkoutAccessScreen() {
           }
         }),
       );
+      if (requestId !== grantsRequestIdRef.current) {
+        return;
+      }
       setGrants(withNames);
     } catch (err) {
+      if (requestId !== grantsRequestIdRef.current) {
+        return;
+      }
       setError(getDataErrorMessage(err));
     }
   }, [selectedPlanId]);

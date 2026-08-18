@@ -7,6 +7,7 @@ import { APP_SCHEME } from '@/shared/constants/app';
 import { getDisplayPersonName, parseRequiredFullName } from '@/shared/utils/person-name';
 import { parseRequiredWhatsAppPhone } from '@/shared/utils/phone';
 
+import { captureException } from '../observability/sentry.service';
 import { getSupabaseClient, isSupabaseConfigured } from '../supabase';
 import type { ProfileRow } from '../supabase/types';
 import { DATA_FETCH_TIMEOUT_MS, withTimeout } from '../shared/with-timeout';
@@ -177,7 +178,10 @@ export async function signUpWithEmail(input: SignUpInput): Promise<AuthSession |
   );
 
   if (profileError) {
-    // Cadastro segue mesmo sem perfil persistido (ex.: RLS ainda não configurado).
+    // Cadastro segue mesmo sem perfil persistido no client — o trigger
+    // handle_new_user() do banco é a rede de segurança — mas registramos o
+    // erro para investigar perfis "fantasma" sem depender de reclamação da aluna.
+    captureException(profileError, { flow: 'sign_up_profile_upsert', userId: data.user.id });
   }
 
   if (!data.session) {

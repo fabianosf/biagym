@@ -1,6 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system/legacy';
 
+import { resolveLessonVideoPlayableUrl } from '../storage/video.storage';
+
 const DOWNLOADS_MANIFEST_KEY = '@treinos/lesson-downloads';
 
 export type LessonDownloadRecord = {
@@ -151,11 +153,12 @@ async function performDownload(input: {
 
   const extension = resolveExtensionFromUrl(input.remoteUrl);
   const localUri = getDownloadFileUri(input.programId, input.lessonId, extension);
+  const downloadUrl = await resolveLessonVideoPlayableUrl(input.remoteUrl);
 
   emitDownloadProgress(input.lessonId, 0);
 
   const downloadResumable = FileSystem.createDownloadResumable(
-    input.remoteUrl,
+    downloadUrl,
     localUri,
     {},
     (downloadProgress) => {

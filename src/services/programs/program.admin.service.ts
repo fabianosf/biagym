@@ -31,6 +31,7 @@ import {
 import { createProgram } from './program.service';
 import {
   createWeek,
+  createWeeksBatch,
   deleteWeek,
   listWeeksByProgramId,
   updateWeek,
@@ -47,17 +48,8 @@ export async function getAdminProgramDetail(programId: string): Promise<ProgramD
 export async function adminCreateProgram(input: CreateProgramInput) {
   const program = await createProgram(input);
 
-  for (let weekNumber = 1; weekNumber <= input.durationWeeks; weekNumber += 1) {
-    try {
-      await createWeek({
-        programId: program.id,
-        weekNumber,
-        title: `Semana ${weekNumber}`,
-      });
-    } catch {
-      // Semana já existente — segue o fluxo de criação.
-    }
-  }
+  const weekNumbers = Array.from({ length: input.durationWeeks }, (_, index) => index + 1);
+  await createWeeksBatch(program.id, weekNumbers);
 
   return program;
 }

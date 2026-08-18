@@ -3,6 +3,7 @@ import type { CompleteLessonInput, TouchLessonAccessInput } from '@/domain/progr
 import { mergeRemoteProgress } from '@/domain/progress';
 
 import { isOnline } from '../network/connectivity.service';
+import { captureException } from '../observability/sentry.service';
 import {
   buildLocalLessonAccessRecord,
   buildLocalProgressRecord,
@@ -10,7 +11,7 @@ import {
   markLessonComplete,
   touchLessonAccess,
 } from '../progress/progress.service';
-import { countLessonsByProgramId } from '../programs/program.repository';
+import { countLessonsByProgramId, countLessonsByProgramIds } from '../programs/program.repository';
 import { DataServiceError } from '../shared';
 import {
   appendCompletionHistoryEntry,
@@ -100,14 +101,13 @@ export async function listMergedUserProgress(userId: EntityId): Promise<UserProg
     const remoteItems = await listUserProgress(userId);
     const mergedItems: UserProgress[] = [];
 
-    const programIds = new Set([
-      ...cachedItems.map((item) => item.programId),
-      ...remoteItems.map((item) => item.programId),
-    ]);
+    const remoteByProgramId = new Map(remoteItems.map((item) => [item.programId, item]));
+    const programIds = [...new Set([...cachedItems.map((item) => item.programId), ...remoteByProgramId.keys()])];
+    const lessonCountByProgramId = await countLessonsByProgramIds(programIds);
 
     for (const programId of programIds) {
       const cached = cachedMap.get(programId) ?? null;
-      const remote = remoteItems.find((item) => item.programId === programId) ?? null;
+      const remote = remoteByProgramId.get(programId) ?? null;
 
       if (!cached && !remote) {
         continue;
@@ -124,7 +124,7 @@ export async function listMergedUserProgress(userId: EntityId): Promise<UserProg
         continue;
       }
 
-      const totalLessons = await countLessonsByProgramId(programId);
+      const totalLessons = lessonCountByProgramId.get(programId) ?? 0;
       const merged = mergeRemoteProgress(cached, remote, totalLessons);
       await setCachedProgramProgress(merged);
       mergedItems.push(merged);
@@ -218,6 +218,8 @@ export async function touchLessonAccessWithSync(
   return { progress: optimistic, syncState: 'queued' };
 }
 
+const MAX_SYNC_ATTEMPTS = 5;
+
 export async function syncPendingProgress(userId: EntityId): Promise<SyncProgressResult> {
   const online = await isOnline();
 
@@ -257,8 +259,20 @@ export async function syncPendingProgress(userId: EntityId): Promise<SyncProgres
 
       await removePendingProgressAction(userId, action.id);
       syncedCount += 1;
-    } catch {
+    } catch (error) {
       failedCount += 1;
+      const attempts = (action.attempts ?? 0) + 1;
+
+      if (attempts >= MAX_SYNC_ATTEMPTS) {
+        // Ação presa há várias tentativas — não é mais transitória. Descarta
+        // da fila para não travar o sync para sempre e registra para
+        // investigação, em vez de tentar de novo indefinidamente.
+        captureException(error, { flow: 'progress_sync_giveup', actionId: action.id, attempts });
+        await removePendingProgressAction(userId, action.id);
+        continue;
+      }
+
+      await enqueuePendingProgressAction(userId, { ...action, attempts });
     }
   }
 

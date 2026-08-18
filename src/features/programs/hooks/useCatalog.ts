@@ -1,7 +1,7 @@
 import type { ProgramSummary } from '@/domain';
 import type { UserProgress } from '@/domain/progress';
 import { useAuth } from '@/features/auth';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   DATA_FETCH_TIMEOUT_MS,
@@ -134,7 +134,10 @@ export function useCatalog() {
     return () => clearTimeout(timeoutId);
   }, [isInitialized]);
 
-  const myItemIds = new Set(state.myItems.map((program) => program.id));
+  const myItemIds = useMemo(
+    () => new Set(state.myItems.map((program) => program.id)),
+    [state.myItems],
+  );
   const refetch = useCallback(() => load(true), [load]);
 
   return {

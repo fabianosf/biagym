@@ -92,10 +92,14 @@ export async function markCoachMessagesRead(studentUserId: string): Promise<void
   assertSupabaseConfigured(isSupabaseConfigured());
 
   const supabase = getSupabaseClient();
-  await supabase
+  const { error } = await supabase
     .from('coach_messages')
     .update({ read_at: new Date().toISOString() })
     .eq('student_user_id', studentUserId)
     .is('read_at', null)
     .neq('sender_id', studentUserId);
+
+  if (error && !isMissing(error)) {
+    throw mapSupabaseDataError(error);
+  }
 }

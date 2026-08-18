@@ -71,6 +71,61 @@ async function fetchCategoryIdsByProgramIds(
   return map;
 }
 
+async function fetchCategoriesByIds(categoryIds: readonly string[]): Promise<Map<string, Category>> {
+  if (categoryIds.length === 0) {
+    return new Map();
+  }
+
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.from('categories').select('*').in('id', categoryIds);
+
+  if (error) {
+    throw mapSupabaseDataError(error);
+  }
+
+  return new Map(((data ?? []) as CategoryRow[]).map((row) => [row.id, mapCategoryRow(row)]));
+}
+
+function buildCategoriesByProgram(
+  categoryIdsByProgram: Map<string, string[]>,
+  categoriesById: Map<string, Category>,
+): Map<string, Category[]> {
+  const result = new Map<string, Category[]>();
+  for (const [programId, categoryIds] of categoryIdsByProgram) {
+    result.set(
+      programId,
+      categoryIds.map((id) => categoriesById.get(id)).filter((c): c is Category => Boolean(c)),
+    );
+  }
+  return result;
+}
+
+export async function countLessonsByProgramIds(
+  programIds: readonly string[],
+): Promise<Map<string, number>> {
+  const map = new Map<string, number>();
+  if (programIds.length === 0) {
+    return map;
+  }
+
+  assertSupabaseConfigured(isSupabaseConfigured());
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from('lessons')
+    .select('program_id')
+    .in('program_id', [...programIds]);
+
+  if (error) {
+    throw mapSupabaseDataError(error);
+  }
+
+  for (const row of data ?? []) {
+    map.set(row.program_id, (map.get(row.program_id) ?? 0) + 1);
+  }
+
+  return map;
+}
+
 async function fetchLessonStats(
   programIds: readonly string[],
 ): Promise<Map<string, ProgramLessonStats>> {
@@ -170,17 +225,18 @@ export async function listPrograms(
   const filteredRows = rows.filter((row) => programIds.includes(row.id));
   const categoryMap = await fetchCategoryIdsByProgramIds(filteredRows.map((row) => row.id));
   const statsMap = await fetchLessonStats(filteredRows.map((row) => row.id));
-  const categoriesByProgram = await Promise.all(
-    filteredRows.map((row) => fetchCategoriesByProgramId(row.id)),
-  );
 
-  return filteredRows.map((row, index) => {
+  const allCategoryIds = [...new Set([...categoryMap.values()].flat())];
+  const categoriesById = await fetchCategoriesByIds(allCategoryIds);
+  const categoriesByProgram = buildCategoriesByProgram(categoryMap, categoriesById);
+
+  return filteredRows.map((row) => {
     const stats = statsMap.get(row.id);
-    const categories = categoriesByProgram[index] ?? [];
+    const categoryIds = categoryMap.get(row.id) ?? [];
 
     return {
-      ...mapProgramRow(row, categoryMap.get(row.id) ?? []),
-      categories,
+      ...mapProgramRow(row, categoryIds),
+      categories: categoriesByProgram.get(row.id) ?? [],
       totalLessons: stats?.totalLessons ?? 0,
       totalDurationSeconds: stats?.totalDurationSeconds ?? 0,
     };
@@ -336,19 +392,20 @@ export async function listProgramsByIds(programIds: readonly string[]): Promise<
   const categoryMap = await fetchCategoryIdsByProgramIds(rows.map((row) => row.id));
   const statsMap = await fetchLessonStats(rows.map((row) => row.id));
 
-  return Promise.all(
-    rows.map(async (row) => {
-      const categories = await fetchCategoriesByProgramId(row.id);
-      const stats = statsMap.get(row.id);
+  const allCategoryIds = [...new Set([...categoryMap.values()].flat())];
+  const categoriesById = await fetchCategoriesByIds(allCategoryIds);
+  const categoriesByProgram = buildCategoriesByProgram(categoryMap, categoriesById);
 
-      return {
-        ...mapProgramRow(row, categoryMap.get(row.id) ?? []),
-        categories,
-        totalLessons: stats?.totalLessons ?? 0,
-        totalDurationSeconds: stats?.totalDurationSeconds ?? 0,
-      };
-    }),
-  );
+  return rows.map((row) => {
+    const stats = statsMap.get(row.id);
+
+    return {
+      ...mapProgramRow(row, categoryMap.get(row.id) ?? []),
+      categories: categoriesByProgram.get(row.id) ?? [],
+      totalLessons: stats?.totalLessons ?? 0,
+      totalDurationSeconds: stats?.totalDurationSeconds ?? 0,
+    };
+  });
 }
 
 export async function assertProgramExists(programId: string): Promise<ProgramRow> {

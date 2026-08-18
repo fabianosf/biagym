@@ -14,6 +14,7 @@ export type UploadLessonVideoInput = {
 
 export const LESSON_VIDEOS_BUCKET = 'lesson-videos';
 export const VIDEO_UPLOAD_TIMEOUT_MS = 90_000;
+export const LESSON_VIDEO_SIGNED_URL_TTL_SECONDS = 60 * 60;
 
 const ALLOWED_VIDEO_TYPES = new Set([
   'video/mp4',
@@ -240,23 +241,59 @@ export async function uploadExerciseVideo(input: {
   });
 }
 
+function extractLessonVideoPath(videoUrl: string): string | null {
+  const marker = `/storage/v1/object/public/${LESSON_VIDEOS_BUCKET}/`;
+  const index = videoUrl.indexOf(marker);
+
+  if (index === -1) {
+    return null;
+  }
+
+  return decodeURIComponent(videoUrl.slice(index + marker.length));
+}
+
 export async function deleteLessonVideoByUrl(videoUrl: string): Promise<void> {
   if (!videoUrl || videoUrl === 'pending-upload') {
     return;
   }
 
-  const marker = `/storage/v1/object/public/${LESSON_VIDEOS_BUCKET}/`;
-  const index = videoUrl.indexOf(marker);
+  const path = extractLessonVideoPath(videoUrl);
 
-  if (index === -1) {
+  if (!path) {
     return;
   }
 
-  const path = decodeURIComponent(videoUrl.slice(index + marker.length));
   const supabase = getSupabaseClient();
   const { error } = await supabase.storage.from(LESSON_VIDEOS_BUCKET).remove([path]);
 
   if (error) {
     throw mapSupabaseDataError(error);
   }
+}
+
+/**
+ * Resolve a URL "pública" gravada em lessons.video_url / exercises.video_url
+ * para uma URL assinada de curta duração, apta a tocar/baixar mesmo com o
+ * bucket lesson-videos privado (ver supabase/private-storage-buckets.sql).
+ * Faz fallback para a URL original (externa, de amostra, ou já assinada)
+ * quando o caminho não é reconhecido ou a assinatura falha — nunca quebra
+ * a reprodução por causa disso.
+ */
+export async function resolveLessonVideoPlayableUrl(storedUrl: string): Promise<string> {
+  const path = extractLessonVideoPath(storedUrl);
+
+  if (!path) {
+    return storedUrl;
+  }
+
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.storage
+    .from(LESSON_VIDEOS_BUCKET)
+    .createSignedUrl(path, LESSON_VIDEO_SIGNED_URL_TTL_SECONDS);
+
+  if (error || !data) {
+    return storedUrl;
+  }
+
+  return data.signedUrl;
 }

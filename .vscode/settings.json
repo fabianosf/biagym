@@ -1,0 +1,9 @@
+﻿{
+  "xgrok.defaultModel": "grok-4.5",
+  "xgrok.language": "pt-br",
+  "xgrok.contextMode": "smart",
+  "xgrok.permissionMode": "ask",
+  "xgrok.agentMode": "detailed",
+  "xgrok.reasoningEffort": "smart",
+  "xgrok.temperature": 0.2
+}

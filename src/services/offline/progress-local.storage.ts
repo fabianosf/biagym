@@ -15,6 +15,7 @@ export type PendingProgressAction =
       readonly totalLessons: number;
       readonly accessedAt: string;
       readonly clientSequence: number;
+      readonly attempts?: number;
     }
   | {
       readonly id: string;
@@ -24,6 +25,7 @@ export type PendingProgressAction =
       readonly lessonId: string;
       readonly accessedAt: string;
       readonly clientSequence: number;
+      readonly attempts?: number;
     };
 
 function progressCacheKey(userId: string, programId: string): string {

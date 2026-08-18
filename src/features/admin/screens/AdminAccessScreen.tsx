@@ -15,7 +15,7 @@ import {
 import type { AccessGrantWithUser } from '@/services';
 import type { ProgramSummary, UserRef } from '@/domain';
 import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -62,7 +62,12 @@ export function AdminAccessScreen() {
     }
   }, []);
 
+  const grantsRequestIdRef = useRef(0);
+
   const loadGrants = useCallback(async () => {
+    const requestId = grantsRequestIdRef.current + 1;
+    grantsRequestIdRef.current = requestId;
+
     if (!selectedProgramId) {
       setGrants([]);
       return;
@@ -74,8 +79,14 @@ export function AdminAccessScreen() {
         DATA_FETCH_TIMEOUT_MS,
         'As liberações demoraram demais para carregar. Tente novamente.',
       );
+      if (requestId !== grantsRequestIdRef.current) {
+        return;
+      }
       setGrants(data);
     } catch (err) {
+      if (requestId !== grantsRequestIdRef.current) {
+        return;
+      }
       setError(getDataErrorMessage(err));
     }
   }, [selectedProgramId]);

@@ -1,7 +1,7 @@
 import type { AccessGrant, EntityId, UserRef } from '@/domain';
 import type { CreateAccessGrantInput } from '@/domain/progress';
 
-import { getProfileById, searchStudents } from '../users/profile.repository';
+import { getProfilesByIds, searchStudents } from '../users/profile.repository';
 import {
   createAccessGrant,
   listAccessGrantsByProgramId,
@@ -36,17 +36,12 @@ export async function adminListProgramAccessGrants(
   programId: EntityId,
 ): Promise<AccessGrantWithUser[]> {
   const grants = await listAccessGrantsByProgramId(programId);
-  const users = await Promise.all(
-    grants.map(async (grant) => {
-      const user = await getProfileById(grant.userId);
-      return {
-        ...grant,
-        user: user ?? { id: grant.userId, name: 'Aluno', email: '—' },
-      };
-    }),
-  );
+  const usersById = await getProfilesByIds(grants.map((grant) => grant.userId));
 
-  return users;
+  return grants.map((grant) => ({
+    ...grant,
+    user: usersById.get(grant.userId) ?? { id: grant.userId, name: 'Aluno', email: '—' },
+  }));
 }
 
 export async function adminListStudentGrants(userId: EntityId): Promise<AccessGrant[]> {

@@ -259,7 +259,14 @@ export function AdminExercisesScreen() {
                   onPick={(file) => void handleAttachVideo(exercise, file)}
                 />
               </View>
-              <Pressable className="mt-3" onPress={() => void deleteExercise(exercise.id).then(load)}>
+              <Pressable
+                className="mt-3"
+                onPress={() =>
+                  void deleteExercise(exercise.id)
+                    .then(load)
+                    .catch((err) => setError(getDataErrorMessage(err)))
+                }
+              >
                 <Text className="text-sm text-red-400">Remover</Text>
               </Pressable>
             </View>

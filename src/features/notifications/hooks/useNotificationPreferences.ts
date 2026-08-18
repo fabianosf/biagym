@@ -12,7 +12,7 @@ import {
   withTimeout,
 } from '@/services';
 import type { NotificationPreferences } from '@/domain/notifications';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, type AppStateStatus } from 'react-native';
 
 type NotificationPreferencesState = {
@@ -46,12 +46,20 @@ export function useNotificationPreferences() {
     isPushLimitedInRuntime: isExpoGo(),
   });
 
+  const requestIdRef = useRef(0);
+
   const load = useCallback(async () => {
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
+
     if (!isInitialized) {
       return;
     }
 
     if (!user) {
+      if (requestId !== requestIdRef.current) {
+        return;
+      }
       setState((current) => ({
         ...current,
         preferences: DEFAULT_PREFERENCES,
@@ -69,6 +77,10 @@ export function useNotificationPreferences() {
         'As preferências de notificação demoraram demais. Tente novamente.',
       );
 
+      if (requestId !== requestIdRef.current) {
+        return;
+      }
+
       setState((current) => ({
         ...current,
         preferences,
@@ -77,6 +89,9 @@ export function useNotificationPreferences() {
         isPushLimitedInRuntime: isExpoGo(),
       }));
     } catch (error) {
+      if (requestId !== requestIdRef.current) {
+        return;
+      }
       setState((current) => ({
         ...current,
         isLoading: false,

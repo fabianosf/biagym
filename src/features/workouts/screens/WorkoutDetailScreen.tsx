@@ -12,8 +12,20 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
+
+/**
+ * Isolado num componente próprio para que o tick de 1s do relógio não
+ * re-renderize a tela inteira (e, com ela, a lista de exercícios) a cada
+ * segundo durante todo o treino.
+ */
+function ElapsedTimeLabel({ planId }: { planId: string | undefined }) {
+  const elapsed = useSessionClock(planId);
+  return (
+    <Text className="flex-1 text-center text-[22px] font-semibold text-white">{elapsed}</Text>
+  );
+}
 
 type FinishSummary = {
   title: string;
@@ -55,7 +67,6 @@ export function WorkoutDetailScreen() {
   const { user } = useAuth();
   const params = useLocalSearchParams<{ id?: string | string[] }>();
   const planId = resolveRouteParam(params.id);
-  const elapsed = useSessionClock(planId);
   const [plan, setPlan] = useState<TrainingPlan | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -68,9 +79,15 @@ export function WorkoutDetailScreen() {
   const markCompleted = useWorkoutRunStore((state) => state.markCompleted);
   const unmark = useWorkoutRunStore((state) => state.unmark);
   const clearPlan = useWorkoutRunStore((state) => state.clearPlan);
-  const doneSet = new Set(doneIds);
-  const currentIndex = plan?.exercises.findIndex((item) => !doneSet.has(item.id)) ?? -1;
-  const muscleSubtitle = plan ? getPlanMuscleGroupSubtitle(plan.exercises) : '';
+  const doneSet = useMemo(() => new Set(doneIds), [doneIds]);
+  const currentIndex = useMemo(
+    () => plan?.exercises.findIndex((item) => !doneSet.has(item.id)) ?? -1,
+    [plan, doneSet],
+  );
+  const muscleSubtitle = useMemo(
+    () => (plan ? getPlanMuscleGroupSubtitle(plan.exercises) : ''),
+    [plan],
+  );
 
   const load = useCallback(async () => {
     if (!planId) {
@@ -105,6 +122,39 @@ export function WorkoutDetailScreen() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const handleToggleDone = useCallback(
+    (itemId: string) => {
+      if (!planId) {
+        return;
+      }
+
+      if (doneSet.has(itemId)) {
+        unmark(planId, itemId);
+        return;
+      }
+
+      markCompleted(planId, itemId);
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => undefined);
+    },
+    [planId, doneSet, markCompleted, unmark],
+  );
+
+  const handleOpenExercise = useCallback(
+    (item: TrainingPlan['exercises'][number]) => {
+      if (!plan?.id || !item.id) {
+        setError('Este exercício não está completo. Avise a treinadora.');
+        return;
+      }
+
+      try {
+        router.push(`/workouts/${plan.id}/exercises/${item.id}` as Href);
+      } catch {
+        setError('Não foi possível abrir este exercício. Tente de novo.');
+      }
+    },
+    [plan?.id, router],
+  );
 
   async function handleFinish() {
     if (!user || !plan) {
@@ -154,9 +204,13 @@ export function WorkoutDetailScreen() {
         >
           <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
         </Pressable>
-        <Text className="flex-1 text-center text-[22px] font-semibold text-white">
-          {finishSummary ? 'Concluído' : elapsed}
-        </Text>
+        {finishSummary ? (
+          <Text className="flex-1 text-center text-[22px] font-semibold text-white">
+            Concluído
+          </Text>
+        ) : (
+          <ElapsedTimeLabel planId={planId} />
+        )}
         <View className="h-11 w-11 items-center justify-center">
           <Ionicons name="pulse-outline" size={20} color="#FFFFFF" />
         </View>
@@ -226,33 +280,8 @@ export function WorkoutDetailScreen() {
                 done={doneSet.has(item.id)}
                 isCurrent={index === currentIndex}
                 displayLoadKg={resolveDisplayedLoadKg(item, loadByItemId[item.id])}
-                onToggleDone={() => {
-                  if (!planId) {
-                    return;
-                  }
-
-                  if (doneSet.has(item.id)) {
-                    unmark(planId, item.id);
-                    return;
-                  }
-
-                  markCompleted(planId, item.id);
-                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(
-                    () => undefined,
-                  );
-                }}
-                onPress={() => {
-                  if (!plan.id || !item.id) {
-                    setError('Este exercício não está completo. Avise a treinadora.');
-                    return;
-                  }
-
-                  try {
-                    router.push(`/workouts/${plan.id}/exercises/${item.id}` as Href);
-                  } catch {
-                    setError('Não foi possível abrir este exercício. Tente de novo.');
-                  }
-                }}
+                onToggleDone={handleToggleDone}
+                onPress={handleOpenExercise}
               />
             ))}
           </ScrollView>

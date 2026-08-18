@@ -1,6 +1,11 @@
 import type { Exercise } from '@/domain/workout';
 import { pickSampleWorkoutVideoForExercise } from '@/features/workouts/utils/exercise-media';
-import { CONNECTIVITY_TIMEOUT_MS, resolveSampleWorkoutVideo, withTimeout } from '@/services';
+import {
+  CONNECTIVITY_TIMEOUT_MS,
+  resolveLessonVideoPlayableUrl,
+  resolveSampleWorkoutVideo,
+  withTimeout,
+} from '@/services';
 import { isPlayableVideoUrl } from '@/shared/utils';
 import { useEffect, useState } from 'react';
 
@@ -23,9 +28,20 @@ export function useResolvedExerciseVideoUrl(exercise: Exercise | null | undefine
       }
 
       if (playableRemote) {
-        if (!cancelled) {
-          setVideoUrl(playableRemote);
-          setIsResolving(false);
+        setIsResolving(true);
+        try {
+          const playable = await resolveLessonVideoPlayableUrl(playableRemote);
+          if (!cancelled) {
+            setVideoUrl(playable);
+          }
+        } catch {
+          if (!cancelled) {
+            setVideoUrl(playableRemote);
+          }
+        } finally {
+          if (!cancelled) {
+            setIsResolving(false);
+          }
         }
         return;
       }

@@ -6,17 +6,21 @@ import {
 import { adminRoutes } from '@/shared/constants/admin-routes';
 import { useT } from '@/shared/theme';
 import type { Href } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
 export function AdminHomeScreen() {
   const t = useT();
+  const router = useRouter();
   const [showCatalog, setShowCatalog] = useState(false);
 
   return (
     <AdminShell
       title="Painel da treinadora"
       subtitle="Toque no aluno. Tudo que você fizer a partir daqui é só dele."
+      showBack
+      onBack={() => router.back()}
     >
       <ScrollView
         className="flex-1"
@@ -33,6 +37,15 @@ export function AdminHomeScreen() {
         </View>
 
         <AdminStudentRoster />
+
+        <View className="gap-3 px-5 pt-2">
+          <AdminNavCard
+            title="Loja"
+            description="Cadastrar, editar e remover produtos e cupons para as alunas"
+            href={adminRoutes.store as Href}
+            icon="storefront-outline"
+          />
+        </View>
 
         <View className="px-5 pt-2">
           <Pressable
@@ -69,13 +82,13 @@ export function AdminHomeScreen() {
               href={adminRoutes.programs}
               icon="play-circle-outline"
             />
-            <AdminNavCard
-              title="Liberação de programas"
-              description="Quem vê cada programa"
-              href={adminRoutes.access}
-              icon="key-outline"
-            />
           </View>
+        ) : null}
+
+        {showCatalog ? (
+          <Text className="px-5 text-xs leading-4 text-faint">
+            Para liberar ficha ou programa pra uma aluna, entre no espaço dela na lista acima.
+          </Text>
         ) : null}
       </ScrollView>
     </AdminShell>

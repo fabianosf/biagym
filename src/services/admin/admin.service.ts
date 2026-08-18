@@ -5,11 +5,13 @@ import {
   createNutritionPlan,
   deleteNutritionPlan,
   listNutritionPlans,
+  updateNutritionPlan,
 } from '../nutrition';
 import {
   createTrainingSlot,
   deleteTrainingSlot,
   listTrainingSlots,
+  updateTrainingSlot,
 } from '../schedule';
 import { listStudentProfiles, searchStudentProfiles } from '../users';
 import {
@@ -67,6 +69,8 @@ export {
   createTrainingSlot as adminCreateTrainingSlot,
   deleteNutritionPlan as adminDeleteNutritionPlan,
   deleteTrainingSlot as adminDeleteTrainingSlot,
+  updateNutritionPlan as adminUpdateNutritionPlan,
+  updateTrainingSlot as adminUpdateTrainingSlot,
 };
 
 export type { AccessGrantWithUser } from '../access/access.admin.service';

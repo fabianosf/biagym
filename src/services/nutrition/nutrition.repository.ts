@@ -1,4 +1,4 @@
-import type { CreateNutritionPlanInput, NutritionPlan } from '@/domain/nutrition';
+import type { CreateNutritionPlanInput, NutritionPlan, UpdateNutritionPlanInput } from '@/domain/nutrition';
 
 import {
   assertSupabaseConfigured,
@@ -177,6 +177,64 @@ export async function createNutritionPlan(
   }
 
   return created;
+}
+
+export async function updateNutritionPlan(
+  planId: string,
+  input: UpdateNutritionPlanInput,
+): Promise<NutritionPlan> {
+  assertSupabaseConfigured(isSupabaseConfigured());
+
+  const supabase = getSupabaseClient();
+  const { error: updateError } = await supabase
+    .from('nutrition_plans')
+    .update({
+      title: input.title.trim(),
+      description: input.description?.trim() || null,
+      calories_kcal: input.macros?.caloriesKcal ?? null,
+      protein_g: input.macros?.proteinG ?? null,
+      carbs_g: input.macros?.carbsG ?? null,
+      fat_g: input.macros?.fatG ?? null,
+    })
+    .eq('id', planId);
+
+  if (updateError) {
+    throw mapSupabaseDataError(updateError);
+  }
+
+  const { error: deleteMealsError } = await supabase
+    .from('nutrition_meals')
+    .delete()
+    .eq('plan_id', planId);
+
+  if (deleteMealsError) {
+    throw mapSupabaseDataError(deleteMealsError);
+  }
+
+  const mealsToInsert = input.meals
+    .filter((meal) => meal.title.trim().length > 0)
+    .map((meal, index) => ({
+      plan_id: planId,
+      meal_type: meal.mealType,
+      title: meal.title.trim(),
+      description: meal.description?.trim() || null,
+      time_label: meal.timeLabel?.trim() || null,
+      sort_order: index,
+    }));
+
+  if (mealsToInsert.length > 0) {
+    const { error: mealsError } = await supabase.from('nutrition_meals').insert(mealsToInsert);
+    if (mealsError) {
+      throw mapSupabaseDataError(mealsError);
+    }
+  }
+
+  const [updated] = await fetchPlansWithMeals([planId]);
+  if (!updated) {
+    throw new DataServiceError('not_found');
+  }
+
+  return updated;
 }
 
 export async function deleteNutritionPlan(planId: string): Promise<void> {

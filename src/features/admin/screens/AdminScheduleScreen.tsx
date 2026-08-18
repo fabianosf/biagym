@@ -7,6 +7,7 @@ import type { StudentProfile } from '@/domain/student';
 import {
   adminCreateTrainingSlot,
   adminDeleteTrainingSlot,
+  adminUpdateTrainingSlot,
   getDataErrorMessage,
   listTrainingSlots,
 } from '@/services';
@@ -24,6 +25,7 @@ export function AdminScheduleScreen() {
   const [duration, setDuration] = useState('60');
   const [title, setTitle] = useState('Treino da semana');
   const [notes, setNotes] = useState('');
+  const [editingSlotId, setEditingSlotId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,8 +55,31 @@ export function AdminScheduleScreen() {
   const firstName = focusedStudent ? getStudentFirstName(focusedStudent.name) : null;
   const targetStudent = focusedStudent ?? selectedStudent;
 
-  async function handleCreate() {
-    if (!user || !targetStudent) {
+  function resetForm() {
+    setEditingSlotId(null);
+    setWeekday(1);
+    setStartTime('07:00');
+    setDuration('60');
+    setTitle('Treino da semana');
+    setNotes('');
+  }
+
+  function handleStartEdit(slot: TrainingSlot) {
+    setEditingSlotId(slot.id);
+    setWeekday(slot.weekday);
+    setStartTime(slot.startTime.slice(0, 5));
+    setDuration(String(slot.durationMinutes));
+    setTitle(slot.title);
+    setNotes(slot.notes ?? '');
+    setError(null);
+  }
+
+  async function handleSave() {
+    if (!user) {
+      return;
+    }
+
+    if (!editingSlotId && !targetStudent) {
       setError('Selecione um aluno para agendar o treino.');
       return;
     }
@@ -74,16 +99,26 @@ export function AdminScheduleScreen() {
     setError(null);
 
     try {
-      await adminCreateTrainingSlot({
-        studentUserId: targetStudent.userId,
-        weekday,
-        startTime: startTime.trim(),
-        durationMinutes,
-        title: title.trim() || 'Treino',
-        notes: notes || undefined,
-        createdBy: user.id,
-      });
-      setNotes('');
+      if (editingSlotId) {
+        await adminUpdateTrainingSlot(editingSlotId, {
+          weekday,
+          startTime: startTime.trim(),
+          durationMinutes,
+          title: title.trim() || 'Treino',
+          notes: notes || undefined,
+        });
+      } else if (targetStudent) {
+        await adminCreateTrainingSlot({
+          studentUserId: targetStudent.userId,
+          weekday,
+          startTime: startTime.trim(),
+          durationMinutes,
+          title: title.trim() || 'Treino',
+          notes: notes || undefined,
+          createdBy: user.id,
+        });
+      }
+      resetForm();
       await loadSlots();
     } catch (err) {
       setError(getDataErrorMessage(err));
@@ -95,6 +130,9 @@ export function AdminScheduleScreen() {
   async function handleDelete(slotId: string) {
     try {
       await adminDeleteTrainingSlot(slotId);
+      if (editingSlotId === slotId) {
+        resetForm();
+      }
       await loadSlots();
     } catch (err) {
       setError(getDataErrorMessage(err));
@@ -125,7 +163,17 @@ export function AdminScheduleScreen() {
           {error ? <Text className="text-sm text-red-400">{error}</Text> : null}
 
           <View className="rounded-card border border-line bg-surface p-5 gap-4">
-            {focusedStudentId ? (
+            <View className="flex-row items-center justify-between">
+              <Text className="text-lg font-semibold text-ink">
+                {editingSlotId ? 'Editar horário' : 'Novo horário'}
+              </Text>
+              {editingSlotId ? (
+                <Pressable onPress={resetForm}>
+                  <Text className="text-sm text-muted">Cancelar</Text>
+                </Pressable>
+              ) : null}
+            </View>
+            {editingSlotId ? null : focusedStudentId ? (
               <Text className="text-sm text-muted">
                 Individual: {focusedStudent?.name ?? 'este aluno'}
               </Text>
@@ -178,9 +226,15 @@ export function AdminScheduleScreen() {
               icon="chatbubble-outline"
             />
             <Button
-              label={firstName ? `Salvar horário de ${firstName}` : 'Agendar treino'}
+              label={
+                editingSlotId
+                  ? 'Salvar alterações'
+                  : firstName
+                    ? `Salvar horário de ${firstName}`
+                    : 'Agendar treino'
+              }
               loading={isSaving}
-              onPress={() => void handleCreate()}
+              onPress={() => void handleSave()}
             />
           </View>
 
@@ -201,9 +255,14 @@ export function AdminScheduleScreen() {
                     {slot.durationMinutes} min
                     {slot.notes ? ` · ${slot.notes}` : ''}
                   </Text>
-                  <Pressable className="mt-3" onPress={() => void handleDelete(slot.id)}>
-                    <Text className="text-sm text-red-400">Remover</Text>
-                  </Pressable>
+                  <View className="mt-3 flex-row gap-4">
+                    <Pressable onPress={() => handleStartEdit(slot)}>
+                      <Text className="text-sm font-semibold text-primary">Editar</Text>
+                    </Pressable>
+                    <Pressable onPress={() => void handleDelete(slot.id)}>
+                      <Text className="text-sm text-red-400">Remover</Text>
+                    </Pressable>
+                  </View>
                 </View>
               ))
             )}

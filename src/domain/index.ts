@@ -6,6 +6,7 @@ export * from './program';
 export * from './progress';
 export * from './schedule';
 export * from './shared';
+export * from './store';
 export * from './student';
 export * from './user';
 export * from './workout';

@@ -1,6 +1,7 @@
 import type { CoachMessage, SendCoachMessageInput } from '@/domain/messaging';
 
 import { assertSupabaseConfigured, mapSupabaseDataError } from '../shared';
+import { getMessageAttachmentPlayableUrls } from '../storage/message-attachment.storage';
 import { getSupabaseClient, isSupabaseConfigured } from '../supabase';
 import type { CoachMessageRow, ProfileRow } from '../supabase/types';
 
@@ -18,6 +19,7 @@ function isMissing(error: { message?: string; code?: string }): boolean {
 function mapMessage(
   row: CoachMessageRow,
   names: Map<string, string>,
+  attachmentUrl: string | undefined,
 ): CoachMessage {
   return {
     id: row.id,
@@ -25,6 +27,7 @@ function mapMessage(
     senderId: row.sender_id,
     senderName: names.get(row.sender_id) ?? 'BiAGym',
     body: row.body,
+    attachmentUrl,
     createdAt: row.created_at,
     readAt: row.read_at ?? undefined,
   };
@@ -63,7 +66,11 @@ export async function listCoachMessages(studentUserId: string): Promise<CoachMes
     }
   }
 
-  return rows.map((row) => mapMessage(row, names));
+  const attachmentUrls = await getMessageAttachmentPlayableUrls(
+    rows.map((row) => row.attachment_url),
+  );
+
+  return rows.map((row, index) => mapMessage(row, names, attachmentUrls[index]));
 }
 
 export async function sendCoachMessage(input: SendCoachMessageInput): Promise<CoachMessage> {
@@ -76,6 +83,7 @@ export async function sendCoachMessage(input: SendCoachMessageInput): Promise<Co
       student_user_id: input.studentUserId,
       sender_id: input.senderId,
       body: input.body.trim(),
+      attachment_url: input.attachmentUrl ?? null,
     })
     .select('*')
     .single();
@@ -85,7 +93,8 @@ export async function sendCoachMessage(input: SendCoachMessageInput): Promise<Co
   }
 
   const row = data as CoachMessageRow;
-  return mapMessage(row, new Map([[input.senderId, 'Você']]));
+  const [attachmentUrl] = await getMessageAttachmentPlayableUrls([row.attachment_url]);
+  return mapMessage(row, new Map([[input.senderId, 'Você']]), attachmentUrl);
 }
 
 export async function markCoachMessagesRead(studentUserId: string): Promise<void> {

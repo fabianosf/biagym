@@ -32,6 +32,8 @@ type FinishSummary = {
   message: string;
 };
 
+const EMPTY_DONE_IDS: readonly string[] = [];
+
 function buildFinishSummary(plan: TrainingPlan, completedCount: number): FinishSummary {
   const total = plan.exercises.length;
 
@@ -73,7 +75,7 @@ export function WorkoutDetailScreen() {
   const [isFinishing, setIsFinishing] = useState(false);
   const [finishSummary, setFinishSummary] = useState<FinishSummary | null>(null);
   const doneIds = useWorkoutRunStore((state) =>
-    planId ? (state.completedByPlanId[planId] ?? []) : [],
+    planId ? (state.completedByPlanId[planId] ?? EMPTY_DONE_IDS) : EMPTY_DONE_IDS,
   );
   const loadByItemId = useWorkoutRunStore((state) => state.loadByItemId);
   const markCompleted = useWorkoutRunStore((state) => state.markCompleted);

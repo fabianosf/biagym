@@ -3,12 +3,11 @@ import { BrandHeader, ContinueWatchBar, ProgramCarousel } from '@/features/progr
 import { useCatalog } from '@/features/programs/hooks';
 import { OfflineBanner } from '@/features/offline';
 import { useAuth } from '@/features/auth';
+import { AcademyWorkoutsSection } from '@/features/progress/components';
 import { EmptyState, ErrorState, LoadingIndicator } from '@/shared/components';
-import { routes } from '@/shared/constants/routes';
 import { formatHelloGreeting, getGivenAndFamilyName } from '@/shared/utils/person-name';
 import { useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, Text, View } from 'react-native';
-import type { Href } from 'expo-router';
 
 export function HomeScreen() {
   const { user } = useAuth();
@@ -36,14 +35,17 @@ export function HomeScreen() {
   const continueProgress = continueItem ? progressByProgramId[continueItem.id] : null;
 
   const categoryRows = useMemo(() => {
-    const grouped = new Map<string, typeof catalog>();
+    const grouped = new Map<string, { name: string; description?: string; programs: typeof catalog }>();
 
     for (const program of catalog) {
-      const names = program.categories.length > 0 ? program.categories.map((item) => item.name) : ['Treinos'];
-      for (const name of names) {
-        const current = grouped.get(name) ?? [];
-        current.push(program);
-        grouped.set(name, current);
+      for (const category of program.categories) {
+        const entry = grouped.get(category.id) ?? {
+          name: category.name,
+          description: category.description,
+          programs: [],
+        };
+        entry.programs.push(program);
+        grouped.set(category.id, entry);
       }
     }
 
@@ -102,12 +104,15 @@ export function HomeScreen() {
             </View>
           ) : null}
 
+          <View className="px-5 pb-2">
+            <AcademyWorkoutsSection />
+          </View>
+
           <ProgramCarousel
             title="Programas iniciados"
             subtitle="Aqueles em que você já fez uma ou mais aulas"
             programs={startedPrograms}
             progressByProgramId={progressByProgramId}
-            seeMoreHref={routes.progress}
           />
 
           <ProgramCarousel
@@ -115,17 +120,15 @@ export function HomeScreen() {
             subtitle="Programas com acesso liberado"
             programs={myItems}
             progressByProgramId={progressByProgramId}
-            seeMoreHref={routes.library as Href}
           />
 
-          {categoryRows.map(([name, programs]) => (
+          {categoryRows.map(([categoryId, row]) => (
             <ProgramCarousel
-              key={name}
-              title={name}
-              subtitle="Treinos de todos os tipos para todos os objetivos"
-              programs={programs}
+              key={categoryId}
+              title={row.name}
+              subtitle={row.description}
+              programs={row.programs}
               progressByProgramId={progressByProgramId}
-              seeMoreHref={routes.store as Href}
             />
           ))}
         </ScrollView>

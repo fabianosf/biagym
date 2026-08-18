@@ -3,4 +3,5 @@ export {
   deleteNutritionPlan,
   listNutritionPlans,
   listNutritionPlansForStudent,
+  updateNutritionPlan,
 } from './nutrition.repository';

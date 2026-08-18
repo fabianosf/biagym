@@ -118,7 +118,7 @@ npm run typecheck
 | `/sign-in` `/sign-up` | Autenticação |
 | `/admin` | Dashboard administrativo |
 | `/admin/programs` | Gestão de programas |
-| `/admin/access` | Liberação de acesso |
+| `/admin/students/[id]` | Espaço do aluno (liberação de fichas e programas) |
 
 ## Builds de produção (EAS)
 

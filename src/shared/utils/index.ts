@@ -1,5 +1,6 @@
 export {
   formatLessonDuration,
+  formatPriceBRL,
   formatProgramDuration,
   formatRelativeAccessDate,
 } from './format';

@@ -30,9 +30,10 @@ function showAdminBlockedAlert(message: string) {
 type BrandHeaderProps = {
   showBrand?: boolean;
   title?: string;
+  showAdminPill?: boolean;
 };
 
-export function BrandHeader({ showBrand = true, title }: BrandHeaderProps) {
+export function BrandHeader({ showBrand = true, title, showAdminPill = true }: BrandHeaderProps) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { isAdmin, canOpenAdmin, becomeAdmin, isLoading } = useAuth();
@@ -82,7 +83,7 @@ export function BrandHeader({ showBrand = true, title }: BrandHeaderProps) {
         )}
 
         <View className="flex-row items-center gap-2">
-          {canOpenAdmin ? (
+          {canOpenAdmin && showAdminPill ? (
             <Pressable
               onPress={() => void handleAdminPress()}
               disabled={isLoading}

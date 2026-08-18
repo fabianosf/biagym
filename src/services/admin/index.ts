@@ -28,5 +28,7 @@ export {
   adminCreateTrainingSlot,
   adminDeleteNutritionPlan,
   adminDeleteTrainingSlot,
+  adminUpdateNutritionPlan,
+  adminUpdateTrainingSlot,
 } from './admin.service';
 export type { AccessGrantWithUser } from './admin.service';

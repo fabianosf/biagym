@@ -1,11 +1,18 @@
 import { useAuth } from '@/features/auth';
 import type { CoachMessage } from '@/domain/messaging';
-import { listCoachMessages, markCoachMessagesRead, sendCoachMessage } from '@/services';
-import { Button, ScreenHeader } from '@/shared/components';
+import {
+  listCoachMessages,
+  markCoachMessagesRead,
+  sendCoachMessage,
+  uploadMessageAttachment,
+} from '@/services';
+import { AppImage, Button, ScreenHeader } from '@/shared/components';
 import { getFriendlyErrorMessage } from '@/shared/errors';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { ScrollView, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 type MessagesThreadProps = {
   studentUserId?: string;
@@ -18,6 +25,7 @@ export function MessagesThread({ studentUserId, title, onBack }: MessagesThreadP
   const threadId = studentUserId ?? user?.id;
   const [messages, setMessages] = useState<CoachMessage[]>([]);
   const [body, setBody] = useState('');
+  const [pendingImage, setPendingImage] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
 
@@ -41,8 +49,27 @@ export function MessagesThread({ studentUserId, title, onBack }: MessagesThreadP
     void load();
   }, [load]);
 
+  async function handlePickImage() {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      setError('Permita o acesso às fotos do celular para anexar uma imagem.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: 'images',
+      quality: 0.8,
+    });
+
+    if (result.canceled || !result.assets[0]) {
+      return;
+    }
+
+    setPendingImage(result.assets[0]);
+  }
+
   async function handleSend() {
-    if (!user || !threadId || body.trim().length === 0) {
+    if (!user || !threadId || (body.trim().length === 0 && !pendingImage)) {
       return;
     }
 
@@ -50,12 +77,23 @@ export function MessagesThread({ studentUserId, title, onBack }: MessagesThreadP
     setError(null);
 
     try {
+      const attachmentUrl = pendingImage
+        ? await uploadMessageAttachment({
+            studentUserId: threadId,
+            fileUri: pendingImage.uri,
+            mimeType: pendingImage.mimeType,
+            fileName: pendingImage.fileName,
+          })
+        : undefined;
+
       await sendCoachMessage({
         studentUserId: threadId,
         senderId: user.id,
         body,
+        attachmentUrl,
       });
       setBody('');
+      setPendingImage(null);
       await load();
     } catch (err) {
       setError(getFriendlyErrorMessage(err));
@@ -92,9 +130,18 @@ export function MessagesThread({ studentUserId, title, onBack }: MessagesThreadP
                 <Text className={`text-xs ${mine ? 'text-white/80' : 'text-muted'}`}>
                   {mine ? 'Você' : message.senderName}
                 </Text>
-                <Text className={`mt-1 text-sm leading-5 ${mine ? 'text-white' : 'text-ink'}`}>
-                  {message.body}
-                </Text>
+                {message.attachmentUrl ? (
+                  <AppImage
+                    uri={message.attachmentUrl}
+                    aspectRatio={4 / 3}
+                    className="mt-2 w-full rounded-xl"
+                  />
+                ) : null}
+                {message.body ? (
+                  <Text className={`mt-1 text-sm leading-5 ${mine ? 'text-white' : 'text-ink'}`}>
+                    {message.body}
+                  </Text>
+                ) : null}
               </View>
             );
           })
@@ -102,14 +149,32 @@ export function MessagesThread({ studentUserId, title, onBack }: MessagesThreadP
       </ScrollView>
       <View className="border-t border-line bg-background px-5 py-4">
         {error ? <Text className="mb-2 text-sm text-red-400">{error}</Text> : null}
-        <TextInput
-          value={body}
-          onChangeText={setBody}
-          placeholder="Escreva um recado..."
-          placeholderTextColor="#9B9B9B"
-          multiline
-          className="mb-3 min-h-[52px] rounded-2xl border border-line bg-elevated px-4 py-3 text-ink"
-        />
+        {pendingImage ? (
+          <View className="mb-3 flex-row items-center gap-3">
+            <AppImage uri={pendingImage.uri} aspectRatio={1} className="h-16 w-16 rounded-xl" />
+            <Pressable onPress={() => setPendingImage(null)}>
+              <Text className="text-sm text-red-400">Remover foto</Text>
+            </Pressable>
+          </View>
+        ) : null}
+        <View className="mb-3 flex-row items-end gap-2">
+          <Pressable
+            onPress={() => void handlePickImage()}
+            className="h-[52px] w-[52px] items-center justify-center rounded-2xl border border-line bg-elevated"
+            accessibilityRole="button"
+            accessibilityLabel="Anexar foto"
+          >
+            <Ionicons name="image-outline" size={20} color="#9B9B9B" />
+          </Pressable>
+          <TextInput
+            value={body}
+            onChangeText={setBody}
+            placeholder="Escreva um recado..."
+            placeholderTextColor="#9B9B9B"
+            multiline
+            className="min-h-[52px] flex-1 rounded-2xl border border-line bg-elevated px-4 py-3 text-ink"
+          />
+        </View>
         <Button label="Enviar" loading={isSending} onPress={() => void handleSend()} />
       </View>
     </View>

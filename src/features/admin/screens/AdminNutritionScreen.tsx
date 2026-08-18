@@ -7,6 +7,7 @@ import type { StudentProfile } from '@/domain/student';
 import {
   adminCreateNutritionPlan,
   adminDeleteNutritionPlan,
+  adminUpdateNutritionPlan,
   getDataErrorMessage,
   listNutritionPlans,
 } from '@/services';
@@ -54,6 +55,7 @@ export function AdminNutritionScreen() {
   const [carbs, setCarbs] = useState('');
   const [fat, setFat] = useState('');
   const [meals, setMeals] = useState(EMPTY_MEALS);
+  const [editingPlanId, setEditingPlanId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -89,7 +91,40 @@ export function AdminNutritionScreen() {
     [focusedStudentId, plans],
   );
 
-  async function handleCreate() {
+  function resetForm() {
+    setEditingPlanId(null);
+    setTitle('Plano alimentar da semana');
+    setDescription('');
+    setCalories('');
+    setProtein('');
+    setCarbs('');
+    setFat('');
+    setMeals(EMPTY_MEALS);
+  }
+
+  function handleStartEdit(plan: NutritionPlan) {
+    setEditingPlanId(plan.id);
+    setTitle(plan.title);
+    setDescription(plan.description ?? '');
+    setCalories(plan.macros?.caloriesKcal != null ? String(plan.macros.caloriesKcal) : '');
+    setProtein(plan.macros?.proteinG != null ? String(plan.macros.proteinG) : '');
+    setCarbs(plan.macros?.carbsG != null ? String(plan.macros.carbsG) : '');
+    setFat(plan.macros?.fatG != null ? String(plan.macros.fatG) : '');
+    setMeals(
+      MEAL_TYPES.map((mealType) => {
+        const existing = plan.meals.find((meal) => meal.mealType === mealType);
+        return {
+          mealType,
+          title: existing?.title ?? '',
+          description: existing?.description ?? '',
+          timeLabel: existing?.timeLabel ?? '',
+        };
+      }),
+    );
+    setError(null);
+  }
+
+  async function handleSave() {
     if (!user) {
       return;
     }
@@ -103,31 +138,38 @@ export function AdminNutritionScreen() {
     setError(null);
 
     try {
-      await adminCreateNutritionPlan({
-        title,
-        description: description || undefined,
-        studentUserId: focusedStudentId ?? selectedStudent?.userId,
-        createdBy: user.id,
-        macros: {
-          caloriesKcal: parseMacro(calories),
-          proteinG: parseMacro(protein),
-          carbsG: parseMacro(carbs),
-          fatG: parseMacro(fat),
-        },
-        meals: meals.map((meal) => ({
-          mealType: meal.mealType,
-          title: meal.title,
-          description: meal.description || undefined,
-          timeLabel: meal.timeLabel || undefined,
-        })),
-      });
-      setTitle('Plano alimentar da semana');
-      setDescription('');
-      setCalories('');
-      setProtein('');
-      setCarbs('');
-      setFat('');
-      setMeals(EMPTY_MEALS);
+      const mealsInput = meals.map((meal) => ({
+        mealType: meal.mealType,
+        title: meal.title,
+        description: meal.description || undefined,
+        timeLabel: meal.timeLabel || undefined,
+      }));
+      const macros = {
+        caloriesKcal: parseMacro(calories),
+        proteinG: parseMacro(protein),
+        carbsG: parseMacro(carbs),
+        fatG: parseMacro(fat),
+      };
+
+      if (editingPlanId) {
+        await adminUpdateNutritionPlan(editingPlanId, {
+          title,
+          description: description || undefined,
+          macros,
+          meals: mealsInput,
+        });
+      } else {
+        await adminCreateNutritionPlan({
+          title,
+          description: description || undefined,
+          studentUserId: focusedStudentId ?? selectedStudent?.userId,
+          createdBy: user.id,
+          macros,
+          meals: mealsInput,
+        });
+      }
+
+      resetForm();
       await loadPlans();
     } catch (err) {
       setError(getDataErrorMessage(err));
@@ -139,6 +181,9 @@ export function AdminNutritionScreen() {
   async function handleDelete(planId: string) {
     try {
       await adminDeleteNutritionPlan(planId);
+      if (editingPlanId === planId) {
+        resetForm();
+      }
       await loadPlans();
     } catch (err) {
       setError(getDataErrorMessage(err));
@@ -169,9 +214,20 @@ export function AdminNutritionScreen() {
           {error ? <Text className="text-sm text-red-400">{error}</Text> : null}
 
           <View className="rounded-card border border-line bg-surface p-5 gap-4">
-            <Text className="text-lg font-semibold text-ink">
-              {firstName ? `Novo plano de ${firstName}` : 'Novo plano'}
-            </Text>
+            <View className="flex-row items-center justify-between">
+              <Text className="text-lg font-semibold text-ink">
+                {editingPlanId
+                  ? 'Editar plano'
+                  : firstName
+                    ? `Novo plano de ${firstName}`
+                    : 'Novo plano'}
+              </Text>
+              {editingPlanId ? (
+                <Pressable onPress={resetForm}>
+                  <Text className="text-sm text-muted">Cancelar</Text>
+                </Pressable>
+              ) : null}
+            </View>
             {focusedStudentId ? (
               <Text className="text-sm text-muted">
                 Individual: {focusedStudent?.name ?? 'este aluno'}
@@ -274,9 +330,15 @@ export function AdminNutritionScreen() {
               </View>
             ))}
             <Button
-              label={firstName ? `Salvar nutrição de ${firstName}` : 'Salvar plano'}
+              label={
+                editingPlanId
+                  ? 'Salvar alterações'
+                  : firstName
+                    ? `Salvar nutrição de ${firstName}`
+                    : 'Salvar plano'
+              }
               loading={isSaving}
-              onPress={() => void handleCreate()}
+              onPress={() => void handleSave()}
             />
           </View>
 
@@ -304,9 +366,14 @@ export function AdminNutritionScreen() {
                       {meal.timeLabel ? ` · ${meal.timeLabel}` : ''}: {meal.title}
                     </Text>
                   ))}
-                  <Pressable className="mt-3" onPress={() => void handleDelete(plan.id)}>
-                    <Text className="text-sm text-red-400">Remover</Text>
-                  </Pressable>
+                  <View className="mt-3 flex-row gap-4">
+                    <Pressable onPress={() => handleStartEdit(plan)}>
+                      <Text className="text-sm font-semibold text-primary">Editar</Text>
+                    </Pressable>
+                    <Pressable onPress={() => void handleDelete(plan.id)}>
+                      <Text className="text-sm text-red-400">Remover</Text>
+                    </Pressable>
+                  </View>
                 </View>
               ))
             )}

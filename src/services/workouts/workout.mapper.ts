@@ -1,7 +1,14 @@
-import type { Exercise, MuscleGroup, TrainingPlan, TrainingPlanSummary, WorkoutExercise } from '@/domain/workout';
+import type {
+  Exercise,
+  MuscleGroup,
+  TrainingPlan,
+  TrainingPlanSummary,
+  WorkoutExercise,
+  WorkoutSession,
+} from '@/domain/workout';
 import { MUSCLE_GROUPS } from '@/domain/workout';
 
-import type { ExerciseRow, TrainingPlanRow, WorkoutExerciseRow } from '../supabase/types';
+import type { ExerciseRow, TrainingPlanRow, WorkoutExerciseRow, WorkoutSessionRow } from '../supabase/types';
 
 const DEFAULT_PRESCRIPTION = {
   SETS: 3,
@@ -88,6 +95,18 @@ export function mapTrainingPlan(
     createdBy: row.created_by ?? '',
     createdAt: row.created_at ?? '',
     exercises: [...exercises].sort((a, b) => a.sortOrder - b.sortOrder),
+  };
+}
+
+export function mapWorkoutSession(row: WorkoutSessionRow): WorkoutSession {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    planId: row.plan_id,
+    completedExerciseIds: Array.isArray(row.completed_exercise_ids)
+      ? row.completed_exercise_ids.filter((id): id is string => typeof id === 'string')
+      : [],
+    completedAt: row.completed_at,
   };
 }
 

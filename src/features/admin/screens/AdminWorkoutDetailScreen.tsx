@@ -378,6 +378,20 @@ export function AdminWorkoutDetailScreen() {
           {error ? <Text className="text-sm text-red-500">{error}</Text> : null}
           {notice ? <Text className="text-sm text-primary">{notice}</Text> : null}
 
+          {focusedStudentId && grants.length > 1 ? (
+            <View className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4">
+              <Text className="text-sm font-semibold text-amber-600">
+                Este treino é compartilhado
+              </Text>
+              <Text className="mt-1 text-sm leading-5 text-amber-700">
+                Além de {focusedStudent?.name ?? 'este aluno'}, mais{' '}
+                {grants.length - 1} {grants.length - 1 === 1 ? 'aluna tem' : 'alunas têm'} este
+                mesmo treino liberado. Qualquer alteração de exercício, série, carga ou descanso
+                vale para todas elas, não só para {focusedStudent?.name ?? 'este aluno'}.
+              </Text>
+            </View>
+          ) : null}
+
           <View className="rounded-card border border-line bg-surface p-5">
             <Text className="text-xs font-semibold uppercase tracking-[1.6px] text-primary">
               Para quem vai

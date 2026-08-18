@@ -1,5 +1,4 @@
 export {
-  AdminAccessScreen,
   AdminExercisesScreen,
   AdminHomeScreen,
   AdminLessonFormScreen,
@@ -9,10 +8,10 @@ export {
   AdminProgramFormScreen,
   AdminProgramsListScreen,
   AdminScheduleScreen,
+  AdminStoreScreen,
   AdminStudentsScreen,
   AdminStudentSpaceScreen,
   AdminVideosScreen,
-  AdminWorkoutAccessScreen,
   AdminWorkoutDetailScreen,
   AdminWorkoutsScreen,
 } from './screens';

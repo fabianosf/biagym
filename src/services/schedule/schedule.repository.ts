@@ -1,4 +1,4 @@
-import type { CreateTrainingSlotInput, TrainingSlot } from '@/domain/schedule';
+import type { CreateTrainingSlotInput, TrainingSlot, UpdateTrainingSlotInput } from '@/domain/schedule';
 
 import { assertSupabaseConfigured, DataServiceError, mapSupabaseDataError } from '../shared';
 import { getSupabaseClient, isSupabaseConfigured } from '../supabase';
@@ -78,6 +78,33 @@ export async function createTrainingSlot(input: CreateTrainingSlotInput): Promis
       );
     }
     throw mapSupabaseDataError(error ?? { message: 'Falha ao criar horário de treino.' });
+  }
+
+  return mapTrainingSlotRow(data as TrainingSlotRow);
+}
+
+export async function updateTrainingSlot(
+  slotId: string,
+  input: UpdateTrainingSlotInput,
+): Promise<TrainingSlot> {
+  assertSupabaseConfigured(isSupabaseConfigured());
+
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from('training_slots')
+    .update({
+      weekday: input.weekday,
+      start_time: toTimeValue(input.startTime),
+      duration_minutes: input.durationMinutes,
+      title: input.title.trim(),
+      notes: input.notes?.trim() || null,
+    })
+    .eq('id', slotId)
+    .select('*')
+    .single();
+
+  if (error || !data) {
+    throw mapSupabaseDataError(error ?? { message: 'Falha ao atualizar horário de treino.' });
   }
 
   return mapTrainingSlotRow(data as TrainingSlotRow);

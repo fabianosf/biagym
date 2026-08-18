@@ -13,6 +13,7 @@ export * from './progress';
 export * from './schedule';
 export * from './shared';
 export * from './storage';
+export * from './store';
 export * from './supabase';
 export * from './users';
 export * from './workouts';

@@ -3,4 +3,5 @@ export {
   createTrainingSlot,
   deleteTrainingSlot,
   listTrainingSlots,
+  updateTrainingSlot,
 } from './schedule.repository';

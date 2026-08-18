@@ -10,7 +10,7 @@ import type {
 import { assertSupabaseConfigured, mapSupabaseDataError } from '../shared';
 import { getSupabaseClient, isSupabaseConfigured } from '../supabase';
 import type { ExerciseRow, TrainingPlanRow, WorkoutExerciseRow, WorkoutSessionRow } from '../supabase/types';
-import { mapExerciseRow, mapTrainingPlan, mapTrainingPlanSummary, mapWorkoutExercise, placeholderExercise, slugifyPlanTitle } from './workout.mapper';
+import { mapExerciseRow, mapTrainingPlan, mapTrainingPlanSummary, mapWorkoutExercise, mapWorkoutSession, placeholderExercise, slugifyPlanTitle } from './workout.mapper';
 
 function isMissing(error: { message?: string; code?: string }): boolean {
   const message = error.message?.toLowerCase() ?? '';
@@ -313,14 +313,26 @@ export async function completeWorkoutSession(input: {
     throw mapSupabaseDataError(error ?? { message: 'Não foi possível finalizar o treino.' });
   }
 
-  const row = data as WorkoutSessionRow;
-  return {
-    id: row.id,
-    userId: row.user_id,
-    planId: row.plan_id,
-    completedExerciseIds: Array.isArray(row.completed_exercise_ids)
-      ? row.completed_exercise_ids.filter((id): id is string => typeof id === 'string')
-      : [],
-    completedAt: row.completed_at,
-  };
+  return mapWorkoutSession(data as WorkoutSessionRow);
+}
+
+export async function listWorkoutSessions(userId: string, limit = 10): Promise<WorkoutSession[]> {
+  assertSupabaseConfigured(isSupabaseConfigured());
+
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from('workout_sessions')
+    .select('*')
+    .eq('user_id', userId)
+    .order('completed_at', { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    if (isMissing(error)) {
+      return [];
+    }
+    throw mapSupabaseDataError(error);
+  }
+
+  return ((data ?? []) as WorkoutSessionRow[]).map(mapWorkoutSession);
 }

@@ -1,4 +1,3 @@
-export { AdminAccessScreen } from '@/features/admin/screens/AdminAccessScreen';
 export { AdminExercisesScreen } from '@/features/admin/screens/AdminExercisesScreen';
 export { AdminHomeScreen } from '@/features/admin/screens/AdminHomeScreen';
 export { AdminLessonFormScreen } from '@/features/admin/screens/AdminLessonFormScreen';
@@ -10,7 +9,7 @@ export { AdminProgramsListScreen } from '@/features/admin/screens/AdminProgramsL
 export { AdminScheduleScreen } from '@/features/admin/screens/AdminScheduleScreen';
 export { AdminStudentsScreen } from '@/features/admin/screens/AdminStudentsScreen';
 export { AdminStudentSpaceScreen } from '@/features/admin/screens/AdminStudentSpaceScreen';
+export { AdminStoreScreen } from '@/features/admin/screens/AdminStoreScreen';
 export { AdminVideosScreen } from '@/features/admin/screens/AdminVideosScreen';
-export { AdminWorkoutAccessScreen } from '@/features/admin/screens/AdminWorkoutAccessScreen';
 export { AdminWorkoutDetailScreen } from '@/features/admin/screens/AdminWorkoutDetailScreen';
 export { AdminWorkoutsScreen } from '@/features/admin/screens/AdminWorkoutsScreen';

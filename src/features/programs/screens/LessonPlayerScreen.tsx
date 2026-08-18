@@ -24,7 +24,7 @@ import {
 } from '@/shared/components';
 import { isPlayableVideoUrl, resolveRouteParam } from '@/shared/utils';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ScrollView, Text, View } from 'react-native';
+import { Alert, ScrollView, Text, View } from 'react-native';
 
 export function LessonPlayerScreen() {
   const router = useRouter();
@@ -180,7 +180,21 @@ export function LessonPlayerScreen() {
                   <Button
                     variant="ghost"
                     label="Concluir manualmente agora"
-                    onPress={() => void markComplete()}
+                    onPress={() => {
+                      if (canMarkComplete) {
+                        void markComplete();
+                        return;
+                      }
+
+                      Alert.alert(
+                        'Ainda não assistiu tudo',
+                        'Você não chegou a 80% do vídeo. Marcar como concluída mesmo assim?',
+                        [
+                          { text: 'Cancelar', style: 'cancel' },
+                          { text: 'Concluir mesmo assim', onPress: () => void markComplete() },
+                        ],
+                      );
+                    }}
                     disabled={isMarking}
                   />
                 </View>

@@ -283,3 +283,30 @@ export async function updateOwnProfilePhone(userId: string, phone: string): Prom
   await supabase.auth.updateUser({ data: { phone: normalized } });
   return normalized;
 }
+
+export async function updateOwnProfileAvatar(userId: string, avatarUrl: string): Promise<string> {
+  assertSupabaseConfigured(isSupabaseConfigured());
+
+  const supabase = getSupabaseClient();
+  const { error } = await supabase
+    .from('profiles')
+    .update({ avatar_url: avatarUrl })
+    .eq('id', userId);
+
+  if (error && isMissingColumnError(error)) {
+    const { error: metadataError } = await supabase.auth.updateUser({
+      data: { avatar_url: avatarUrl },
+    });
+    if (metadataError) {
+      throw mapSupabaseDataError(metadataError);
+    }
+    return avatarUrl;
+  }
+
+  if (error) {
+    throw mapSupabaseDataError(error);
+  }
+
+  await supabase.auth.updateUser({ data: { avatar_url: avatarUrl } });
+  return avatarUrl;
+}

@@ -1,5 +1,5 @@
 import { colors } from '@/shared/theme';
-import { CoachingPlanSection, CompletionHistorySection, ProgressProgramCard } from '@/features/progress/components';
+import { AcademyWorkoutsSection, CoachingPlanSection, CompletionHistorySection, ProgressProgramCard } from '@/features/progress/components';
 import { useStudentProgress } from '@/features/progress/hooks';
 import { OfflineBanner, SyncStatusBanner } from '@/features/offline';
 import { useOfflineSync } from '@/features/offline/hooks/useOfflineSync';
@@ -84,6 +84,7 @@ export function ProgressScreen() {
             </Pressable>
           </View>
 
+          <AcademyWorkoutsSection />
           <CoachingPlanSection />
           <CompletionHistorySection />
         </ScrollView>

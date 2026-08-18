@@ -27,6 +27,13 @@ export function formatRelativeAccessDate(isoDate: string): string {
   });
 }
 
+export function formatPriceBRL(priceCents: number): string {
+  return (priceCents / 100).toLocaleString('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  });
+}
+
 export function formatProgramDuration(totalSeconds: number): string {
   const minutes = Math.round(totalSeconds / 60);
 

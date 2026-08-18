@@ -51,3 +51,15 @@ export interface CreateNutritionPlanInput {
     readonly timeLabel?: string;
   }[];
 }
+
+export interface UpdateNutritionPlanInput {
+  readonly title: string;
+  readonly description?: string;
+  readonly macros?: NutritionMacros;
+  readonly meals: readonly {
+    readonly mealType: MealType;
+    readonly title: string;
+    readonly description?: string;
+    readonly timeLabel?: string;
+  }[];
+}

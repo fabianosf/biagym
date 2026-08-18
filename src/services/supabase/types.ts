@@ -83,6 +83,7 @@ export type CoachMessageRow = {
   student_user_id: string;
   sender_id: string;
   body: string;
+  attachment_url: string | null;
   read_at: string | null;
   created_at: string;
 };
@@ -138,6 +139,25 @@ export type WorkoutSessionRow = {
   plan_id: string;
   completed_exercise_ids: string[];
   completed_at: string;
+};
+
+export type ProductRow = {
+  id: string;
+  name: string;
+  description: string | null;
+  price_cents: number;
+  image_url: string | null;
+  created_by: string;
+  created_at: string;
+};
+
+export type CouponRow = {
+  id: string;
+  code: string;
+  discount_percent: number;
+  description: string | null;
+  created_by: string;
+  created_at: string;
 };
 
 export type CategoryRow = {
@@ -467,6 +487,7 @@ export interface Database {
           student_user_id: string;
           sender_id: string;
           body: string;
+          attachment_url?: string | null;
           read_at?: string | null;
         },
         {
@@ -552,6 +573,34 @@ export interface Database {
           plan_id: string;
           completed_exercise_ids?: string[];
           completed_at?: string;
+        },
+        never
+      >;
+      products: TableDefinition<
+        ProductRow,
+        {
+          id?: string;
+          name: string;
+          description?: string | null;
+          price_cents: number;
+          image_url?: string | null;
+          created_by: string;
+        },
+        {
+          name?: string;
+          description?: string | null;
+          price_cents?: number;
+          image_url?: string | null;
+        }
+      >;
+      coupons: TableDefinition<
+        CouponRow,
+        {
+          id?: string;
+          code: string;
+          discount_percent: number;
+          description?: string | null;
+          created_by: string;
         },
         never
       >;

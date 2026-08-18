@@ -1,3 +1,4 @@
+import { PROGRAM_LEVEL_LABELS } from '@/domain/program';
 import { colors } from '@/shared/theme';
 import { WeekLessonList } from '@/features/programs/components';
 import { useProgramDetail } from '@/features/programs/hooks';
@@ -143,11 +144,12 @@ export function ProgramDetailScreen() {
                 label={hasAccess ? 'Liberado' : 'Acesso necessário'}
                 tone={hasAccess ? 'primary' : 'warning'}
               />
-              <Badge label={detail.program.level} />
+              <Badge label={PROGRAM_LEVEL_LABELS[detail.program.level]} />
             </View>
             <Text className="text-[32px] font-bold leading-9 text-ink">{detail.program.title}</Text>
             <Text className="mt-2 text-sm text-muted">
-              {detail.program.durationWeeks} sem. · {detail.program.level} · {detail.program.trainerName}
+              {detail.program.durationWeeks} sem. · {PROGRAM_LEVEL_LABELS[detail.program.level]} ·{' '}
+              {detail.program.trainerName}
             </Text>
             <Text className="mt-3 text-base leading-6 text-ink">{detail.program.description}</Text>
             <View className="mt-4 flex-row items-center">

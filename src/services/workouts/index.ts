@@ -13,6 +13,7 @@ export {
   deleteWorkoutExercise,
   getTrainingPlan,
   listTrainingPlans,
+  listWorkoutSessions,
   updateTrainingPlan,
   updateWorkoutExercise,
 } from './workout.repository';

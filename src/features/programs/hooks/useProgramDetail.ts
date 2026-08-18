@@ -31,7 +31,7 @@ const INITIAL_STATE: ProgramDetailState = {
 };
 
 export function useProgramDetail(programId: string | undefined) {
-  const { user, isInitialized } = useAuth();
+  const { user, isInitialized, isAdmin } = useAuth();
   const userId = user?.id;
   const [state, setState] = useState<ProgramDetailState>(INITIAL_STATE);
   const requestIdRef = useRef(0);
@@ -99,7 +99,7 @@ export function useProgramDetail(programId: string | undefined) {
         const progress =
           progressResult.status === 'fulfilled' ? progressResult.value : null;
         const hasAccess =
-          accessResult.status === 'fulfilled' ? accessResult.value : false;
+          isAdmin || (accessResult.status === 'fulfilled' ? accessResult.value : false);
 
         if (!detail) {
           setState({
@@ -134,7 +134,7 @@ export function useProgramDetail(programId: string | undefined) {
         }));
       }
     },
-    [isInitialized, programId, userId],
+    [isInitialized, programId, userId, isAdmin],
   );
 
   useEffect(() => {

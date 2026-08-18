@@ -37,9 +37,14 @@ export function formatPhoneDisplay(value: string): string {
   return value.trim();
 }
 
-export function buildWhatsAppUrl(value: string): string | null {
+export function buildWhatsAppUrl(value: string, message?: string): string | null {
   const normalized = normalizeWhatsAppPhone(value);
-  return normalized ? `https://wa.me/${normalized}` : null;
+  if (!normalized) {
+    return null;
+  }
+  return message
+    ? `https://wa.me/${normalized}?text=${encodeURIComponent(message)}`
+    : `https://wa.me/${normalized}`;
 }
 
 export function parseRequiredWhatsAppPhone(value: string): { phone: string } | { error: string } {

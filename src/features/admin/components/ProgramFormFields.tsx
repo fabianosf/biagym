@@ -1,7 +1,9 @@
-import type { Category, ProgramLevel } from '@/domain';
-import { Pressable, Text, TextInput, View } from 'react-native';
-
-const LEVELS: ProgramLevel[] = ['iniciante', 'intermediário', 'avançado'];
+import { PROGRAM_LEVELS, PROGRAM_LEVEL_LABELS, type Category, type ProgramLevel } from '@/domain';
+import { uploadProgramCover } from '@/services';
+import { AppImage } from '@/shared/components';
+import * as ImagePicker from 'expo-image-picker';
+import { useState } from 'react';
+import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native';
 
 export type ProgramFormValues = {
   title: string;
@@ -52,6 +54,9 @@ function Field({
 }
 
 export function ProgramFormFields({ values, categories, onChange }: ProgramFormFieldsProps) {
+  const [isUploadingCover, setIsUploadingCover] = useState(false);
+  const [coverError, setCoverError] = useState<string | null>(null);
+
   function toggleCategory(categoryId: string) {
     const exists = values.categoryIds.includes(categoryId);
     onChange({
@@ -60,6 +65,39 @@ export function ProgramFormFields({ values, categories, onChange }: ProgramFormF
         ? values.categoryIds.filter((id) => id !== categoryId)
         : [...values.categoryIds, categoryId],
     });
+  }
+
+  async function handlePickCover() {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      setCoverError('Permita o acesso às fotos do celular para anexar a capa.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: 'images',
+      quality: 0.8,
+    });
+
+    if (result.canceled || !result.assets[0]) {
+      return;
+    }
+
+    const asset = result.assets[0];
+    setIsUploadingCover(true);
+    setCoverError(null);
+    try {
+      const coverUrl = await uploadProgramCover({
+        fileUri: asset.uri,
+        mimeType: asset.mimeType,
+        fileName: asset.fileName,
+      });
+      onChange({ ...values, coverUrl });
+    } catch {
+      setCoverError('Não foi possível enviar a foto. Tente de novo.');
+    } finally {
+      setIsUploadingCover(false);
+    }
   }
 
   return (
@@ -80,12 +118,27 @@ export function ProgramFormFields({ values, categories, onChange }: ProgramFormF
         onChangeText={(description) => onChange({ ...values, description })}
         multiline
       />
-      <Field
-        label="URL da capa"
-        value={values.coverUrl}
-        onChangeText={(coverUrl) => onChange({ ...values, coverUrl })}
-        keyboardType="url"
-      />
+      <View>
+        <Text className="mb-2 text-sm text-muted">Capa</Text>
+        {values.coverUrl ? (
+          <AppImage uri={values.coverUrl} aspectRatio={3 / 4} className="mb-3 w-32 rounded-2xl" />
+        ) : null}
+        <Pressable
+          onPress={() => void handlePickCover()}
+          disabled={isUploadingCover}
+          className="min-h-[48px] flex-row items-center justify-center gap-2 rounded-2xl border border-primary/40"
+        >
+          {isUploadingCover ? <ActivityIndicator /> : null}
+          <Text className="font-semibold text-primary">
+            {isUploadingCover
+              ? 'Enviando...'
+              : values.coverUrl
+                ? 'Trocar capa'
+                : 'Anexar capa'}
+          </Text>
+        </Pressable>
+        {coverError ? <Text className="mt-2 text-xs text-red-400">{coverError}</Text> : null}
+      </View>
       <Field
         label="Nome do(a) treinador(a)"
         value={values.trainerName}
@@ -101,7 +154,7 @@ export function ProgramFormFields({ values, categories, onChange }: ProgramFormF
       <View>
         <Text className="mb-2 text-sm text-muted">Nível</Text>
         <View className="flex-row flex-wrap gap-2">
-          {LEVELS.map((level) => (
+          {PROGRAM_LEVELS.map((level) => (
             <Pressable
               key={level}
               onPress={() => onChange({ ...values, level })}
@@ -110,11 +163,9 @@ export function ProgramFormFields({ values, categories, onChange }: ProgramFormF
               }`}
             >
               <Text
-                className={`capitalize ${
-                  values.level === level ? 'font-semibold text-background' : 'text-muted'
-                }`}
+                className={values.level === level ? 'font-semibold text-background' : 'text-muted'}
               >
-                {level}
+                {PROGRAM_LEVEL_LABELS[level]}
               </Text>
             </Pressable>
           ))}

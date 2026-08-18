@@ -5,6 +5,7 @@ export type {
   ProgramLevel,
   Week,
 } from './types';
+export { PROGRAM_LEVELS, PROGRAM_LEVEL_LABELS } from './types';
 
 export type {
   CreateCategoryInput,

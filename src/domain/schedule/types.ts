@@ -43,3 +43,11 @@ export interface CreateTrainingSlotInput {
   readonly programId?: string;
   readonly createdBy: string;
 }
+
+export interface UpdateTrainingSlotInput {
+  readonly weekday: Weekday;
+  readonly startTime: string;
+  readonly durationMinutes: number;
+  readonly title: string;
+  readonly notes?: string;
+}

@@ -10,7 +10,6 @@ export const adminRoutes = {
       : (`/admin/programs/${programId}/lessons/new` as const),
   lessonEdit: (programId: string, lessonId: string) =>
     `/admin/programs/${programId}/lessons/${lessonId}` as const,
-  access: '/admin/access',
   nutrition: '/admin/nutrition',
   nutritionFor: (studentId: string) => `/admin/nutrition?studentId=${studentId}` as const,
   schedule: '/admin/schedule',
@@ -27,5 +26,5 @@ export const adminRoutes = {
       : (`/admin/workouts/${id}` as const),
   exercises: '/admin/exercises',
   exercisesFor: (studentId: string) => `/admin/exercises?studentId=${studentId}` as const,
-  workoutAccess: '/admin/workout-access',
+  store: '/admin/store',
 } as const;

@@ -57,7 +57,7 @@ export default function StudentTabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="library"
+        name="workouts"
         options={{
           title: 'Treinos',
           tabBarIcon: ({ color, size }) => (

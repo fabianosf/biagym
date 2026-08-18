@@ -3,8 +3,8 @@ import { useAuthStore } from '@/features/auth/store/auth.store';
 import { OfflineBanner } from '@/features/offline';
 import { NotificationSettingsCard } from '@/features/notifications';
 import { AppearanceSettingsCard } from '@/features/profile/components/AppearanceSettingsCard';
-import { getDataErrorMessage, updateOwnProfilePhone } from '@/services';
-import { Button, Card, LoadingIndicator, TextField } from '@/shared/components';
+import { getDataErrorMessage, updateOwnProfileAvatar, updateOwnProfilePhone, uploadAvatarPhoto } from '@/services';
+import { AppImage, Button, Card, LoadingIndicator, TextField } from '@/shared/components';
 import { APP_BUILD, APP_NAME, APP_VERSION, getSupabaseSqlEditorUrl } from '@/shared/constants/app';
 import { routes } from '@/shared/constants/routes';
 import { STUDENT_GOAL_LABELS } from '@/domain/student';
@@ -12,11 +12,12 @@ import { useT, useThemeColors } from '@/shared/theme';
 import { getDisplayPersonName, getGivenAndFamilyName, getNameInitials } from '@/shared/utils/person-name';
 import { formatPhoneDisplay, parseRequiredWhatsAppPhone } from '@/shared/utils/phone';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import * as DocumentPicker from 'expo-document-picker';
 import * as Linking from 'expo-linking';
 import { useRouter } from 'expo-router';
 import type { Href } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export function ProfileScreen() {
@@ -28,6 +29,8 @@ export function ProfileScreen() {
   const [phoneDraft, setPhoneDraft] = useState(user?.phone ? formatPhoneDisplay(user.phone) : '');
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [isSavingPhone, setIsSavingPhone] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const displayName =
     getGivenAndFamilyName(user?.name) ?? getDisplayPersonName(user?.name) ?? 'Aluno';
   const initials = getNameInitials(user?.name);
@@ -59,6 +62,40 @@ export function ProfileScreen() {
       setPhoneError(getDataErrorMessage(err));
     } finally {
       setIsSavingPhone(false);
+    }
+  }
+
+  async function handlePickAvatar() {
+    if (!user) {
+      return;
+    }
+
+    const result = await DocumentPicker.getDocumentAsync({
+      type: 'image/*',
+      copyToCacheDirectory: true,
+      multiple: false,
+    });
+
+    if (result.canceled || !result.assets[0]) {
+      return;
+    }
+
+    const asset = result.assets[0];
+    setIsUploadingAvatar(true);
+    setAvatarError(null);
+    try {
+      const avatarUrl = await uploadAvatarPhoto({
+        userId: user.id,
+        fileUri: asset.uri,
+        mimeType: asset.mimeType,
+        fileName: asset.name,
+      });
+      await updateOwnProfileAvatar(user.id, avatarUrl);
+      useAuthStore.setState({ user: { ...user, avatarUrl } });
+    } catch (err) {
+      setAvatarError(getDataErrorMessage(err));
+    } finally {
+      setIsUploadingAvatar(false);
     }
   }
 
@@ -114,9 +151,35 @@ export function ProfileScreen() {
           <LoadingIndicator message="Carregando perfil..." />
         ) : (
           <Card className="items-center">
-            <View className="h-20 w-20 items-center justify-center rounded-full bg-primary">
-              <Text className="text-3xl font-semibold text-white">{initials}</Text>
-            </View>
+            <Pressable
+              onPress={() => void handlePickAvatar()}
+              disabled={isUploadingAvatar}
+              accessibilityRole="button"
+              accessibilityLabel="Trocar foto de perfil"
+              className="h-20 w-20"
+            >
+              {user.avatarUrl ? (
+                <AppImage
+                  uri={user.avatarUrl}
+                  aspectRatio={1}
+                  className="h-20 w-20 rounded-full"
+                  accessibilityLabel={`Foto de ${displayName}`}
+                />
+              ) : (
+                <View className="h-20 w-20 items-center justify-center rounded-full bg-primary">
+                  <Text className="text-3xl font-semibold text-white">{initials}</Text>
+                </View>
+              )}
+              <View className="absolute inset-0 items-center justify-center rounded-full bg-black/40" style={{ opacity: isUploadingAvatar ? 1 : 0 }}>
+                <ActivityIndicator color="#FFFFFF" />
+              </View>
+              <View className="absolute bottom-0 right-0 h-7 w-7 items-center justify-center rounded-full border-2 border-background bg-primary">
+                <Ionicons name="camera" size={13} color="#FFFFFF" />
+              </View>
+            </Pressable>
+            {avatarError ? (
+              <Text className="mt-2 text-center text-xs text-red-400">{avatarError}</Text>
+            ) : null}
             <Text className="mt-4 text-2xl font-semibold text-ink">{displayName}</Text>
             <Text className="mt-1 text-sm text-muted">{user.email}</Text>
             <View className="mt-4 rounded-full bg-surface px-3 py-1">

@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { colors } from '@/shared/theme';
+import { useThemeColors } from '@/shared/theme';
 
 type ScreenHeaderProps = {
   title: string;
@@ -20,6 +20,7 @@ export function ScreenHeader({
   onBack,
 }: ScreenHeaderProps) {
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
 
   return (
     <View className="bg-background px-5 pb-5" style={{ paddingTop: insets.top + 10 }}>

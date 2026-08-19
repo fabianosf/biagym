@@ -336,3 +336,24 @@ export async function listWorkoutSessions(userId: string, limit = 10): Promise<W
 
   return ((data ?? []) as WorkoutSessionRow[]).map(mapWorkoutSession);
 }
+
+/** Sessões de treino de todos os alunos (RLS restringe a leitura completa a admin). */
+export async function adminListAllWorkoutSessions(limit = 200): Promise<WorkoutSession[]> {
+  assertSupabaseConfigured(isSupabaseConfigured());
+
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from('workout_sessions')
+    .select('*')
+    .order('completed_at', { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    if (isMissing(error)) {
+      return [];
+    }
+    throw mapSupabaseDataError(error);
+  }
+
+  return ((data ?? []) as WorkoutSessionRow[]).map(mapWorkoutSession);
+}

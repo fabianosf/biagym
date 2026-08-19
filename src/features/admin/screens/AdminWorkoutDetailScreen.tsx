@@ -385,9 +385,9 @@ export function AdminWorkoutDetailScreen() {
               </Text>
               <Text className="mt-1 text-sm leading-5 text-amber-700">
                 Além de {focusedStudent?.name ?? 'este aluno'}, mais{' '}
-                {grants.length - 1} {grants.length - 1 === 1 ? 'aluna tem' : 'alunas têm'} este
+                {grants.length - 1} {grants.length - 1 === 1 ? 'aluno tem' : 'alunos têm'} este
                 mesmo treino liberado. Qualquer alteração de exercício, série, carga ou descanso
-                vale para todas elas, não só para {focusedStudent?.name ?? 'este aluno'}.
+                vale para todos eles, não só para {focusedStudent?.name ?? 'este aluno'}.
               </Text>
             </View>
           ) : null}

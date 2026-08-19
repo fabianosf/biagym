@@ -4,8 +4,9 @@ import type { TrainingPlanSummary } from '@/domain/workout';
 import { DATA_FETCH_TIMEOUT_MS, getDataErrorMessage, listTrainingPlans, withTimeout } from '@/services';
 import { APP_NAME } from '@/shared/constants/app';
 import { EmptyState } from '@/shared/components';
+import { useFocusEffect } from '@react-navigation/native';
 import { useRouter, type Href } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 
 export function WorkoutListScreen() {
@@ -14,6 +15,7 @@ export function WorkoutListScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const hasLoadedRef = useRef(false);
 
   const load = useCallback(async (isRefresh = false) => {
     if (isRefresh) {
@@ -38,9 +40,12 @@ export function WorkoutListScreen() {
     }
   }, []);
 
-  useEffect(() => {
-    void load(false);
-  }, [load]);
+  useFocusEffect(
+    useCallback(() => {
+      void load(hasLoadedRef.current);
+      hasLoadedRef.current = true;
+    }, [load]),
+  );
 
   return (
     <GymScreen>

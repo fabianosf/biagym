@@ -11,6 +11,9 @@ type ExerciseMediaHeroProps = {
   thumbnail?: ImageSource;
   title: string;
   isResolvingVideo?: boolean;
+  /** Controlado pela tela: permite um botão externo ("Assistir vídeo") acionar a troca pra vídeo. */
+  isPlaying: boolean;
+  onPlay: () => void;
 };
 
 export function ExerciseMediaHero({
@@ -18,15 +21,12 @@ export function ExerciseMediaHero({
   thumbnail,
   title,
   isResolvingVideo = false,
+  isPlaying,
+  onPlay,
 }: ExerciseMediaHeroProps) {
   const playableUrl = isPlayableVideoUrl(videoUrl) ? videoUrl.trim() : null;
-  const [wantsVideo, setWantsVideo] = useState(false);
 
-  useEffect(() => {
-    setWantsVideo(false);
-  }, [playableUrl, title]);
-
-  if (wantsVideo && playableUrl) {
+  if (isPlaying && playableUrl) {
     return <HeroVideo url={playableUrl} title={title} />;
   }
 
@@ -47,7 +47,7 @@ export function ExerciseMediaHero({
     <Pressable
       onPress={() => {
         if (canPlay) {
-          setWantsVideo(true);
+          onPlay();
         }
       }}
       disabled={!canPlay}
@@ -83,6 +83,7 @@ export function ExerciseMediaHero({
 
 function HeroVideo({ url, title }: { url: string; title: string }) {
   const [isPlaying, setIsPlaying] = useState(true);
+  const [hasError, setHasError] = useState(false);
   const lastUrlRef = useRef<string | null>(null);
   const player = useVideoPlayer(url, (instance) => {
     instance.timeUpdateEventInterval = 0.5;
@@ -90,6 +91,8 @@ function HeroVideo({ url, title }: { url: string; title: string }) {
   });
 
   useEffect(() => {
+    setHasError(false);
+
     if (lastUrlRef.current === url) {
       return;
     }
@@ -105,7 +108,7 @@ function HeroVideo({ url, title }: { url: string; title: string }) {
       player.replace(url);
       player.play();
     } catch {
-      // keep last playable frame; native controls still allow retry
+      setHasError(true);
     }
   }, [player, url]);
 
@@ -113,9 +116,15 @@ function HeroVideo({ url, title }: { url: string; title: string }) {
     const playingSubscription = player.addListener('playingChange', ({ isPlaying: playing }) => {
       setIsPlaying(playing);
     });
+    const statusSubscription = player.addListener('statusChange', ({ status }) => {
+      if (status === 'error') {
+        setHasError(true);
+      }
+    });
 
     return () => {
       playingSubscription.remove();
+      statusSubscription.remove();
     };
   }, [player]);
 
@@ -126,6 +135,17 @@ function HeroVideo({ url, title }: { url: string; title: string }) {
     }
 
     player.play();
+  }
+
+  if (hasError) {
+    return (
+      <View className="aspect-[3/4] items-center justify-center rounded-[28px] bg-gymCard">
+        <Ionicons name="alert-circle-outline" size={36} color="#737373" />
+        <Text className="mt-3 px-6 text-center text-sm text-gymMuted">
+          Não deu pra carregar esse vídeo agora. Tente de novo em instantes ou avise a treinadora.
+        </Text>
+      </View>
+    );
   }
 
   return (

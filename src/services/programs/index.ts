@@ -18,6 +18,7 @@ export {
   adminCreateProgram,
   adminCreateWeek,
   adminDeleteLesson,
+  adminDeleteProgram,
   adminDeleteWeek,
   adminGetNextLessonOrder,
   adminListLessons,

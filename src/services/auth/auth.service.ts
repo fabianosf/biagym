@@ -180,7 +180,7 @@ export async function signUpWithEmail(input: SignUpInput): Promise<AuthSession |
   if (profileError) {
     // Cadastro segue mesmo sem perfil persistido no client — o trigger
     // handle_new_user() do banco é a rede de segurança — mas registramos o
-    // erro para investigar perfis "fantasma" sem depender de reclamação da aluna.
+    // erro para investigar perfis "fantasma" sem depender de reclamação do aluno.
     captureException(profileError, { flow: 'sign_up_profile_upsert', userId: data.user.id });
   }
 

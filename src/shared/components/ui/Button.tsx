@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import type { ReactNode } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 
-import { colors } from '@/shared/theme';
+import { useThemeColors } from '@/shared/theme';
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
 
@@ -30,13 +30,6 @@ const LABEL_CLASS: Record<ButtonVariant, string> = {
   danger: 'text-red-600',
 };
 
-const ICON_COLOR: Record<ButtonVariant, string> = {
-  primary: colors.onPrimary,
-  secondary: colors.ink,
-  ghost: colors.muted,
-  danger: colors.danger,
-};
-
 export function Button({
   label,
   onPress,
@@ -46,6 +39,13 @@ export function Button({
   icon,
   className = '',
 }: ButtonProps) {
+  const colors = useThemeColors();
+  const iconColor: Record<ButtonVariant, string> = {
+    primary: colors.onPrimary,
+    secondary: colors.ink,
+    ghost: colors.muted,
+    danger: colors.danger,
+  };
   const isDisabled = disabled || loading;
 
   return (
@@ -60,12 +60,12 @@ export function Button({
     >
       {loading ? (
         <View className="flex-row items-center gap-2">
-          <ActivityIndicator color={ICON_COLOR[variant]} />
+          <ActivityIndicator color={iconColor[variant]} />
           <Text className={`font-semibold ${LABEL_CLASS[variant]}`}>{label}</Text>
         </View>
       ) : (
         <View className="flex-row items-center gap-2">
-          {icon ? <Ionicons name={icon} size={18} color={ICON_COLOR[variant]} /> : null}
+          {icon ? <Ionicons name={icon} size={18} color={iconColor[variant]} /> : null}
           <Text className={`font-semibold ${LABEL_CLASS[variant]}`}>{label}</Text>
         </View>
       )}

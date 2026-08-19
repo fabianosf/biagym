@@ -3,17 +3,19 @@ import { ExerciseRunCard, GymFinishButton, GymScreen } from '@/features/workouts
 import { useSessionClock } from '@/features/workouts/hooks/useSessionClock';
 import { useWorkoutRunStore } from '@/features/workouts/store/workout-run.store';
 import { getPlanMuscleGroupSubtitle, resolveDisplayedLoadKg } from '@/features/workouts/utils/format';
-import type { TrainingPlan } from '@/domain/workout';
+import type { TrainingPlan, WorkoutExercise } from '@/domain/workout';
 import { completeWorkoutSession, DATA_FETCH_TIMEOUT_MS, getTrainingPlan, withTimeout } from '@/services';
 import { getDataErrorMessage } from '@/services';
 import { useAuth } from '@/features/auth';
 import { resolveRouteParam } from '@/shared/utils';
+import { FlashList } from '@shopify/flash-list';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import Animated, { FadeIn, FadeInDown, ZoomIn } from 'react-native-reanimated';
 
 /**
  * Isolado num componente próprio para que o tick de 1s do relógio não
@@ -224,15 +226,29 @@ export function WorkoutDetailScreen() {
           <Text className="mt-4 text-sm text-gymMuted">Carregando treino...</Text>
         </View>
       ) : finishSummary ? (
-        <View className="flex-1 justify-center px-6 pb-10">
+        <Animated.View
+          entering={FadeIn.duration(280)}
+          className="flex-1 justify-center px-6 pb-10"
+        >
           <View className="items-center rounded-3xl bg-gymCard px-6 py-10">
-            <View className="h-16 w-16 items-center justify-center rounded-full bg-gymAccent">
+            <Animated.View
+              entering={ZoomIn.delay(120).springify().damping(9)}
+              className="h-16 w-16 items-center justify-center rounded-full bg-gymAccent"
+            >
               <Ionicons name="checkmark" size={32} color="#111111" />
-            </View>
-            <Text className="mt-5 text-center text-2xl font-bold text-white">{finishSummary.title}</Text>
-            <Text className="mt-3 text-center text-sm leading-6 text-gymMuted">
+            </Animated.View>
+            <Animated.Text
+              entering={FadeInDown.delay(260).duration(320)}
+              className="mt-5 text-center text-2xl font-bold text-white"
+            >
+              {finishSummary.title}
+            </Animated.Text>
+            <Animated.Text
+              entering={FadeInDown.delay(340).duration(320)}
+              className="mt-3 text-center text-sm leading-6 text-gymMuted"
+            >
               {finishSummary.message}
-            </Text>
+            </Animated.Text>
           </View>
           <View className="mt-8 px-1">
             <Pressable
@@ -242,7 +258,7 @@ export function WorkoutDetailScreen() {
               <Text className="text-base font-bold text-gymOnAccent">Voltar aos treinos</Text>
             </Pressable>
           </View>
-        </View>
+        </Animated.View>
       ) : (
         <>
           <View className="px-5 pb-4 pt-1">
@@ -254,29 +270,35 @@ export function WorkoutDetailScreen() {
             ) : null}
           </View>
 
-          <ScrollView className="flex-1" contentContainerClassName="gap-3 px-5 pb-6">
-            {error ? (
-              <View className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4">
-                <Text className="text-sm text-red-300">{error}</Text>
-                <Pressable className="mt-3" onPress={() => void load()}>
-                  <Text className="text-sm font-semibold text-gymAccent">Tentar novamente</Text>
-                </Pressable>
-              </View>
-            ) : null}
-
-            {plan && plan.exercises.length === 0 ? (
-              <View className="rounded-2xl border border-dashed border-gymLine bg-gymCard p-5">
-                <Text className="text-base font-semibold text-white">Ficha ainda vazia</Text>
-                <Text className="mt-2 text-sm leading-5 text-gymMuted">
-                  A treinadora ainda não colocou exercícios neste treino. Avise ela para completar a
-                  ficha.
-                </Text>
-              </View>
-            ) : null}
-
-            {plan?.exercises.map((item, index) => (
+          <FlashList
+            style={{ flex: 1 }}
+            data={plan?.exercises ?? []}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 24 }}
+            ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
+            ListHeaderComponent={
+              error ? (
+                <View className="mb-3 rounded-2xl border border-red-500/30 bg-red-500/10 p-4">
+                  <Text className="text-sm text-red-300">{error}</Text>
+                  <Pressable className="mt-3" onPress={() => void load()}>
+                    <Text className="text-sm font-semibold text-gymAccent">Tentar novamente</Text>
+                  </Pressable>
+                </View>
+              ) : null
+            }
+            ListEmptyComponent={
+              plan ? (
+                <View className="rounded-2xl border border-dashed border-gymLine bg-gymCard p-5">
+                  <Text className="text-base font-semibold text-white">Ficha ainda vazia</Text>
+                  <Text className="mt-2 text-sm leading-5 text-gymMuted">
+                    A treinadora ainda não colocou exercícios neste treino. Avise ela para completar
+                    a ficha.
+                  </Text>
+                </View>
+              ) : null
+            }
+            renderItem={({ item, index }: { item: WorkoutExercise; index: number }) => (
               <ExerciseRunCard
-                key={item.id}
                 item={item}
                 index={index}
                 done={doneSet.has(item.id)}
@@ -285,8 +307,8 @@ export function WorkoutDetailScreen() {
                 onToggleDone={handleToggleDone}
                 onPress={handleOpenExercise}
               />
-            ))}
-          </ScrollView>
+            )}
+          />
 
           <GymFinishButton
             label="Finalizar treino"

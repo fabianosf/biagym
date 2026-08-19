@@ -121,6 +121,24 @@ export async function adminSetProgramPublished(
   }
 }
 
+export async function adminDeleteProgram(programId: string): Promise<void> {
+  assertSupabaseConfigured(isSupabaseConfigured());
+
+  const lessons = await listLessonsByProgramId(programId);
+  await Promise.all(
+    lessons
+      .filter((lesson) => lesson.videoUrl)
+      .map((lesson) => deleteLessonVideoByUrl(lesson.videoUrl).catch(() => undefined)),
+  );
+
+  const supabase = getSupabaseClient();
+  const { error } = await supabase.from('programs').delete().eq('id', programId);
+
+  if (error) {
+    throw mapSupabaseDataError(error);
+  }
+}
+
 export async function adminCreateWeek(input: CreateWeekInput) {
   await assertProgramExists(input.programId);
   return createWeek(input);

@@ -37,6 +37,23 @@ export async function getUserProgressByProgram(
   return mapUserProgressRow(row);
 }
 
+/** Progresso de todos os alunos (RLS restringe a leitura completa a admin). */
+export async function adminListAllUserProgress(): Promise<UserProgress[]> {
+  assertSupabaseConfigured(isSupabaseConfigured());
+
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from('user_progress')
+    .select('*')
+    .order('last_accessed_at', { ascending: false });
+
+  if (error) {
+    throw mapSupabaseDataError(error);
+  }
+
+  return ((data ?? []) as UserProgressRow[]).map(mapUserProgressRow);
+}
+
 export async function listUserProgress(userId: EntityId): Promise<UserProgress[]> {
   assertSupabaseConfigured(isSupabaseConfigured());
 

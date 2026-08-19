@@ -14,5 +14,6 @@ export {
   AdminVideosScreen,
   AdminWorkoutDetailScreen,
   AdminWorkoutsScreen,
+  TrainerDashboardScreen,
 } from './screens';
 export * from './components';

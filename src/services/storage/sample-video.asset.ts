@@ -1,7 +1,9 @@
 import { Asset } from 'expo-asset';
 
 import { SAMPLE_WORKOUT_VIDEOS, type SampleWorkoutVideo } from '@/shared/constants/sample-workout-videos';
-import { DataServiceError } from '../shared';
+import { DataServiceError, withTimeout } from '../shared';
+
+const SAMPLE_ASSET_DOWNLOAD_TIMEOUT_MS = 20_000;
 
 export async function resolveSampleWorkoutVideo(sample: SampleWorkoutVideo): Promise<{
   uri: string;
@@ -9,7 +11,11 @@ export async function resolveSampleWorkoutVideo(sample: SampleWorkoutVideo): Pro
   name: string;
 }> {
   const asset = Asset.fromModule(sample.module);
-  await asset.downloadAsync();
+  await withTimeout(
+    asset.downloadAsync(),
+    SAMPLE_ASSET_DOWNLOAD_TIMEOUT_MS,
+    `Não foi possível baixar ${sample.fileName} agora. Verifique a conexão e tente de novo.`,
+  );
   const uri = asset.localUri ?? asset.uri;
 
   if (!uri) {

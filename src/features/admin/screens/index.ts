@@ -13,3 +13,4 @@ export { AdminStoreScreen } from '@/features/admin/screens/AdminStoreScreen';
 export { AdminVideosScreen } from '@/features/admin/screens/AdminVideosScreen';
 export { AdminWorkoutDetailScreen } from '@/features/admin/screens/AdminWorkoutDetailScreen';
 export { AdminWorkoutsScreen } from '@/features/admin/screens/AdminWorkoutsScreen';
+export { TrainerDashboardScreen } from '@/features/admin/screens/TrainerDashboardScreen';

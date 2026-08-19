@@ -7,6 +7,7 @@ export {
 } from './exercise.repository';
 export {
   addWorkoutExercise,
+  adminListAllWorkoutSessions,
   completeWorkoutSession,
   createTrainingPlan,
   deleteTrainingPlan,

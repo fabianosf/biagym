@@ -460,7 +460,7 @@ export function AdminStudentSpaceScreen() {
           </Text>
           {assignedPrograms.length === 0 ? (
             <Text className="text-sm text-muted">
-              Nenhum programa liberado. Enquanto isso, {firstName} não vê nenhum na Loja.
+              Nenhum programa liberado. Enquanto isso, {firstName} não vê nenhum em Programas de Treino.
             </Text>
           ) : (
             assignedPrograms.map((item) => (

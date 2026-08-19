@@ -1,4 +1,5 @@
 export {
+  adminListAllUserProgress,
   createUserProgress,
   getUserProgressByProgram,
   listUserProgress,

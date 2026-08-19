@@ -3,7 +3,7 @@ import { BrandHeader, ContinueWatchBar, ProgramCarousel } from '@/features/progr
 import { useCatalog } from '@/features/programs/hooks';
 import { OfflineBanner } from '@/features/offline';
 import { useAuth } from '@/features/auth';
-import { AcademyWorkoutsSection } from '@/features/progress/components';
+import { AcademyWorkoutsSection, PersonalPerformanceCard } from '@/features/progress/components';
 import { EmptyState, ErrorState, LoadingIndicator } from '@/shared/components';
 import { formatHelloGreeting, getGivenAndFamilyName } from '@/shared/utils/person-name';
 import { useMemo, useState } from 'react';
@@ -104,8 +104,9 @@ export function HomeScreen() {
             </View>
           ) : null}
 
-          <View className="px-5 pb-2">
+          <View className="gap-4 px-5 pb-2">
             <AcademyWorkoutsSection />
+            <PersonalPerformanceCard />
           </View>
 
           <ProgramCarousel

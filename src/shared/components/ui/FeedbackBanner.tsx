@@ -1,4 +1,4 @@
-import { colors } from '@/shared/theme';
+import { useThemeColors } from '@/shared/theme';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Text, View } from 'react-native';
 
@@ -9,31 +9,31 @@ type FeedbackBannerProps = {
   variant?: FeedbackVariant;
 };
 
-const VARIANT_STYLES: Record<
-  FeedbackVariant,
-  { container: string; text: string; icon: keyof typeof Ionicons.glyphMap; color: string }
-> = {
-  success: {
-    container: 'bg-primary/10 border-primary/25',
-    text: 'text-primary',
-    icon: 'checkmark-circle',
-    color: colors.primary,
-  },
-  warning: {
-    container: 'bg-amber-500/10 border-amber-500/25',
-    text: 'text-amber-800',
-    icon: 'alert-circle',
-    color: '#D97706',
-  },
-  info: {
-    container: 'bg-elevated border-line',
-    text: 'text-muted',
-    icon: 'information-circle',
-    color: '#6F6F6F',
-  },
-};
-
 export function FeedbackBanner({ message, variant = 'info' }: FeedbackBannerProps) {
+  const colors = useThemeColors();
+  const VARIANT_STYLES: Record<
+    FeedbackVariant,
+    { container: string; text: string; icon: keyof typeof Ionicons.glyphMap; color: string }
+  > = {
+    success: {
+      container: 'bg-primary/10 border-primary/25',
+      text: 'text-primary',
+      icon: 'checkmark-circle',
+      color: colors.primary,
+    },
+    warning: {
+      container: 'bg-amber-500/10 border-amber-500/25',
+      text: 'text-amber-800',
+      icon: 'alert-circle',
+      color: colors.warning,
+    },
+    info: {
+      container: 'bg-elevated border-line',
+      text: 'text-muted',
+      icon: 'information-circle',
+      color: colors.muted,
+    },
+  };
   const styles = VARIANT_STYLES[variant];
 
   return (

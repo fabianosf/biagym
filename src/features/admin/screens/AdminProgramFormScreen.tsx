@@ -9,9 +9,11 @@ import { resolveRouteParam, slugify } from '@/shared/utils';
 import {
   adminCreateProgram,
   adminUpdateProgram,
+  DATA_FETCH_TIMEOUT_MS,
   getAdminProgramDetail,
   getDataErrorMessage,
   listCategories,
+  withTimeout,
 } from '@/services';
 import type { Category } from '@/domain';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -96,30 +98,38 @@ export function AdminProgramFormScreen() {
 
     try {
       if (isEditing && id) {
-        await adminUpdateProgram(id, {
-          title: values.title.trim(),
-          slug: values.slug.trim(),
-          description: values.description.trim(),
-          coverUrl: values.coverUrl.trim(),
-          trainerName: values.trainerName.trim(),
-          level: values.level,
-          durationWeeks,
-          categoryIds: values.categoryIds,
-          isPublished: values.isPublished,
-        });
+        await withTimeout(
+          adminUpdateProgram(id, {
+            title: values.title.trim(),
+            slug: values.slug.trim(),
+            description: values.description.trim(),
+            coverUrl: values.coverUrl.trim(),
+            trainerName: values.trainerName.trim(),
+            level: values.level,
+            durationWeeks,
+            categoryIds: values.categoryIds,
+            isPublished: values.isPublished,
+          }),
+          DATA_FETCH_TIMEOUT_MS,
+          'Não foi possível salvar agora. Tente de novo.',
+        );
         setSuccess('Programa atualizado.');
       } else {
-        const created = await adminCreateProgram({
-          title: values.title.trim(),
-          slug: values.slug.trim() || slugify(values.title),
-          description: values.description.trim(),
-          coverUrl: values.coverUrl.trim(),
-          trainerName: values.trainerName.trim(),
-          level: values.level,
-          durationWeeks,
-          categoryIds: values.categoryIds,
-          isPublished: values.isPublished,
-        });
+        const created = await withTimeout(
+          adminCreateProgram({
+            title: values.title.trim(),
+            slug: values.slug.trim() || slugify(values.title),
+            description: values.description.trim(),
+            coverUrl: values.coverUrl.trim(),
+            trainerName: values.trainerName.trim(),
+            level: values.level,
+            durationWeeks,
+            categoryIds: values.categoryIds,
+            isPublished: values.isPublished,
+          }),
+          DATA_FETCH_TIMEOUT_MS,
+          'O programa demorou demais para ser criado. Tente de novo.',
+        );
         router.replace(adminRoutes.programDetail(created.id));
         return;
       }
@@ -132,7 +142,7 @@ export function AdminProgramFormScreen() {
 
   return (
     <AdminShell
-      title={isEditing ? 'Editar programa' : 'Novo programa'}
+      title={isEditing ? 'Editar programa de treino' : 'Novo programa de treino'}
       subtitle="Metadados, categorias e publicação"
       showBack
       onBack={() => router.back()}

@@ -3,11 +3,13 @@ import { Tabs } from 'expo-router';
 import { Platform, Text, View } from 'react-native';
 
 import { useAuth } from '@/features/auth';
-import { colors } from '@/shared/theme';
+import { useT, useThemeColors } from '@/shared/theme';
 import { getNameInitials } from '@/shared/utils/person-name';
 
 export default function StudentTabsLayout() {
   const { user } = useAuth();
+  const t = useT();
+  const colors = useThemeColors();
   const initials = getNameInitials(user?.name);
 
   return (
@@ -32,7 +34,7 @@ export default function StudentTabsLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Início',
+          title: t('tabs.home'),
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="home-outline" size={size} color={color} />
           ),
@@ -41,7 +43,7 @@ export default function StudentTabsLayout() {
       <Tabs.Screen
         name="progress"
         options={{
-          title: 'Meu Plano',
+          title: t('tabs.progress'),
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="star-outline" size={size} color={color} />
           ),
@@ -50,16 +52,16 @@ export default function StudentTabsLayout() {
       <Tabs.Screen
         name="store"
         options={{
-          title: 'Loja',
+          title: t('tabs.programs'),
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="cart-outline" size={size} color={color} />
+            <Ionicons name="play-circle-outline" size={size} color={color} />
           ),
         }}
       />
       <Tabs.Screen
         name="workouts"
         options={{
-          title: 'Treinos',
+          title: t('tabs.workouts'),
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="barbell-outline" size={size} color={color} />
           ),
@@ -68,7 +70,7 @@ export default function StudentTabsLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Conta',
+          title: t('tabs.account'),
           tabBarIcon: ({ color, focused }) => (
             <View
               className={`h-6 w-6 items-center justify-center rounded-full ${

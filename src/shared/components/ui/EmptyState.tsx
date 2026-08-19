@@ -1,4 +1,4 @@
-import { colors } from '@/shared/theme';
+import { useThemeColors } from '@/shared/theme';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Text, View } from 'react-native';
 
@@ -23,6 +23,7 @@ export function EmptyState({
   icon = 'folder-open-outline',
   tone = 'light',
 }: EmptyStateProps) {
+  const colors = useThemeColors();
   const isDark = tone === 'dark';
 
   return (
@@ -36,14 +37,18 @@ export function EmptyState({
           isDark ? 'bg-gym' : 'bg-elevated'
         }`}
       >
-        <Ionicons name={icon} size={24} color={colors.primary} />
+        <Ionicons name={icon} size={24} color={isDark ? colors.gymAccent : colors.primary} />
       </View>
-      <Text className={`text-center text-lg font-semibold ${isDark ? 'text-white' : 'text-ink'}`}>
+      <Text
+        className={`text-center text-lg font-semibold ${isDark ? 'text-white' : 'text-ink'}`}
+        style={{ maxWidth: 280 }}
+      >
         {title}
       </Text>
       {description ? (
         <Text
           className={`mt-2 text-center text-sm leading-6 ${isDark ? 'text-gymMuted' : 'text-muted'}`}
+          style={{ maxWidth: 280 }}
         >
           {description}
         </Text>

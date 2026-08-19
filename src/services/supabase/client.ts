@@ -2,6 +2,7 @@ import 'react-native-get-random-values';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as aesjs from 'aes-js';
 import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 import type { Database } from './types';
@@ -11,16 +12,29 @@ import type { Database } from './types';
  * sessão do Supabase costuma passar disso. A chave AES fica no SecureStore
  * (hardware-backed) e o payload da sessão (maior) fica no AsyncStorage, mas
  * cifrado — um dump do AsyncStorage sozinho não é mais utilizável.
+ *
+ * expo-secure-store não existe no navegador (não há keychain de SO em web).
+ * Nesse caso a chave também vai pro AsyncStorage (localStorage) — menos
+ * blindado que o Keystore nativo, mas é a mesma limitação que qualquer app
+ * web tem; não dá pra emular hardware-backed storage num browser.
  */
 class LargeSecureStore {
   private async getOrCreateKey(keyName: string): Promise<Uint8Array> {
-    const existing = await SecureStore.getItemAsync(keyName);
+    const existing =
+      Platform.OS === 'web'
+        ? await AsyncStorage.getItem(keyName)
+        : await SecureStore.getItemAsync(keyName);
     if (existing) {
       return aesjs.utils.hex.toBytes(existing);
     }
 
     const key = crypto.getRandomValues(new Uint8Array(32));
-    await SecureStore.setItemAsync(keyName, aesjs.utils.hex.fromBytes(key));
+    const hexKey = aesjs.utils.hex.fromBytes(key);
+    if (Platform.OS === 'web') {
+      await AsyncStorage.setItem(keyName, hexKey);
+    } else {
+      await SecureStore.setItemAsync(keyName, hexKey);
+    }
     return key;
   }
 
@@ -45,7 +59,11 @@ class LargeSecureStore {
 
   async removeItem(key: string): Promise<void> {
     await AsyncStorage.removeItem(key);
-    await SecureStore.deleteItemAsync(`${key}-encryption-key`);
+    if (Platform.OS === 'web') {
+      await AsyncStorage.removeItem(`${key}-encryption-key`);
+    } else {
+      await SecureStore.deleteItemAsync(`${key}-encryption-key`);
+    }
   }
 }
 

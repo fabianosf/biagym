@@ -45,7 +45,7 @@ export async function createAccessGrant(input: {
   assertSupabaseConfigured(isSupabaseConfigured());
 
   // upsert atômico em vez de "checar depois inserir": duas concessões
-  // simultâneas para a mesma aluna+programa (duplo toque, duas admins) não
+  // simultâneas para o mesmo aluno+programa (duplo toque, duas admins) não
   // criam mais linhas duplicadas em access_grants. Requer o índice único
   // de supabase/fix-access-grants-unique.sql.
   const supabase = getSupabaseClient();

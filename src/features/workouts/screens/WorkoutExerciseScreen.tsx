@@ -12,7 +12,7 @@ import { exerciseThumbnailSource } from '@/features/workouts/utils/exercise-medi
 import { formatSetsReps, resolveDisplayedLoadKg } from '@/features/workouts/utils/format';
 import type { WorkoutExercise } from '@/domain/workout';
 import { DATA_FETCH_TIMEOUT_MS, getDataErrorMessage, getTrainingPlan, withTimeout } from '@/services';
-import { resolveRouteParam } from '@/shared/utils';
+import { isPlayableVideoUrl, resolveRouteParam } from '@/shared/utils';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -29,6 +29,7 @@ export function WorkoutExerciseScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [loadEditorOpen, setLoadEditorOpen] = useState(false);
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const markCompleted = useWorkoutRunStore((state) => state.markCompleted);
   const setItemLoad = useWorkoutRunStore((state) => state.setItemLoad);
   const loadOverride = useWorkoutRunStore((state) =>
@@ -67,9 +68,14 @@ export function WorkoutExerciseScreen() {
     void load();
   }, [load]);
 
+  useEffect(() => {
+    setIsVideoPlaying(false);
+  }, [exerciseId]);
+
   const displayedLoad = item ? resolveDisplayedLoadKg(item, loadOverride) : 0;
   const { videoUrl: resolvedVideoUrl, isResolving: isResolvingVideo } =
     useResolvedExerciseVideoUrl(item?.exercise);
+  const hasVideo = !isResolvingVideo && isPlayableVideoUrl(resolvedVideoUrl);
 
   function handleComplete() {
     if (planId && exerciseId) {
@@ -127,11 +133,32 @@ export function WorkoutExerciseScreen() {
                   thumbnail={exerciseThumbnailSource(item.exercise)}
                   title={item.exercise?.name ?? 'Exercício'}
                   isResolvingVideo={isResolvingVideo}
+                  isPlaying={isVideoPlaying}
+                  onPlay={() => setIsVideoPlaying(true)}
                 />
 
                 <Text className="text-[28px] font-bold leading-8 text-white">
                   {item.exercise?.name ?? 'Exercício'}
                 </Text>
+
+                {hasVideo ? (
+                  <Pressable
+                    onPress={() => setIsVideoPlaying(true)}
+                    className="flex-row items-center self-start gap-2 rounded-full bg-gymAccent/15 px-4 py-2.5 active:opacity-80"
+                    accessibilityRole="button"
+                    accessibilityLabel={`Assistir vídeo de ${item.exercise?.name ?? 'exercício'}`}
+                  >
+                    <Ionicons name="play-circle" size={18} color={colors.gymAccent} />
+                    <Text className="text-sm font-semibold text-gymAccent">
+                      Assistir vídeo do exercício
+                    </Text>
+                  </Pressable>
+                ) : !isResolvingVideo ? (
+                  <View className="flex-row items-center self-start gap-2 rounded-full bg-gymCard px-4 py-2.5">
+                    <Ionicons name="videocam-off-outline" size={16} color={colors.gymMuted} />
+                    <Text className="text-sm text-gymMuted">Sem vídeo deste exercício</Text>
+                  </View>
+                ) : null}
 
                 <View className="flex-row gap-3">
                   <PrescriptionStatCard

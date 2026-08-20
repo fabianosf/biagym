@@ -2,7 +2,7 @@ import { AdminShell, VideoUploadField, type PickedVideo } from '@/features/admin
 import { useAdminFocusedStudent } from '@/features/admin/hooks/useAdminFocusedStudent';
 import { getStudentFirstName } from '@/features/admin/utils/student-label';
 import { useAuth } from '@/features/auth';
-import { MUSCLE_GROUP_LABELS, MUSCLE_GROUPS, type Exercise, type MuscleGroup } from '@/domain/workout';
+import { MUSCLE_GROUPS, type Exercise, type MuscleGroup } from '@/domain/workout';
 import {
   DATA_FETCH_TIMEOUT_MS,
   bootstrapSampleGymCatalog,
@@ -16,10 +16,12 @@ import {
 } from '@/services';
 import { isPlayableVideoUrl } from '@/shared/utils';
 import { Button, TextField } from '@/shared/components';
+import { useT } from '@/shared/theme';
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
 export function AdminExercisesScreen() {
+  const t = useT();
   const { user } = useAuth();
   const { student: focusedStudent, goBackToStudent } = useAdminFocusedStudent();
   const firstName = focusedStudent ? getStudentFirstName(focusedStudent.name) : null;
@@ -41,7 +43,7 @@ export function AdminExercisesScreen() {
         await withTimeout(
           listExercises(),
           DATA_FETCH_TIMEOUT_MS,
-          'Os exercícios demoraram demais para carregar. Tente novamente.',
+          t('admin.exercises.loadTimeout'),
         ),
       );
       setError(null);
@@ -50,7 +52,7 @@ export function AdminExercisesScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     void load();
@@ -58,12 +60,12 @@ export function AdminExercisesScreen() {
 
   async function handleCreate() {
     if (!user || name.trim().length < 2) {
-      setError('Informe o nome do exercício.');
+      setError(t('admin.exercises.nameRequired'));
       return;
     }
 
     if (!pickedVideo) {
-      setError('Selecione um vídeo da pasta videos/ ou do aparelho.');
+      setError(t('admin.exercises.videoRequired'));
       return;
     }
 
@@ -96,7 +98,7 @@ export function AdminExercisesScreen() {
           });
         } catch (uploadError) {
           setError(
-            `${getDataErrorMessage(uploadError)} O exercício foi salvo. Anexe o vídeo de novo na lista.`,
+            `${getDataErrorMessage(uploadError)} ${t('admin.exercises.savedButVideoFailed')}`,
           );
         }
       }
@@ -106,7 +108,7 @@ export function AdminExercisesScreen() {
       setPickedVideo(null);
       await load();
       if (firstName) {
-        setNotice(`Exercício salvo. Volte e inclua na ficha de ${firstName}.`);
+        setNotice(t('admin.exercises.savedNoticeFor', { name: firstName }));
       }
     } catch (err) {
       setError(getDataErrorMessage(err));
@@ -130,11 +132,14 @@ export function AdminExercisesScreen() {
       setName('');
       setDescription('');
       setNotice(
-        `Exemplos prontos: ${result.exerciseCount} exercícios e ${result.planTitles.join(' / ')}.${
-          firstName
-            ? ` Volte ao espaço de ${firstName} e libere o treino.`
-            : ' Abra o aluno e libere o treino no espaço dele.'
-        }`,
+        t('admin.exercises.bootstrapDone', {
+          count: String(result.exerciseCount),
+          titles: result.planTitles.join(' / '),
+        }) +
+          ' ' +
+          (firstName
+            ? t('admin.exercises.bootstrapDoneFor', { name: firstName })
+            : t('admin.exercises.bootstrapDoneGeneric')),
       );
     } catch (err) {
       setError(getDataErrorMessage(err));
@@ -170,11 +175,11 @@ export function AdminExercisesScreen() {
 
   return (
     <AdminShell
-      title={firstName ? `Exercícios para ${firstName}` : 'Exercícios'}
+      title={firstName ? t('admin.exercises.titleFor', { name: firstName }) : t('admin.dashboard.exercisesShort')}
       subtitle={
         focusedStudent
-          ? `Cadastre o movimento e o vídeo. Depois inclua na ficha de ${focusedStudent.name}.`
-          : 'Cadastre o movimento, escolha o grupo muscular e anexe o vídeo.'
+          ? t('admin.exercises.subtitleFor', { name: focusedStudent.name })
+          : t('admin.exercises.subtitleGeneric')
       }
       showBack
       onBack={goBackToStudent}
@@ -184,35 +189,32 @@ export function AdminExercisesScreen() {
         {notice ? <Text className="text-sm text-primary">{notice}</Text> : null}
 
         <View className="gap-3 rounded-card border border-primary/30 bg-surface p-5">
-          <Text className="text-lg font-semibold text-ink">Pasta videos/</Text>
-          <Text className="text-sm leading-5 text-muted">
-            Cadastra video1 a video5, monta Treino A (video1 + video2) e Treino B (video3 + video4)
-            com séries, reps, carga e descanso. Depois libere o aluno.
-          </Text>
+          <Text className="text-lg font-semibold text-ink">{t('admin.exercises.videosFolder')}</Text>
+          <Text className="text-sm leading-5 text-muted">{t('admin.exercises.videosFolderHint')}</Text>
           <Button
-            label="Cadastrar exemplos da pasta videos/"
+            label={t('admin.exercises.bootstrapButton')}
             loading={isBootstrapping}
             onPress={() => void handleBootstrapSamples()}
           />
         </View>
 
         <View className="gap-4 rounded-card border border-line bg-surface p-5">
-          <Text className="text-lg font-semibold text-ink">Novo exercício</Text>
+          <Text className="text-lg font-semibold text-ink">{t('admin.exercises.newExercise')}</Text>
           <TextField
-            label="Nome"
+            label={t('admin.exercises.nameLabel')}
             value={name}
             onChangeText={setName}
             placeholder="Agachamento livre"
             icon="barbell-outline"
           />
           <TextField
-            label="Como executar"
+            label={t('admin.exercises.howToLabel')}
             value={description}
             onChangeText={setDescription}
-            placeholder="Pés na largura do quadril..."
+            placeholder={t('admin.exercises.howToPlaceholder')}
             icon="document-text-outline"
           />
-          <Text className="text-sm font-medium text-muted">Grupo muscular</Text>
+          <Text className="text-sm font-medium text-muted">{t('admin.exercises.muscleGroupLabel')}</Text>
           <View className="flex-row flex-wrap gap-2">
             {MUSCLE_GROUPS.map((group) => (
               <Pressable
@@ -223,7 +225,7 @@ export function AdminExercisesScreen() {
                 }`}
               >
                 <Text className={muscleGroup === group ? 'font-semibold text-white' : 'text-ink'}>
-                  {MUSCLE_GROUP_LABELS[group]}
+                  {t(`muscleGroups.${group}`)}
                 </Text>
               </Pressable>
             ))}
@@ -233,28 +235,30 @@ export function AdminExercisesScreen() {
             onPick={setPickedVideo}
             currentUrl={pickedVideo?.name ?? undefined}
           />
-          <Button label="Salvar exercício" loading={isSaving} onPress={() => void handleCreate()} />
+          <Button label={t('admin.exercises.saveExercise')} loading={isSaving} onPress={() => void handleCreate()} />
         </View>
 
         <View className="gap-3">
-          <Text className="text-lg font-semibold text-ink">Catálogo</Text>
-          {isLoading ? <Text className="text-sm text-muted">Carregando exercícios...</Text> : null}
+          <Text className="text-lg font-semibold text-ink">{t('admin.exercises.catalog')}</Text>
+          {isLoading ? <Text className="text-sm text-muted">{t('admin.exercises.loading')}</Text> : null}
           {!isLoading && exercises.length === 0 ? (
-            <Text className="text-sm text-muted">Nenhum exercício cadastrado ainda.</Text>
+            <Text className="text-sm text-muted">{t('admin.exercises.noneYet')}</Text>
           ) : null}
           {exercises.map((exercise) => (
             <View key={exercise.id} className="rounded-card border border-line bg-surface p-4">
               <Text className="font-semibold text-ink">{exercise.name}</Text>
               <Text className="mt-1 text-xs text-muted">
-                {MUSCLE_GROUP_LABELS[exercise.muscleGroup]}
-                {isPlayableVideoUrl(exercise.videoUrl) ? ' · vídeo ok' : ' · sem vídeo'}
+                {t(`muscleGroups.${exercise.muscleGroup}`)}
+                {isPlayableVideoUrl(exercise.videoUrl)
+                  ? ` · ${t('admin.exercises.videoOk')}`
+                  : ` · ${t('admin.exercises.videoMissing')}`}
               </Text>
               <View className="mt-3">
                 <VideoUploadField
                   compact
                   isUploading={uploadingExerciseId === exercise.id}
                   currentUrl={
-                    isPlayableVideoUrl(exercise.videoUrl) ? 'Vídeo enviado' : undefined
+                    isPlayableVideoUrl(exercise.videoUrl) ? t('admin.exercises.videoSent') : undefined
                   }
                   onPick={(file) => void handleAttachVideo(exercise, file)}
                 />
@@ -267,7 +271,7 @@ export function AdminExercisesScreen() {
                     .catch((err) => setError(getDataErrorMessage(err)))
                 }
               >
-                <Text className="text-sm text-red-400">Remover</Text>
+                <Text className="text-sm text-red-400">{t('common.remove')}</Text>
               </Pressable>
             </View>
           ))}

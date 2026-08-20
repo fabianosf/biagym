@@ -1,4 +1,4 @@
-import { colors } from '@/shared/theme';
+import { colors, useT } from '@/shared/theme';
 import * as DocumentPicker from 'expo-document-picker';
 import { ActivityIndicator, Alert, Pressable, Text, View } from 'react-native';
 
@@ -23,9 +23,12 @@ export function VideoUploadField({
   currentUrl,
   isUploading,
   onPick,
-  label = 'Vídeo do exercício',
+  label,
   compact = false,
 }: VideoUploadFieldProps) {
+  const t = useT();
+  const resolvedLabel = label ?? t('admin.videoUpload.defaultLabel');
+
   async function handlePick() {
     const result = await DocumentPicker.getDocumentAsync({
       type: ['video/mp4', 'video/quicktime', 'video/*'],
@@ -56,32 +59,28 @@ export function VideoUploadField({
       onPick(file);
     } catch (error) {
       Alert.alert(
-        'Vídeo de exemplo',
-        error instanceof Error
-          ? error.message
-          : 'Não foi possível carregar o MP4 da pasta videos/.',
+        t('admin.videoUpload.sampleTitle'),
+        error instanceof Error ? error.message : t('admin.videoUpload.sampleLoadFailed'),
       );
     }
   }
 
   return (
     <View className={compact ? '' : 'rounded-card border border-line bg-surface p-5'}>
-      {compact ? null : <Text className="text-sm font-semibold text-ink">{label}</Text>}
+      {compact ? null : <Text className="text-sm font-semibold text-ink">{resolvedLabel}</Text>}
       {currentUrl ? (
         <Text className="mt-2 text-xs text-muted" numberOfLines={2}>
           {currentUrl}
         </Text>
       ) : compact ? null : (
-        <Text className="mt-2 text-sm text-faint">Nenhum vídeo selecionado ainda.</Text>
+        <Text className="mt-2 text-sm text-faint">{t('admin.videoUpload.noVideoSelected')}</Text>
       )}
       {compact ? null : (
-        <Text className="mt-2 text-xs leading-5 text-faint">
-          Use um MP4 da pasta videos/ (botões abaixo) ou escolha um arquivo do celular.
-        </Text>
+        <Text className="mt-2 text-xs leading-5 text-faint">{t('admin.videoUpload.hint')}</Text>
       )}
 
       <Text className={`text-xs font-medium text-muted ${compact ? 'mb-2' : 'mt-3 mb-2'}`}>
-        Exemplos da pasta videos/
+        {t('admin.videoUpload.samplesTitle')}
       </Text>
       <View className="flex-row flex-wrap gap-2">
         {SAMPLE_WORKOUT_VIDEOS.map((sample) => (
@@ -107,7 +106,7 @@ export function VideoUploadField({
           <ActivityIndicator color={colors.primary} />
         ) : (
           <Text className="font-semibold text-primary">
-            {currentUrl ? 'Trocar vídeo do aparelho' : 'Selecionar vídeo do aparelho'}
+            {currentUrl ? t('admin.videoUpload.changeDeviceVideo') : t('admin.videoUpload.selectDeviceVideo')}
           </Text>
         )}
       </Pressable>

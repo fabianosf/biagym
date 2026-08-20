@@ -1,3 +1,4 @@
+import { useT } from '@/shared/theme';
 import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
 
 type MedicalDisclaimerProps = {
@@ -11,6 +12,8 @@ export function MedicalDisclaimer({
   onAccept,
   onDismiss,
 }: MedicalDisclaimerProps) {
+  const t = useT();
+
   return (
     <Modal
       visible={visible}
@@ -24,22 +27,19 @@ export function MedicalDisclaimer({
             <Text className="text-2xl text-white">×</Text>
           </Pressable>
         ) : null}
-        <Text className="text-xl font-bold uppercase text-white">Aviso:</Text>
+        <Text className="text-xl font-bold uppercase text-white">{t('disclaimer.title')}</Text>
         <ScrollView className="mt-4 flex-1" showsVerticalScrollIndicator={false}>
           <Text className="text-base leading-7 text-white">
-            Consulte um médico antes de iniciar qualquer programa de exercícios, especialmente se você
-            possui pressão alta, problemas cardíacos, dor no peito, lesões ou outras condições de
-            saúde. O BiAGym oferece conteúdo educativo e não substitui orientação profissional.
+            {t('disclaimer.body1')}
             {'\n\n'}
-            Interrompa o exercício se sentir tontura, falta de ar intensa, dor no peito ou qualquer
-            desconforto anormal. Ao continuar, você assume a responsabilidade pela sua participação.
+            {t('disclaimer.body2')}
           </Text>
         </ScrollView>
         <Pressable
           onPress={onAccept}
           className="mt-6 min-h-[52px] items-center justify-center rounded-2xl bg-primary"
         >
-          <Text className="font-semibold text-white">Li e aceito continuar</Text>
+          <Text className="font-semibold text-white">{t('disclaimer.accept')}</Text>
         </Pressable>
       </View>
     </Modal>

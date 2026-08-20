@@ -7,7 +7,6 @@ import { AppearanceSettingsCard } from '@/features/profile/components/Appearance
 import { getDataErrorMessage, updateOwnProfileAvatar, updateOwnProfilePhone, uploadAvatarPhoto } from '@/services';
 import { AppImage, Button, Card, LoadingIndicator, TextField } from '@/shared/components';
 import { APP_BUILD, APP_NAME, APP_VERSION } from '@/shared/constants/app';
-import { STUDENT_GOAL_LABELS } from '@/domain/student';
 import { useT, useThemeColors } from '@/shared/theme';
 import { getDisplayPersonName, getGivenAndFamilyName, getNameInitials } from '@/shared/utils/person-name';
 import { formatPhoneDisplay, parseRequiredWhatsAppPhone } from '@/shared/utils/phone';
@@ -32,7 +31,7 @@ export function ProfileScreen() {
   const [avatarError, setAvatarError] = useState<string | null>(null);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const displayName =
-    getGivenAndFamilyName(user?.name) ?? getDisplayPersonName(user?.name) ?? 'Aluno';
+    getGivenAndFamilyName(user?.name) ?? getDisplayPersonName(user?.name) ?? t('common.student');
   const initials = getNameInitials(user?.name);
 
   useEffect(() => {
@@ -72,7 +71,7 @@ export function ProfileScreen() {
 
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
-      setAvatarError('Permita o acesso às fotos do celular para trocar a foto de perfil.');
+      setAvatarError(t('profile.avatarPermissionDenied'));
       return;
     }
 
@@ -117,7 +116,7 @@ export function ProfileScreen() {
         showsVerticalScrollIndicator={false}
       >
         {!user ? (
-          <LoadingIndicator message="Carregando perfil..." />
+          <LoadingIndicator message={t('profile.loading')} />
         ) : (
           <Card className="items-center">
             <Pressable
@@ -132,7 +131,7 @@ export function ProfileScreen() {
                   uri={user.avatarUrl}
                   aspectRatio={1}
                   className="h-20 w-20 rounded-full"
-                  accessibilityLabel={`Foto de ${displayName}`}
+                  accessibilityLabel={t('profile.avatarOf', { name: displayName })}
                 />
               ) : (
                 <View className="h-20 w-20 items-center justify-center rounded-full bg-primary">
@@ -158,10 +157,13 @@ export function ProfileScreen() {
             </View>
             {user.bodyMetrics ? (
               <Text className="mt-3 text-center text-sm text-muted">
-                {user.bodyMetrics.weightKg} kg · {user.bodyMetrics.heightCm} cm ·{' '}
-                {user.bodyMetrics.age} anos
+                {t('profile.metrics', {
+                  weight: String(user.bodyMetrics.weightKg),
+                  height: String(user.bodyMetrics.heightCm),
+                  age: String(user.bodyMetrics.age),
+                })}
                 {'\n'}
-                Objetivo: {STUDENT_GOAL_LABELS[user.bodyMetrics.goal]}
+                {t('profile.goal', { goal: t(`studentGoals.${user.bodyMetrics.goal}`) })}
               </Text>
             ) : null}
             <View className="mt-4 w-full gap-3">

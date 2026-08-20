@@ -4,12 +4,6 @@ export type ProgramLevel = 'iniciante' | 'intermediário' | 'avançado';
 
 export const PROGRAM_LEVELS: readonly ProgramLevel[] = ['iniciante', 'intermediário', 'avançado'];
 
-export const PROGRAM_LEVEL_LABELS: Record<ProgramLevel, string> = {
-  iniciante: 'Iniciante',
-  'intermediário': 'Intermediário',
-  'avançado': 'Avançado',
-};
-
 export interface Category {
   readonly id: EntityId;
   readonly name: string;

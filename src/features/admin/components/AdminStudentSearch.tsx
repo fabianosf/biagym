@@ -1,4 +1,4 @@
-import { colors } from '@/shared/theme';
+import { colors, useT } from '@/shared/theme';
 import type { StudentProfile } from '@/domain/student';
 import { DATA_FETCH_TIMEOUT_MS, listStudentProfiles, searchStudentProfiles, withTimeout } from '@/services';
 import { getDataErrorMessage } from '@/services';
@@ -18,6 +18,7 @@ export function AdminStudentSearch({
   allowEmptySelection = false,
   onClear,
 }: AdminStudentSearchProps) {
+  const t = useT();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<StudentProfile[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -30,14 +31,14 @@ export function AdminStudentSearch({
       const students = await withTimeout(
         listStudentProfiles({ limit: 12 }),
         DATA_FETCH_TIMEOUT_MS,
-        'A busca de alunos demorou demais. Tente novamente.',
+        t('admin.studentSearch.timeout'),
       );
       setResults(students);
     } catch (err) {
       setResults([]);
       setError(getDataErrorMessage(err));
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     void loadDefault();
@@ -53,7 +54,7 @@ export function AdminStudentSearch({
           ? listStudentProfiles({ limit: 12 })
           : searchStudentProfiles(query),
         DATA_FETCH_TIMEOUT_MS,
-        'A busca de alunos demorou demais. Tente novamente.',
+        t('admin.studentSearch.timeout'),
       );
       setResults(students);
     } catch (err) {
@@ -66,11 +67,11 @@ export function AdminStudentSearch({
 
   return (
     <View>
-      <Text className="mb-2 text-sm font-medium text-muted">Aluno</Text>
+      <Text className="mb-2 text-sm font-medium text-muted">{t('common.student')}</Text>
       <TextInput
         value={query}
         onChangeText={setQuery}
-        placeholder="Nome ou e-mail"
+        placeholder={t('admin.studentSearch.placeholder')}
         placeholderTextColor="#9B9B9B"
         className="rounded-2xl border border-line bg-elevated px-4 py-3.5 text-ink"
         onSubmitEditing={() => void handleSearch()}
@@ -83,7 +84,7 @@ export function AdminStudentSearch({
         {isSearching ? (
           <ActivityIndicator color={colors.primary} />
         ) : (
-          <Text className="font-semibold text-primary">Buscar aluno</Text>
+          <Text className="font-semibold text-primary">{t('admin.studentSearch.searchButton')}</Text>
         )}
       </Pressable>
 
@@ -96,7 +97,7 @@ export function AdminStudentSearch({
             selected === null ? 'border-primary/40 bg-primary/10' : 'border-line'
           }`}
         >
-          <Text className="font-medium text-ink">Plano geral (todos os alunos)</Text>
+          <Text className="font-medium text-ink">{t('admin.studentSearch.generalPlan')}</Text>
         </Pressable>
       ) : null}
 
@@ -104,8 +105,8 @@ export function AdminStudentSearch({
         {!error && !isSearching && results.length === 0 ? (
           <Text className="text-sm text-muted">
             {hasSearched
-              ? 'Nenhum aluno encontrado. Cadastre o aluno ou busque por outro nome/e-mail.'
-              : 'Nenhum aluno listado ainda.'}
+              ? t('admin.studentSearch.noResults')
+              : t('admin.studentSearch.noneListed')}
           </Text>
         ) : null}
 
@@ -123,11 +124,14 @@ export function AdminStudentSearch({
             <Text className="text-xs text-muted">{student.email}</Text>
             {student.metrics ? (
               <Text className="mt-1 text-xs text-faint">
-                {student.metrics.weightKg} kg · {student.metrics.heightCm} cm ·{' '}
-                {student.metrics.age} anos
+                {t('profile.metrics', {
+                  weight: String(student.metrics.weightKg),
+                  height: String(student.metrics.heightCm),
+                  age: String(student.metrics.age),
+                })}
               </Text>
             ) : (
-              <Text className="mt-1 text-xs text-faint">Onboarding pendente</Text>
+              <Text className="mt-1 text-xs text-faint">{t('admin.studentSearch.onboardingPending')}</Text>
             )}
           </Pressable>
         ))}

@@ -1,5 +1,12 @@
+import { translate } from '@/shared/i18n';
+import { usePreferencesStore } from '@/shared/theme/preferences.store';
+
 const MIN_DIGITS = 10;
 const MAX_DIGITS = 13;
+
+function tCurrent(key: string): string {
+  return translate(usePreferencesStore.getState().locale, key);
+}
 
 export function digitsOnly(value: string): string {
   return value.replace(/\D/g, '');
@@ -50,12 +57,12 @@ export function buildWhatsAppUrl(value: string, message?: string): string | null
 export function parseRequiredWhatsAppPhone(value: string): { phone: string } | { error: string } {
   const trimmed = value.trim();
   if (trimmed.length === 0) {
-    return { error: 'Informe o WhatsApp com DDD. Exemplo: (11) 98888-8888.' };
+    return { error: tCurrent('validation.whatsappRequired') };
   }
 
   const normalized = normalizeWhatsAppPhone(trimmed);
   if (!normalized) {
-    return { error: 'WhatsApp inválido. Use DDD + número, com 10 ou 11 dígitos.' };
+    return { error: tCurrent('validation.whatsappInvalid') };
   }
 
   return { phone: normalized };

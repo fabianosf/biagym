@@ -3,12 +3,11 @@ import type { BodyLog } from '@/domain/student';
 import type { WorkoutSession } from '@/domain/workout';
 import { listBodyLogs, listWorkoutSessions } from '@/services';
 import { Card } from '@/shared/components';
-import { useThemeColors } from '@/shared/theme';
+import { useT, useThemeColors } from '@/shared/theme';
 import { useCallback, useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 import Animated, { FadeInDown, ZoomIn } from 'react-native-reanimated';
 
-const DAY_LETTERS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
 const DAY_MS = 24 * 60 * 60 * 1000;
 const WEIGHT_BARS_MAX = 6;
 const WEIGHT_BAR_HEIGHT = 56;
@@ -20,6 +19,7 @@ function startOfDay(date: Date): number {
 
 export function PersonalPerformanceCard() {
   const { user } = useAuth();
+  const t = useT();
   const colors = useThemeColors();
   const [sessions, setSessions] = useState<WorkoutSession[]>([]);
   const [logs, setLogs] = useState<BodyLog[]>([]);
@@ -78,11 +78,11 @@ export function PersonalPerformanceCard() {
     <Animated.View entering={FadeInDown.duration(420).springify()}>
       <Card className="gap-5">
         <Text className="text-xs font-semibold uppercase tracking-[1.6px] text-primary">
-          Evolução & performance
+          {t('progress.evolutionPerformance')}
         </Text>
 
         <View>
-          <Text className="mb-3 text-sm font-semibold text-ink">Frequência da semana</Text>
+          <Text className="mb-3 text-sm font-semibold text-ink">{t('progress.weekFrequency')}</Text>
           <View className="flex-row justify-between">
             {last7Days.map(({ dayStart, trained, isToday }, index) => (
               <View key={dayStart} className="items-center gap-1.5">
@@ -104,7 +104,7 @@ export function PersonalPerformanceCard() {
                 <Text
                   className={`text-[10px] font-semibold ${isToday ? 'text-primary' : 'text-faint'}`}
                 >
-                  {DAY_LETTERS[new Date(dayStart).getDay()]}
+                  {t(`weekdaysLetter.${new Date(dayStart).getDay()}`)}
                 </Text>
               </View>
             ))}
@@ -114,7 +114,7 @@ export function PersonalPerformanceCard() {
       {weightSeries.length >= 2 ? (
         <View>
           <View className="mb-3 flex-row items-baseline justify-between">
-            <Text className="text-sm font-semibold text-ink">Peso recente</Text>
+            <Text className="text-sm font-semibold text-ink">{t('progress.recentWeight')}</Text>
             <Text
               className={`text-xs font-semibold ${
                 weightSeries[weightSeries.length - 1]!.weightKg < weightSeries[0]!.weightKg

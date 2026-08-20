@@ -1,7 +1,7 @@
 import { useAuth } from '@/features/auth';
 import { AdminStudentAvatar } from '@/features/admin/components/AdminStudentAvatar';
 import { getTrainerPins, useStudentPinsStore } from '@/features/admin/store/student-pins.store';
-import { STUDENT_GOAL_LABELS, type StudentProfile } from '@/domain/student';
+import type { StudentProfile } from '@/domain/student';
 import { getDataErrorMessage, listStudentProfiles } from '@/services';
 import { ErrorState, LoadingIndicator } from '@/shared/components';
 import { adminRoutes } from '@/shared/constants/admin-routes';
@@ -84,7 +84,7 @@ export function AdminStudentRoster() {
   if (isLoading) {
     return (
       <View className="px-5 py-6">
-        <LoadingIndicator message="Carregando alunos..." />
+        <LoadingIndicator message={t('admin.loadingStudents')} />
       </View>
     );
   }
@@ -198,7 +198,7 @@ function StudentRow({ student, isFavorite, onOpen, onToggleFavorite }: StudentRo
         onPress={onOpen}
         className="min-w-0 flex-1 flex-row items-center"
         accessibilityRole="button"
-        accessibilityLabel={`Abrir espaço de ${student.name}`}
+        accessibilityLabel={t('admin.openStudentSpace', { name: student.name })}
       >
         <AdminStudentAvatar student={student} size={48} />
         <View className="ml-3 min-w-0 flex-1">
@@ -213,10 +213,10 @@ function StudentRow({ student, isFavorite, onOpen, onToggleFavorite }: StudentRo
             <View className="mt-2 flex-row flex-wrap gap-2">
               <MetricChip label={`${student.metrics.weightKg} kg`} />
               <MetricChip label={`${student.metrics.heightCm} cm`} />
-              <MetricChip label={STUDENT_GOAL_LABELS[student.metrics.goal]} />
+              <MetricChip label={t(`studentGoals.${student.metrics.goal}`)} />
             </View>
           ) : (
-            <Text className="mt-2 text-sm text-faint">Onboarding físico pendente</Text>
+            <Text className="mt-2 text-sm text-faint">{t('admin.onboardingPending')}</Text>
           )}
         </View>
       </Pressable>

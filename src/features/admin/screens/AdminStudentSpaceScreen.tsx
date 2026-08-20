@@ -5,7 +5,7 @@ import {
 } from '@/features/admin/components';
 import { getStudentFirstName } from '@/features/admin/utils/student-label';
 import { useAuth } from '@/features/auth';
-import { STUDENT_GOAL_LABELS, type BodyLog, type StudentProfile } from '@/domain/student';
+import type { BodyLog, StudentProfile } from '@/domain/student';
 import type { TrainingPlanGrant, TrainingPlanSummary, WorkoutSession } from '@/domain/workout';
 import type { AccessGrant, ProgramSummary } from '@/domain';
 import {
@@ -26,6 +26,7 @@ import {
 } from '@/services';
 import { AppImage, EmptyState, ErrorState, LoadingIndicator } from '@/shared/components';
 import { adminRoutes } from '@/shared/constants/admin-routes';
+import { useT } from '@/shared/theme';
 import { formatRelativeAccessDate, resolveRouteParam } from '@/shared/utils';
 import { buildWhatsAppUrl, formatPhoneDisplay } from '@/shared/utils/phone';
 import { useStudentPinsStore } from '@/features/admin/store/student-pins.store';
@@ -41,6 +42,7 @@ type AssignedPlan = {
 
 export function AdminStudentSpaceScreen() {
   const router = useRouter();
+  const t = useT();
   const { user } = useAuth();
   const params = useLocalSearchParams<{ id?: string | string[] }>();
   const studentId = resolveRouteParam(params.id);
@@ -66,7 +68,7 @@ export function AdminStudentSpaceScreen() {
 
     if (!studentId) {
       setStudent(null);
-      setError('Aluno inválido.');
+      setError(t('admin.studentSpace.invalidStudent'));
       setIsLoading(false);
       return;
     }
@@ -88,7 +90,7 @@ export function AdminStudentSpaceScreen() {
             adminListStudentGrants(studentId),
           ]),
           DATA_FETCH_TIMEOUT_MS,
-          'O espaço do aluno demorou demais para carregar. Tente novamente.',
+          t('admin.studentSpace.loadTimeout'),
         );
       if (requestId !== requestIdRef.current) {
         return;
@@ -101,7 +103,7 @@ export function AdminStudentSpaceScreen() {
       setPrograms(programCatalog);
       setProgramGrants(studentProgramGrants);
       if (!profile) {
-        setError('Este aluno não está cadastrado.');
+        setError(t('admin.studentSpace.notRegistered'));
       }
     } catch (err) {
       if (requestId !== requestIdRef.current) {
@@ -166,7 +168,7 @@ export function AdminStudentSpaceScreen() {
         planId: plan.id,
         grantedBy: user.id,
       });
-      setNotice(`${plan.title} liberado. Só ${student.name} vê este treino.`);
+      setNotice(t('admin.studentSpace.planReleased', { title: plan.title, name: student.name }));
       await load(true);
     } catch (err) {
       setError(getDataErrorMessage(err));
@@ -181,7 +183,7 @@ export function AdminStudentSpaceScreen() {
     setNotice(null);
     try {
       await revokeTrainingPlanAccess(assignedPlan.grant.id);
-      setNotice(`${assignedPlan.plan.title} removido deste aluno.`);
+      setNotice(t('admin.studentSpace.planRemoved', { title: assignedPlan.plan.title }));
       await load(true);
     } catch (err) {
       setError(getDataErrorMessage(err));
@@ -205,7 +207,7 @@ export function AdminStudentSpaceScreen() {
         grantedBy: user.id,
         grantedAt: new Date().toISOString(),
       });
-      setNotice(`${program.title} liberado. Só ${student.name} vê este programa.`);
+      setNotice(t('admin.studentSpace.programReleased', { title: program.title, name: student.name }));
       await load(true);
     } catch (err) {
       setError(getDataErrorMessage(err));
@@ -220,7 +222,7 @@ export function AdminStudentSpaceScreen() {
     setNotice(null);
     try {
       await adminRevokeAccessGrant(assignedProgram.grant.id);
-      setNotice(`${assignedProgram.program.title} removido deste aluno.`);
+      setNotice(t('admin.studentSpace.programRemoved', { title: assignedProgram.program.title }));
       await load(true);
     } catch (err) {
       setError(getDataErrorMessage(err));
@@ -229,16 +231,16 @@ export function AdminStudentSpaceScreen() {
     }
   }
 
-  const firstName = student ? getStudentFirstName(student.name) : 'este aluno';
+  const firstName = student ? getStudentFirstName(student.name) : t('admin.studentSpace.thisStudent');
 
   return (
     <AdminShell
-      title={student?.name ?? 'Espaço do aluno'}
-      subtitle={`Ambiente de ${firstName}. O que você fizer aqui é só deste aluno.`}
+      title={student?.name ?? t('admin.studentSpace.title')}
+      subtitle={t('admin.studentSpace.subtitle', { name: firstName })}
       showBack
       onBack={() => router.replace(adminRoutes.home as Href)}
     >
-      {isLoading ? <LoadingIndicator fullScreen message="Carregando espaço do aluno..." /> : null}
+      {isLoading ? <LoadingIndicator fullScreen message={t('admin.studentSpace.loading')} /> : null}
 
       {!isLoading && error && !student ? (
         <View className="flex-1 px-5">
@@ -253,7 +255,7 @@ export function AdminStudentSpaceScreen() {
 
           <View className="rounded-card border border-line bg-surface p-5">
             <Text className="text-xs font-semibold uppercase tracking-[1.6px] text-primary">
-              Dados do aluno
+              {t('admin.studentSpace.studentData')}
             </Text>
             <View className="mt-3 flex-row items-center gap-4">
               <AdminStudentAvatar student={student} size={64} />
@@ -266,11 +268,11 @@ export function AdminStudentSpaceScreen() {
               <View className="mt-4 flex-row flex-wrap gap-2">
                 <MetricChip label={`${student.metrics.weightKg} kg`} />
                 <MetricChip label={`${student.metrics.heightCm} cm`} />
-                <MetricChip label={`${student.metrics.age} anos`} />
-                <MetricChip label={STUDENT_GOAL_LABELS[student.metrics.goal]} />
+                <MetricChip label={t('profile.ageYears', { age: String(student.metrics.age) })} />
+                <MetricChip label={t(`studentGoals.${student.metrics.goal}`)} />
               </View>
             ) : (
-              <Text className="mt-4 text-sm text-faint">Ainda não preencheu o onboarding físico.</Text>
+              <Text className="mt-4 text-sm text-faint">{t('admin.studentSpace.noOnboarding')}</Text>
             )}
             {student.phone ? (
               <Pressable
@@ -285,44 +287,46 @@ export function AdminStudentSpaceScreen() {
                 <Text className="text-sm font-semibold text-primary">
                   WhatsApp {formatPhoneDisplay(student.phone)}
                 </Text>
-                <Text className="mt-0.5 text-xs text-muted">Abrir conversa com {firstName}</Text>
+                <Text className="mt-0.5 text-xs text-muted">
+                  {t('admin.studentSpace.openWhatsappWith', { name: firstName })}
+                </Text>
               </Pressable>
             ) : (
-              <Text className="mt-4 text-sm text-faint">WhatsApp ainda não informado.</Text>
+              <Text className="mt-4 text-sm text-faint">{t('admin.noWhatsapp')}</Text>
             )}
           </View>
 
           <Text className="text-xs font-semibold uppercase tracking-[1.6px] text-primary">
-            Resolver para {firstName}
+            {t('admin.studentSpace.resolveFor', { name: firstName })}
           </Text>
           <View className="flex-row flex-wrap gap-3">
             <AdminStudentActionCard
-              title="Treinos"
-              description={`Liberar ou montar ficha só para ${firstName}`}
+              title={t('admin.studentSpace.actionWorkouts')}
+              description={t('admin.studentSpace.actionWorkoutsDesc', { name: firstName })}
               icon="barbell-outline"
               onPress={() =>
                 router.push(adminRoutes.workoutsFor(student.userId) as Href)
               }
             />
             <AdminStudentActionCard
-              title="Exercícios / vídeos"
-              description="Cadastrar movimento e vídeo para a ficha"
+              title={t('admin.studentSpace.actionExercises')}
+              description={t('admin.studentSpace.actionExercisesDesc')}
               icon="videocam-outline"
               onPress={() =>
                 router.push(adminRoutes.exercisesFor(student.userId) as Href)
               }
             />
             <AdminStudentActionCard
-              title="Nutrição"
-              description={`Plano alimentar só para ${firstName}`}
+              title={t('admin.studentSpace.actionNutrition')}
+              description={t('admin.studentSpace.actionNutritionDesc', { name: firstName })}
               icon="nutrition-outline"
               onPress={() =>
                 router.push(adminRoutes.nutritionFor(student.userId) as Href)
               }
             />
             <AdminStudentActionCard
-              title="Dicas / recados"
-              description={`Mandar orientação só para ${firstName}`}
+              title={t('admin.studentSpace.actionMessages')}
+              description={t('admin.studentSpace.actionMessagesDesc', { name: firstName })}
               icon="chatbubbles-outline"
               onPress={() =>
                 router.push(adminRoutes.messagesFor(student.userId) as Href)
@@ -331,11 +335,11 @@ export function AdminStudentSpaceScreen() {
           </View>
 
           <Text className="mt-2 text-xs font-semibold uppercase tracking-[1.6px] text-primary">
-            Treinos de {firstName}
+            {t('admin.studentSpace.workoutsOf', { name: firstName })}
           </Text>
           {assigned.length === 0 ? (
             <Text className="text-sm text-muted">
-              Nenhum treino liberado. Enquanto isso, {firstName} vê a lista vazia.
+              {t('admin.studentSpace.noWorkoutsGranted', { name: firstName })}
             </Text>
           ) : (
             assigned.map((item) => {
@@ -354,27 +358,40 @@ export function AdminStudentSpaceScreen() {
                   }
                   className="min-w-0 flex-1 pr-3"
                   accessibilityRole="button"
-                  accessibilityLabel={`Abrir ${item.plan.title} de ${student.name}`}
+                  accessibilityLabel={t('admin.studentSpace.a11yOpen', { title: item.plan.title, name: student.name })}
                 >
                   <Text className="font-semibold text-ink">{item.plan.title}</Text>
                   <Text className="mt-0.5 text-sm text-muted">
-                    Só {firstName} vê · {item.plan.exerciseCount}{' '}
-                    {item.plan.exerciseCount === 1 ? 'exercício' : 'exercícios'}
+                    {t('admin.studentSpace.onlyNameSees', { name: firstName })} ·{' '}
+                    {t(
+                      item.plan.exerciseCount === 1
+                        ? 'admin.studentSpace.exerciseCountOne'
+                        : 'admin.studentSpace.exerciseCountOther',
+                      { count: String(item.plan.exerciseCount) },
+                    )}
                   </Text>
                   <Text className="mt-0.5 text-xs text-primary">
                     {lastSession
-                      ? `${planSessions.length} ${planSessions.length === 1 ? 'sessão concluída' : 'sessões concluídas'} · última ${formatRelativeAccessDate(lastSession.completedAt)}`
-                      : 'Ainda não finalizou nenhuma sessão'}
+                      ? t('admin.studentSpace.sessionsLast', {
+                          sessions: t(
+                            planSessions.length === 1
+                              ? 'admin.studentSpace.sessionsCompletedOne'
+                              : 'admin.studentSpace.sessionsCompletedOther',
+                            { count: String(planSessions.length) },
+                          ),
+                          date: formatRelativeAccessDate(lastSession.completedAt),
+                        })
+                      : t('admin.studentSpace.noSessionYet')}
                   </Text>
                 </Pressable>
                 <Pressable
                   onPress={() => void handleRevoke(item)}
                   disabled={busyPlanId === item.plan.id}
                   accessibilityRole="button"
-                  accessibilityLabel={`Remover ${item.plan.title} de ${student.name}`}
+                  accessibilityLabel={t('admin.studentSpace.a11yRemove', { title: item.plan.title, name: student.name })}
                   hitSlop={8}
                 >
-                  <Text className="text-sm font-semibold text-red-500">Remover</Text>
+                  <Text className="text-sm font-semibold text-red-500">{t('common.remove')}</Text>
                 </Pressable>
               </View>
               );
@@ -382,11 +399,11 @@ export function AdminStudentSpaceScreen() {
           )}
 
           <Text className="mt-2 text-xs font-semibold uppercase tracking-[1.6px] text-primary">
-            Evolução de {firstName}
+            {t('admin.studentSpace.evolutionOf', { name: firstName })}
           </Text>
           {bodyLogs.length === 0 ? (
             <Text className="text-sm text-muted">
-              {firstName} ainda não registrou peso nem fotos de evolução.
+              {t('admin.studentSpace.noBodyLogs', { name: firstName })}
             </Text>
           ) : (
             <View className="gap-3">
@@ -415,15 +432,13 @@ export function AdminStudentSpaceScreen() {
           )}
 
           <Text className="mt-2 text-xs font-semibold uppercase tracking-[1.6px] text-primary">
-            Liberar para {firstName}
+            {t('admin.studentSpace.resolveFor', { name: firstName })}
           </Text>
-          <Text className="text-sm text-muted">
-            Fichas prontas da academia. Liberar aqui não mistura outros alunos.
-          </Text>
+          <Text className="text-sm text-muted">{t('admin.studentSpace.releaseHintWorkouts')}</Text>
           {plans.length === 0 ? (
             <EmptyState
-              title="Nenhuma ficha ainda"
-              description={`Monte uma ficha para ${firstName} no botão Treinos acima.`}
+              title={t('admin.studentSpace.noPlansYet')}
+              description={t('admin.studentSpace.buildPlanHint', { name: firstName })}
             />
           ) : null}
           {available.map((plan) => (
@@ -439,28 +454,33 @@ export function AdminStudentSpaceScreen() {
               >
                 <Text className="font-semibold text-ink">{plan.title}</Text>
                 <Text className="mt-0.5 text-sm text-muted">
-                  {plan.exerciseCount} {plan.exerciseCount === 1 ? 'exercício' : 'exercícios'}
+                  {t(
+                    plan.exerciseCount === 1
+                      ? 'admin.studentSpace.exerciseCountOne'
+                      : 'admin.studentSpace.exerciseCountOther',
+                    { count: String(plan.exerciseCount) },
+                  )}
                 </Text>
               </Pressable>
               <Pressable
                 onPress={() => void handleGrant(plan)}
                 disabled={busyPlanId != null}
                 accessibilityRole="button"
-                accessibilityLabel={`Liberar ${plan.title} para ${student.name}`}
+                accessibilityLabel={t('admin.studentSpace.a11yGrant', { title: plan.title, name: student.name })}
               >
                 <Text className="text-sm font-semibold text-primary">
-                  {busyPlanId === plan.id ? '...' : `Liberar para ${firstName}`}
+                  {busyPlanId === plan.id ? '...' : t('admin.studentSpace.releaseFor', { name: firstName })}
                 </Text>
               </Pressable>
             </View>
           ))}
 
           <Text className="mt-2 text-xs font-semibold uppercase tracking-[1.6px] text-primary">
-            Programas de {firstName}
+            {t('admin.studentSpace.programsOf', { name: firstName })}
           </Text>
           {assignedPrograms.length === 0 ? (
             <Text className="text-sm text-muted">
-              Nenhum programa liberado. Enquanto isso, {firstName} não vê nenhum em Programas de Treino.
+              {t('admin.studentSpace.noProgramsGranted', { name: firstName })}
             </Text>
           ) : (
             assignedPrograms.map((item) => (
@@ -471,32 +491,30 @@ export function AdminStudentSpaceScreen() {
                 <View className="min-w-0 flex-1 pr-3">
                   <Text className="font-semibold text-ink">{item.program.title}</Text>
                   <Text className="mt-0.5 text-sm text-muted">
-                    Só {firstName} vê este programa
+                    {t('admin.studentSpace.onlySeesProgram', { name: firstName })}
                   </Text>
                 </View>
                 <Pressable
                   onPress={() => void handleRevokeProgram(item)}
                   disabled={busyProgramId === item.program.id}
                   accessibilityRole="button"
-                  accessibilityLabel={`Remover ${item.program.title} de ${student.name}`}
+                  accessibilityLabel={t('admin.studentSpace.a11yRemove', { title: item.program.title, name: student.name })}
                   hitSlop={8}
                 >
-                  <Text className="text-sm font-semibold text-red-500">Remover</Text>
+                  <Text className="text-sm font-semibold text-red-500">{t('common.remove')}</Text>
                 </Pressable>
               </View>
             ))
           )}
 
           <Text className="mt-2 text-xs font-semibold uppercase tracking-[1.6px] text-primary">
-            Liberar programa para {firstName}
+            {t('admin.studentSpace.releaseProgramFor', { name: firstName })}
           </Text>
-          <Text className="text-sm text-muted">
-            Programas em vídeo publicados. Liberar aqui não mistura outros alunos.
-          </Text>
+          <Text className="text-sm text-muted">{t('admin.studentSpace.releaseHintPrograms')}</Text>
           {programs.length === 0 ? (
             <EmptyState
-              title="Nenhum programa ainda"
-              description="Crie um programa em Admin → Programas antes de liberar."
+              title={t('admin.studentSpace.noProgramsYet')}
+              description={t('admin.studentSpace.createProgramHint')}
             />
           ) : null}
           {availablePrograms.map((program) => (
@@ -507,17 +525,22 @@ export function AdminStudentSpaceScreen() {
               <View className="min-w-0 flex-1 pr-3">
                 <Text className="font-semibold text-ink">{program.title}</Text>
                 <Text className="mt-0.5 text-sm text-muted">
-                  {program.totalLessons} {program.totalLessons === 1 ? 'aula' : 'aulas'}
+                  {t(
+                    program.totalLessons === 1
+                      ? 'admin.studentSpace.lessonCountOne'
+                      : 'admin.studentSpace.lessonCountOther',
+                    { count: String(program.totalLessons) },
+                  )}
                 </Text>
               </View>
               <Pressable
                 onPress={() => void handleGrantProgram(program)}
                 disabled={busyProgramId != null}
                 accessibilityRole="button"
-                accessibilityLabel={`Liberar ${program.title} para ${student.name}`}
+                accessibilityLabel={t('admin.studentSpace.a11yGrant', { title: program.title, name: student.name })}
               >
                 <Text className="text-sm font-semibold text-primary">
-                  {busyProgramId === program.id ? '...' : `Liberar para ${firstName}`}
+                  {busyProgramId === program.id ? '...' : t('admin.studentSpace.releaseFor', { name: firstName })}
                 </Text>
               </Pressable>
             </View>

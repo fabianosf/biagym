@@ -18,16 +18,27 @@ import type { Database } from './types';
  * blindado que o Keystore nativo, mas é a mesma limitação que qualquer app
  * web tem; não dá pra emular hardware-backed storage num browser.
  */
+const HEX_PATTERN = /^[0-9a-fA-F]+$/;
+
+function isValidHex(value: string): boolean {
+  return value.length > 0 && value.length % 2 === 0 && HEX_PATTERN.test(value);
+}
+
 class LargeSecureStore {
-  private async getOrCreateKey(keyName: string): Promise<Uint8Array> {
-    const existing =
-      Platform.OS === 'web'
+  private async readRawKey(keyName: string): Promise<string | null> {
+    try {
+      return Platform.OS === 'web'
         ? await AsyncStorage.getItem(keyName)
         : await SecureStore.getItemAsync(keyName);
-    if (existing) {
-      return aesjs.utils.hex.toBytes(existing);
+    } catch (error) {
+      // Ex.: chave do Android Keystore invalidada (restauração de backup, troca de
+      // biometria). Trata como ausente para que uma nova chave seja gerada.
+      console.warn(`[LargeSecureStore] Falha ao ler "${keyName}" do storage nativo.`, error);
+      return null;
     }
+  }
 
+  private async createKey(keyName: string): Promise<Uint8Array> {
     const key = crypto.getRandomValues(new Uint8Array(32));
     const hexKey = aesjs.utils.hex.fromBytes(key);
     if (Platform.OS === 'web') {
@@ -38,31 +49,64 @@ class LargeSecureStore {
     return key;
   }
 
+  private async getOrCreateKey(keyName: string): Promise<Uint8Array> {
+    const existing = await this.readRawKey(keyName);
+    if (existing && isValidHex(existing)) {
+      return aesjs.utils.hex.toBytes(existing);
+    }
+
+    return this.createKey(keyName);
+  }
+
   async getItem(key: string): Promise<string | null> {
     const encrypted = await AsyncStorage.getItem(key);
     if (!encrypted) {
       return null;
     }
 
-    const encryptionKey = await this.getOrCreateKey(`${key}-encryption-key`);
-    const cipher = new aesjs.ModeOfOperation.ctr(encryptionKey, new aesjs.Counter(1));
-    const bytes = cipher.decrypt(aesjs.utils.hex.toBytes(encrypted));
-    return aesjs.utils.utf8.fromBytes(bytes);
+    try {
+      if (!isValidHex(encrypted)) {
+        throw new Error('Payload armazenado não é hexadecimal válido.');
+      }
+
+      const encryptionKey = await this.getOrCreateKey(`${key}-encryption-key`);
+      const cipher = new aesjs.ModeOfOperation.ctr(encryptionKey, new aesjs.Counter(1));
+      const bytes = cipher.decrypt(aesjs.utils.hex.toBytes(encrypted));
+      const value = aesjs.utils.utf8.fromBytes(bytes);
+
+      // Sessão do Supabase é sempre JSON; se a decriptação usou a chave errada
+      // (ex.: chave recriada após corrupção), o resultado é lixo e falha aqui.
+      JSON.parse(value);
+      return value;
+    } catch (error) {
+      console.warn(`[LargeSecureStore] Entrada corrompida em "${key}", limpando.`, error);
+      await this.removeItem(key);
+      return null;
+    }
   }
 
   async setItem(key: string, value: string): Promise<void> {
-    const encryptionKey = await this.getOrCreateKey(`${key}-encryption-key`);
-    const cipher = new aesjs.ModeOfOperation.ctr(encryptionKey, new aesjs.Counter(1));
-    const bytes = cipher.encrypt(aesjs.utils.utf8.toBytes(value));
-    await AsyncStorage.setItem(key, aesjs.utils.hex.fromBytes(bytes));
+    try {
+      const encryptionKey = await this.getOrCreateKey(`${key}-encryption-key`);
+      const cipher = new aesjs.ModeOfOperation.ctr(encryptionKey, new aesjs.Counter(1));
+      const bytes = cipher.encrypt(aesjs.utils.utf8.toBytes(value));
+      await AsyncStorage.setItem(key, aesjs.utils.hex.fromBytes(bytes));
+    } catch (error) {
+      // Nunca deixa falha de storage derrubar o fluxo de login/navegação.
+      console.warn(`[LargeSecureStore] Falha ao gravar "${key}".`, error);
+    }
   }
 
   async removeItem(key: string): Promise<void> {
-    await AsyncStorage.removeItem(key);
-    if (Platform.OS === 'web') {
-      await AsyncStorage.removeItem(`${key}-encryption-key`);
-    } else {
-      await SecureStore.deleteItemAsync(`${key}-encryption-key`);
+    try {
+      await AsyncStorage.removeItem(key);
+      if (Platform.OS === 'web') {
+        await AsyncStorage.removeItem(`${key}-encryption-key`);
+      } else {
+        await SecureStore.deleteItemAsync(`${key}-encryption-key`);
+      }
+    } catch (error) {
+      console.warn(`[LargeSecureStore] Falha ao remover "${key}".`, error);
     }
   }
 }

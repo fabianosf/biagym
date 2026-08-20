@@ -1,12 +1,13 @@
 import { useAuth } from '@/features/auth';
-import { MEAL_TYPE_LABELS, type NutritionPlan } from '@/domain/nutrition';
-import { WEEKDAY_LABELS, type TrainingSlot } from '@/domain/schedule';
+import type { NutritionPlan } from '@/domain/nutrition';
+import type { TrainingSlot } from '@/domain/schedule';
 import {
   checkInTrainingSlot,
   listNutritionPlansForStudent,
   listTrainingSlots,
 } from '@/services';
 import { Button, Card } from '@/shared/components';
+import { useT } from '@/shared/theme';
 import { useCallback, useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 
@@ -31,6 +32,7 @@ function formatMacros(plan: NutritionPlan): string | null {
 }
 
 export function CoachingPlanSection() {
+  const t = useT();
   const { user } = useAuth();
   const [plan, setPlan] = useState<NutritionPlan | null>(null);
   const [slots, setSlots] = useState<TrainingSlot[]>([]);
@@ -81,22 +83,28 @@ export function CoachingPlanSection() {
       {slots.length > 0 ? (
         <Card>
           <Text className="text-xs font-semibold uppercase tracking-[1.6px] text-primary">
-            Sua agenda
+            {t('progress.yourSchedule')}
           </Text>
-          <Text className="mt-2 text-lg font-semibold text-ink">Horários de treino</Text>
+          <Text className="mt-2 text-lg font-semibold text-ink">{t('progress.trainingTimes')}</Text>
           {slots.map((slot) => (
             <View key={slot.id} className="mt-3 border-t border-line pt-3">
               <Text className="text-sm leading-5 text-ink">
-                {WEEKDAY_LABELS[slot.weekday]} · {slot.startTime} · {slot.title} (
-                {slot.durationMinutes} min)
+                {t('progress.scheduleSlot', {
+                  weekday: t(`weekdays.${slot.weekday}`),
+                  time: slot.startTime,
+                  title: slot.title,
+                  minutes: String(slot.durationMinutes),
+                })}
               </Text>
               {isSlotToday(slot) ? (
                 slot.checkedInToday ? (
-                  <Text className="mt-2 text-sm font-semibold text-primary">Treino feito hoje</Text>
+                  <Text className="mt-2 text-sm font-semibold text-primary">
+                    {t('progress.trainedToday')}
+                  </Text>
                 ) : (
                   <Button
                     className="mt-3"
-                    label="Treinei hoje"
+                    label={t('progress.checkInButton')}
                     loading={checkingSlotId === slot.id}
                     onPress={() => void handleCheckIn(slot)}
                   />
@@ -110,7 +118,7 @@ export function CoachingPlanSection() {
       {plan ? (
         <Card>
           <Text className="text-xs font-semibold uppercase tracking-[1.6px] text-primary">
-            Nutrição
+            {t('progress.nutrition')}
           </Text>
           <Text className="mt-2 text-lg font-semibold text-ink">{plan.title}</Text>
           {formatMacros(plan) ? (
@@ -122,7 +130,7 @@ export function CoachingPlanSection() {
           {plan.meals.map((meal) => (
             <View key={meal.id} className="mt-3">
               <Text className="text-sm font-semibold text-ink">
-                {MEAL_TYPE_LABELS[meal.mealType]}
+                {t(`mealTypes.${meal.mealType}`)}
                 {meal.timeLabel ? ` · ${meal.timeLabel}` : ''}
               </Text>
               <Text className="text-sm text-muted">{meal.title}</Text>

@@ -11,7 +11,7 @@ import {
 } from '@/services';
 import { AppImage, Button, EmptyState, TextField } from '@/shared/components';
 import { getStoreWhatsAppUrl } from '@/shared/constants/app';
-import { colors } from '@/shared/theme';
+import { colors, useT } from '@/shared/theme';
 import { formatPriceBRL } from '@/shared/utils';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as ImagePicker from 'expo-image-picker';
@@ -33,6 +33,7 @@ function parsePriceToCents(value: string): number | null {
 }
 
 export function RecommendedProductsSection() {
+  const t = useT();
   const { user, isAdmin } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
@@ -91,7 +92,7 @@ export function RecommendedProductsSection() {
   async function handlePickProductImage() {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
-      setFormError('Permita o acesso às fotos do celular para anexar a imagem.');
+      setFormError(t('store.imagePermissionDenied'));
       return;
     }
 
@@ -113,13 +114,13 @@ export function RecommendedProductsSection() {
     }
 
     if (productName.trim().length < 2) {
-      setFormError('Informe o nome do produto.');
+      setFormError(t('store.nameRequired'));
       return;
     }
 
     const priceCents = parsePriceToCents(productPrice);
     if (priceCents === null) {
-      setFormError('Informe um preço válido, ex: 45,90.');
+      setFormError(t('store.invalidPrice'));
       return;
     }
 
@@ -179,7 +180,7 @@ export function RecommendedProductsSection() {
   return (
     <View className="gap-3">
       <Text className="text-xs font-semibold uppercase tracking-[1.6px] text-primary">
-        Recomendados
+        {t('store.recommended')}
       </Text>
 
       {isAdmin ? (
@@ -187,29 +188,29 @@ export function RecommendedProductsSection() {
           <View className="gap-4 rounded-card border border-line bg-surface p-5">
             <View className="flex-row items-center justify-between">
               <Text className="text-lg font-semibold text-ink">
-                {editingProduct === 'new' ? 'Novo produto' : 'Editar produto'}
+                {editingProduct === 'new' ? t('store.newProduct') : t('store.editProduct')}
               </Text>
               <Pressable onPress={closeProductForm}>
-                <Text className="text-sm text-muted">Cancelar</Text>
+                <Text className="text-sm text-muted">{t('common.cancel')}</Text>
               </Pressable>
             </View>
             {formError ? <Text className="text-sm text-red-400">{formError}</Text> : null}
             <TextField
-              label="Nome"
+              label={t('admin.exercises.nameLabel')}
               value={productName}
               onChangeText={setProductName}
               placeholder="Whey Protein"
               icon="pricetag-outline"
             />
             <TextField
-              label="Descrição (opcional)"
+              label={t('store.descriptionLabel')}
               value={productDescription}
               onChangeText={setProductDescription}
               placeholder="900g, sabor morango"
               icon="document-text-outline"
             />
             <TextField
-              label="Preço (R$)"
+              label={t('store.priceLabel')}
               value={productPrice}
               onChangeText={setProductPrice}
               placeholder="120,00"
@@ -224,11 +225,11 @@ export function RecommendedProductsSection() {
               className="min-h-[48px] items-center justify-center rounded-2xl border border-primary/40"
             >
               <Text className="font-semibold text-primary">
-                {productImage || productImageUrl ? 'Trocar foto' : 'Anexar foto do produto'}
+                {productImage || productImageUrl ? t('admin.programForm.changeCover') : t('store.attachProductPhoto')}
               </Text>
             </Pressable>
             <Button
-              label={editingProduct === 'new' ? 'Salvar produto' : 'Salvar alterações'}
+              label={editingProduct === 'new' ? t('store.saveProduct') : t('admin.schedule.saveChanges')}
               loading={isSavingProduct}
               onPress={() => void handleSaveProduct()}
             />
@@ -239,7 +240,7 @@ export function RecommendedProductsSection() {
             className="min-h-[52px] flex-row items-center justify-center gap-2 rounded-2xl border border-dashed border-primary/40"
           >
             <Ionicons name="add" size={18} color={colors.primary} />
-            <Text className="font-semibold text-primary">Adicionar produto</Text>
+            <Text className="font-semibold text-primary">{t('store.addProduct')}</Text>
           </Pressable>
         )
       ) : null}
@@ -262,14 +263,12 @@ export function RecommendedProductsSection() {
 
       {!isLoading && products.length === 0 && isAdmin ? (
         <EmptyState
-          title="Nenhum produto por aqui"
-          description="Adicione produtos pra recomendar pros alunos."
+          title={t('store.noProductsTitle')}
+          description={t('store.noProductsDescription')}
         />
       ) : products.length > 0 ? (
         <>
-          <Text className="text-sm leading-5 text-muted">
-            Fale com a treinadora pra garantir o seu — a compra é combinada por fora do app.
-          </Text>
+          <Text className="text-sm leading-5 text-muted">{t('store.purchaseHint')}</Text>
           <View className="flex-row flex-wrap justify-between">
             {products.map((product) => (
               <View
@@ -290,7 +289,7 @@ export function RecommendedProductsSection() {
                         onPress={() => openEditProductForm(product)}
                         className="h-8 w-8 items-center justify-center rounded-full bg-black/55"
                         accessibilityRole="button"
-                        accessibilityLabel={`Editar ${product.name}`}
+                        accessibilityLabel={t('workouts.editField', { label: product.name })}
                       >
                         <Ionicons name="pencil" size={14} color="#FFFFFF" />
                       </Pressable>
@@ -298,7 +297,7 @@ export function RecommendedProductsSection() {
                         onPress={() => void handleDeleteProduct(product.id)}
                         className="h-8 w-8 items-center justify-center rounded-full bg-black/55"
                         accessibilityRole="button"
-                        accessibilityLabel={`Remover ${product.name}`}
+                        accessibilityLabel={t('store.removeProductLabel', { name: product.name })}
                       >
                         <Ionicons name="trash" size={14} color="#FFFFFF" />
                       </Pressable>
@@ -323,7 +322,7 @@ export function RecommendedProductsSection() {
                         className="mt-2 flex-row items-center justify-center gap-1.5 rounded-full bg-primary/10 py-2"
                       >
                         <Ionicons name="logo-whatsapp" size={14} color={colors.primary} />
-                        <Text className="text-xs font-semibold text-primary">Falar no WhatsApp</Text>
+                        <Text className="text-xs font-semibold text-primary">{t('store.talkOnWhatsapp')}</Text>
                       </Pressable>
                     );
                   })()}

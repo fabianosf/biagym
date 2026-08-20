@@ -1,4 +1,4 @@
-import { MUSCLE_GROUP_LABELS, type MuscleGroup, type WorkoutExercise } from '@/domain/workout';
+import type { MuscleGroup, WorkoutExercise } from '@/domain/workout';
 
 export function formatSetsReps(sets: number, reps: string): string {
   return `${sets} × ${reps}`;
@@ -45,7 +45,10 @@ export function formatIndexBadge(index: number): string {
   return String(index + 1).padStart(2, '0');
 }
 
-export function getPlanMuscleGroupSubtitle(items: readonly WorkoutExercise[]): string {
+export function getPlanMuscleGroupSubtitle(
+  t: (key: string, vars?: Record<string, string>) => string,
+  items: readonly WorkoutExercise[],
+): string {
   const seen = new Set<MuscleGroup>();
   const labels: string[] = [];
 
@@ -56,7 +59,7 @@ export function getPlanMuscleGroupSubtitle(items: readonly WorkoutExercise[]): s
     }
 
     seen.add(group);
-    labels.push(MUSCLE_GROUP_LABELS[group] ?? MUSCLE_GROUP_LABELS.corpo_todo);
+    labels.push(t(`muscleGroups.${group}`));
   }
 
   return labels.join(', ');

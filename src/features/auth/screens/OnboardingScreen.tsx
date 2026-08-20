@@ -1,7 +1,7 @@
 import { Button, Card, FeedbackBanner, TextField } from '@/shared/components';
 import { APP_NAME } from '@/shared/constants/app';
 import { routes } from '@/shared/constants/routes';
-import { STUDENT_GOAL_LABELS, STUDENT_GOALS, type StudentGoal } from '@/domain/student';
+import { STUDENT_GOALS, type StudentGoal } from '@/domain/student';
 import { getFriendlyErrorMessage } from '@/shared/errors';
 import {
   formatHelloGreeting,
@@ -9,6 +9,7 @@ import {
   parseRequiredFullName,
 } from '@/shared/utils/person-name';
 import { formatPhoneDisplay, parseRequiredWhatsAppPhone } from '@/shared/utils/phone';
+import { useT } from '@/shared/theme';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
@@ -19,6 +20,7 @@ import { useAuth } from '../hooks/useAuth';
 export function OnboardingScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const t = useT();
   const { completeOnboarding, isLoading, user } = useAuth();
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -68,17 +70,17 @@ export function OnboardingScreen() {
     const parsedAge = Number.parseInt(age, 10);
 
     if (!Number.isFinite(weight) || weight < 30 || weight > 300) {
-      setError('Informe seu peso em kg, entre 30 e 300. Exemplo: 72.');
+      setError(t('onboarding.validationWeight'));
       return;
     }
 
     if (!Number.isFinite(height) || height < 120 || height > 230) {
-      setError('Informe sua altura em cm, entre 120 e 230. Exemplo: 170.');
+      setError(t('onboarding.validationHeight'));
       return;
     }
 
     if (!Number.isFinite(parsedAge) || parsedAge < 12 || parsedAge > 90) {
-      setError('Informe sua idade em anos, entre 12 e 90.');
+      setError(t('onboarding.validationAge'));
       return;
     }
 
@@ -108,34 +110,31 @@ export function OnboardingScreen() {
           {APP_NAME}
         </Text>
         <Text className="mt-2 text-[28px] font-bold text-ink">
-          {formatHelloGreeting(name, user?.name)}
+          {formatHelloGreeting(t, name, user?.name)}
         </Text>
-        <Text className="mt-2 text-base leading-6 text-muted">
-          Antes de treinar, conte um pouco sobre você: nome, WhatsApp, peso, altura, idade e
-          objetivo. A treinadora usa isso para montar treinos e alimentação.
-        </Text>
+        <Text className="mt-2 text-base leading-6 text-muted">{t('onboarding.intro')}</Text>
 
         <Card className="mt-6 gap-4">
           <TextField
-            label="Nome e sobrenome"
+            label={t('onboarding.fullNameLabel')}
             value={name}
             onChangeText={setName}
-            placeholder="Ana Souza"
+            placeholder={t('onboarding.fullNamePlaceholder')}
             autoCapitalize="words"
             autoComplete="name"
             icon="person-outline"
           />
           <TextField
-            label="WhatsApp"
+            label={t('auth.whatsappLabel')}
             value={phone}
             onChangeText={setPhone}
-            placeholder="(11) 98888-8888"
+            placeholder={t('auth.whatsappPlaceholder')}
             keyboardType="phone-pad"
             autoComplete="tel"
             icon="logo-whatsapp"
           />
           <TextField
-            label="Peso (kg)"
+            label={t('onboarding.weightLabel')}
             value={weightKg}
             onChangeText={setWeightKg}
             placeholder="72"
@@ -143,7 +142,7 @@ export function OnboardingScreen() {
             icon="barbell-outline"
           />
           <TextField
-            label="Altura (cm)"
+            label={t('onboarding.heightLabel')}
             value={heightCm}
             onChangeText={setHeightCm}
             placeholder="170"
@@ -151,7 +150,7 @@ export function OnboardingScreen() {
             icon="resize-outline"
           />
           <TextField
-            label="Idade"
+            label={t('onboarding.ageLabel')}
             value={age}
             onChangeText={setAge}
             placeholder="32"
@@ -160,7 +159,7 @@ export function OnboardingScreen() {
           />
 
           <View>
-            <Text className="mb-2 text-sm font-medium text-muted">Qual é o seu objetivo?</Text>
+            <Text className="mb-2 text-sm font-medium text-muted">{t('onboarding.goalQuestion')}</Text>
             <View className="flex-row flex-wrap gap-2">
               {STUDENT_GOALS.map((item) => (
                 <Pressable
@@ -171,7 +170,7 @@ export function OnboardingScreen() {
                   }`}
                 >
                   <Text className={goal === item ? 'font-semibold text-white' : 'text-ink'}>
-                    {STUDENT_GOAL_LABELS[item]}
+                    {t(`studentGoals.${item}`)}
                   </Text>
                 </Pressable>
               ))}
@@ -182,7 +181,7 @@ export function OnboardingScreen() {
 
           <Button
             className="mt-2"
-            label="Salvar e começar a treinar"
+            label={t('onboarding.submit')}
             onPress={() => void handleSubmit()}
             loading={isLoading}
           />

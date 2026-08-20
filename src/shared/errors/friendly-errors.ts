@@ -1,33 +1,47 @@
-import { getAuthErrorMessage } from '@/services/auth/auth.errors';
-import { getDataErrorMessage } from '@/services/shared/data.errors';
+import { AuthServiceError, getAuthErrorMessage } from '@/services/auth/auth.errors';
+import { DataServiceError, getDataErrorMessage } from '@/services/shared/data.errors';
+import { translate } from '@/shared/i18n';
+import { usePreferencesStore } from '@/shared/theme/preferences.store';
 
 const TIMEOUT_PATTERNS = ['timeout', 'timed out', 'aborted', 'abort', 'deadline'];
 
 export function getFriendlyErrorMessage(error: unknown): string {
   const authMessage = getAuthErrorMessage(error);
   const dataMessage = getDataErrorMessage(error);
+  const locale = usePreferencesStore.getState().locale;
+  const unknownMessage = translate(locale, 'errors.auth.unknown');
 
   if (error instanceof Error) {
     const normalized = error.message.toLowerCase();
 
     if (TIMEOUT_PATTERNS.some((pattern) => normalized.includes(pattern))) {
-      return 'A operação demorou demais. Verifique sua conexão e tente novamente.';
+      return translate(locale, 'errors.data.timeout_error');
     }
   }
 
-  if (authMessage !== 'Não foi possível concluir a operação. Tente novamente.') {
+  if (authMessage !== unknownMessage) {
     return authMessage;
   }
 
   return dataMessage;
 }
 
+const NETWORK_CODES = new Set(['network_error', 'timeout_error']);
+
 export function isNetworkRelatedError(error: unknown): boolean {
-  const message = getFriendlyErrorMessage(error).toLowerCase();
-  return (
-    message.includes('conexão') ||
-    message.includes('internet') ||
-    message.includes('offline') ||
-    message.includes('demorou demais')
-  );
+  if (error instanceof AuthServiceError || error instanceof DataServiceError) {
+    return NETWORK_CODES.has(error.code);
+  }
+
+  if (error instanceof Error) {
+    const normalized = error.message.toLowerCase();
+    return (
+      TIMEOUT_PATTERNS.some((pattern) => normalized.includes(pattern)) ||
+      normalized.includes('network') ||
+      normalized.includes('fetch') ||
+      normalized.includes('offline')
+    );
+  }
+
+  return false;
 }

@@ -1,4 +1,4 @@
-import { colors } from '@/shared/theme';
+import { colors, useT } from '@/shared/theme';
 import { useOfflineStore } from '@/features/offline/store/offline.store';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
@@ -8,6 +8,7 @@ type SyncStatusBannerProps = {
 };
 
 export function SyncStatusBanner({ onRetry }: SyncStatusBannerProps) {
+  const t = useT();
   const syncStatus = useOfflineStore((state) => state.syncStatus);
   const pendingCount = useOfflineStore((state) => state.pendingCount);
   const syncError = useOfflineStore((state) => state.syncError);
@@ -21,7 +22,7 @@ export function SyncStatusBanner({ onRetry }: SyncStatusBannerProps) {
     return (
       <View className="flex-row items-center gap-2 bg-elevated px-4 py-2">
         <ActivityIndicator size="small" color={colors.primary} />
-        <Text className="text-sm text-muted">Sincronizando progresso...</Text>
+        <Text className="text-sm text-muted">{t('offline.syncing')}</Text>
       </View>
     );
   }
@@ -30,7 +31,7 @@ export function SyncStatusBanner({ onRetry }: SyncStatusBannerProps) {
     return (
       <View className="flex-row items-center gap-2 bg-primary/10 px-4 py-2">
         <Ionicons name="checkmark-circle" size={16} color={colors.primary} />
-        <Text className="text-sm text-primary">Progresso sincronizado com sucesso.</Text>
+        <Text className="text-sm text-primary">{t('offline.syncSuccess')}</Text>
       </View>
     );
   }
@@ -41,11 +42,13 @@ export function SyncStatusBanner({ onRetry }: SyncStatusBannerProps) {
         <Ionicons name="alert-circle" size={16} color="#F87171" />
         <Text className="flex-1 text-sm text-red-200">
           {syncError ??
-            `${pendingCount} alteração${pendingCount === 1 ? '' : 'ões'} aguardando sincronização.`}
+            t(pendingCount === 1 ? 'offline.pendingChangeOne' : 'offline.pendingChangeOther', {
+              count: String(pendingCount),
+            })}
         </Text>
         {isOnline && onRetry ? (
           <Pressable onPress={onRetry} className="rounded-full bg-elevated px-3 py-1">
-            <Text className="text-xs text-ink">Tentar novamente</Text>
+            <Text className="text-xs text-ink">{t('workouts.tryAgain')}</Text>
           </Pressable>
         ) : null}
       </View>

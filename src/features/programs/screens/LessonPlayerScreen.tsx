@@ -22,12 +22,14 @@ import {
   LoadingIndicator,
   ScreenHeader,
 } from '@/shared/components';
+import { useT } from '@/shared/theme';
 import { isPlayableVideoUrl, resolveRouteParam } from '@/shared/utils';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Alert, ScrollView, Text, View } from 'react-native';
 
 export function LessonPlayerScreen() {
   const router = useRouter();
+  const t = useT();
   const params = useLocalSearchParams<{ id?: string | string[]; lessonId?: string | string[] }>();
   const programId = resolveRouteParam(params.id);
   const selectedLessonId = resolveRouteParam(params.lessonId);
@@ -80,7 +82,7 @@ export function LessonPlayerScreen() {
   return (
     <View className="flex-1 bg-background">
       <ScreenHeader
-        title={lesson?.title ?? 'Aula'}
+        title={lesson?.title ?? t('lesson.fallbackTitle')}
         subtitle={detail?.program.title}
         showBack
         onBack={() => router.back()}
@@ -88,7 +90,7 @@ export function LessonPlayerScreen() {
       <OfflineBanner />
       <SyncStatusBanner onRetry={() => void runSync()} />
 
-      {isLoading ? <LoadingIndicator fullScreen message="Carregando aula..." /> : null}
+      {isLoading ? <LoadingIndicator fullScreen message={t('lesson.loading')} /> : null}
 
       {!isLoading && error ? (
         <View className="flex-1 px-5 pt-2">
@@ -100,8 +102,8 @@ export function LessonPlayerScreen() {
         <View className="flex-1 px-5 pt-2">
           <EmptyState
             icon="lock-closed-outline"
-            title="Aula bloqueada"
-            description="Peça à treinadora para liberar o acesso a este programa."
+            title={t('lesson.lockedTitle')}
+            description={t('program.lockedDescription')}
           />
         </View>
       ) : null}
@@ -112,7 +114,7 @@ export function LessonPlayerScreen() {
             <>
               {isResolvingVideo ? (
                 <View className="aspect-video items-center justify-center rounded-card border border-line bg-elevated">
-                  <Text className="text-sm text-muted">Carregando vídeo...</Text>
+                  <Text className="text-sm text-muted">{t('lesson.loadingVideo')}</Text>
                 </View>
               ) : resolvedVideoUrl ? (
                 <VideoPlayer
@@ -122,8 +124,7 @@ export function LessonPlayerScreen() {
               ) : (
                 <View className="aspect-video items-center justify-center rounded-card border border-line bg-elevated px-6">
                   <Text className="text-center text-sm leading-6 text-muted">
-                    Ainda não há vídeo nesta aula. No painel admin, abra a aula e envie um MP4 da
-                    pasta videos/.
+                    {t('lesson.noVideoYet')}
                   </Text>
                 </View>
               )}
@@ -131,10 +132,10 @@ export function LessonPlayerScreen() {
               <View className="flex-row items-center justify-between">
                 <Text className="text-xs font-medium text-muted">
                   {isOfflineVideo
-                    ? 'Versão offline'
+                    ? t('lesson.offlineVersion')
                     : isSampleFallback
-                      ? 'Vídeo de exemplo da pasta videos/'
-                      : 'Streaming online'}
+                      ? t('lesson.sampleVideo')
+                      : t('lesson.onlineStreaming')}
                 </Text>
                 {hasRemoteVideo ? (
                   <LessonDownloadButton
@@ -151,35 +152,35 @@ export function LessonPlayerScreen() {
 
               {lessonCompleted ? (
                 <Card className="items-center border-primary/20 bg-primary/10">
-                  <Text className="text-lg font-semibold text-primary">Aula concluída</Text>
+                  <Text className="text-lg font-semibold text-primary">{t('lesson.completedTitle')}</Text>
                   <Text className="mt-2 text-center text-sm text-muted">
-                    Seu progresso foi atualizado. Continue para a próxima aula.
+                    {t('lesson.completedMessage')}
                   </Text>
                   {syncMessage ? (
                     <Text className="mt-2 text-center text-xs text-amber-200">{syncMessage}</Text>
                   ) : null}
                   <Button
                     className="mt-5 w-full"
-                    label="Voltar ao programa"
+                    label={t('lesson.backToProgram')}
                     onPress={() => router.back()}
                   />
                 </Card>
               ) : (
                 <View className="gap-3">
                   <Button
-                    label="Marcar como concluída"
+                    label={t('lesson.markComplete')}
                     onPress={() => void markComplete()}
                     disabled={!canMarkComplete}
                     loading={isMarking}
                   />
                   {!canMarkComplete && resolvedVideoUrl ? (
                     <Text className="text-center text-xs leading-5 text-faint">
-                      Assista pelo menos 80% do vídeo para liberar a conclusão automática.
+                      {t('lesson.watch80Hint')}
                     </Text>
                   ) : null}
                   <Button
                     variant="ghost"
-                    label="Concluir manualmente agora"
+                    label={t('lesson.completeManually')}
                     onPress={() => {
                       if (canMarkComplete) {
                         void markComplete();
@@ -187,11 +188,11 @@ export function LessonPlayerScreen() {
                       }
 
                       Alert.alert(
-                        'Ainda não assistiu tudo',
-                        'Você não chegou a 80% do vídeo. Marcar como concluída mesmo assim?',
+                        t('lesson.notFullyWatchedTitle'),
+                        t('lesson.notFullyWatchedMessage'),
                         [
-                          { text: 'Cancelar', style: 'cancel' },
-                          { text: 'Concluir mesmo assim', onPress: () => void markComplete() },
+                          { text: t('common.cancel'), style: 'cancel' },
+                          { text: t('lesson.completeAnyway'), onPress: () => void markComplete() },
                         ],
                       );
                     }}
@@ -209,9 +210,7 @@ export function LessonPlayerScreen() {
             </>
           ) : (
             <View className="flex-1 items-center justify-center py-16">
-              <Text className="text-center text-muted">
-                Aceite o aviso médico para iniciar a aula.
-              </Text>
+              <Text className="text-center text-muted">{t('lesson.acceptDisclaimer')}</Text>
             </View>
           )}
         </ScrollView>
@@ -220,8 +219,8 @@ export function LessonPlayerScreen() {
       {!isLoading && !error && !lesson && !isLessonLocked ? (
         <View className="flex-1 px-5 pt-2">
           <EmptyState
-            title="Aula não encontrada"
-            description="Esta aula pode estar bloqueada ou indisponível."
+            title={t('lesson.notFoundTitle')}
+            description={t('lesson.notFoundDescription')}
           />
         </View>
       ) : null}

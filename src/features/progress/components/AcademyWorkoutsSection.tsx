@@ -4,6 +4,7 @@ import type { TrainingPlanSummary, WorkoutSession } from '@/domain/workout';
 import { listTrainingPlans, listWorkoutSessions } from '@/services';
 import { Button, Card } from '@/shared/components';
 import { routes } from '@/shared/constants/routes';
+import { useT } from '@/shared/theme';
 import { formatRelativeAccessDate } from '@/shared/utils';
 import { useRouter, type Href } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
@@ -13,6 +14,7 @@ const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 export function AcademyWorkoutsSection() {
   const router = useRouter();
+  const t = useT();
   const { user } = useAuth();
   const [plans, setPlans] = useState<TrainingPlanSummary[]>([]);
   const [sessions, setSessions] = useState<WorkoutSession[]>([]);
@@ -60,20 +62,24 @@ export function AcademyWorkoutsSection() {
   return (
     <Card>
       <Text className="text-xs font-semibold uppercase tracking-[1.6px] text-primary">
-        Treinos da academia
+        {t('progress.academyWorkouts')}
       </Text>
 
       <View className="mt-3 flex-row gap-4">
         <View>
           <Text className="text-2xl font-semibold text-ink">{plans.length}</Text>
           <Text className="text-xs text-muted">
-            {plans.length === 1 ? 'treino liberado' : 'treinos liberados'}
+            {t(plans.length === 1 ? 'progress.workoutGrantedOne' : 'progress.workoutGrantedOther')}
           </Text>
         </View>
         <View>
           <Text className="text-2xl font-semibold text-primary">{sessionsThisWeek}</Text>
           <Text className="text-xs text-muted">
-            {sessionsThisWeek === 1 ? 'concluído essa semana' : 'concluídos essa semana'}
+            {t(
+              sessionsThisWeek === 1
+                ? 'progress.completedThisWeekOne'
+                : 'progress.completedThisWeekOther',
+            )}
           </Text>
         </View>
       </View>
@@ -90,7 +96,7 @@ export function AcademyWorkoutsSection() {
               >
                 <Text className="flex-1 text-sm text-ink">{plan.title}</Text>
                 <Text className="text-xs font-semibold text-primary">
-                  {done} de {plan.exerciseCount}
+                  {t('progress.doneOfTotal', { done: String(done), total: String(plan.exerciseCount) })}
                 </Text>
               </Pressable>
             );
@@ -100,15 +106,17 @@ export function AcademyWorkoutsSection() {
 
       {lastSession ? (
         <Text className="mt-3 text-sm text-muted">
-          Último treino: {lastSessionPlan?.title ?? 'Treino'} ·{' '}
-          {formatRelativeAccessDate(lastSession.completedAt)}
+          {t('progress.lastWorkout', {
+            title: lastSessionPlan?.title ?? t('workoutDetail.fallbackTitle'),
+            date: formatRelativeAccessDate(lastSession.completedAt),
+          })}
         </Text>
       ) : null}
 
       <Button
         className="mt-4"
         variant="secondary"
-        label="Ver meus treinos"
+        label={t('progress.viewMyWorkouts')}
         onPress={() => router.push(routes.workouts as Href)}
       />
     </Card>

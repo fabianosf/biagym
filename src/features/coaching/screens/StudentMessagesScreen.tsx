@@ -8,6 +8,7 @@ import {
 } from '@/services';
 import { AppImage, Button, ScreenHeader } from '@/shared/components';
 import { getFriendlyErrorMessage } from '@/shared/errors';
+import { useT } from '@/shared/theme';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
@@ -21,6 +22,7 @@ type MessagesThreadProps = {
 };
 
 export function MessagesThread({ studentUserId, title, onBack }: MessagesThreadProps) {
+  const t = useT();
   const { user, isAdmin } = useAuth();
   const threadId = studentUserId ?? user?.id;
   const [messages, setMessages] = useState<CoachMessage[]>([]);
@@ -52,7 +54,7 @@ export function MessagesThread({ studentUserId, title, onBack }: MessagesThreadP
   async function handlePickImage() {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
-      setError('Permita o acesso às fotos do celular para anexar uma imagem.');
+      setError(t('messages.photoPermissionDenied'));
       return;
     }
 
@@ -107,16 +109,14 @@ export function MessagesThread({ studentUserId, title, onBack }: MessagesThreadP
       {title ? (
         <ScreenHeader
           title={title}
-          subtitle="Conversem sobre o treino, a dieta e as dúvidas da semana."
+          subtitle={t('messages.subtitle')}
           showBack={Boolean(onBack)}
           onBack={onBack}
         />
       ) : null}
       <ScrollView className="flex-1" contentContainerClassName="gap-3 px-5 pb-6">
         {messages.length === 0 ? (
-          <Text className="text-muted">
-            Nenhum recado ainda. Escreva aqui se tiver dúvida sobre o treino ou a alimentação.
-          </Text>
+          <Text className="text-muted">{t('messages.empty')}</Text>
         ) : (
           messages.map((message) => {
             const mine = message.senderId === user?.id;
@@ -128,7 +128,7 @@ export function MessagesThread({ studentUserId, title, onBack }: MessagesThreadP
                 }`}
               >
                 <Text className={`text-xs ${mine ? 'text-white/80' : 'text-muted'}`}>
-                  {mine ? 'Você' : message.senderName}
+                  {mine ? t('messages.you') : message.senderName}
                 </Text>
                 {message.attachmentUrl ? (
                   <AppImage
@@ -153,7 +153,7 @@ export function MessagesThread({ studentUserId, title, onBack }: MessagesThreadP
           <View className="mb-3 flex-row items-center gap-3">
             <AppImage uri={pendingImage.uri} aspectRatio={1} className="h-16 w-16 rounded-xl" />
             <Pressable onPress={() => setPendingImage(null)}>
-              <Text className="text-sm text-red-400">Remover foto</Text>
+              <Text className="text-sm text-red-400">{t('messages.removePhoto')}</Text>
             </Pressable>
           </View>
         ) : null}
@@ -162,20 +162,20 @@ export function MessagesThread({ studentUserId, title, onBack }: MessagesThreadP
             onPress={() => void handlePickImage()}
             className="h-[52px] w-[52px] items-center justify-center rounded-2xl border border-line bg-elevated"
             accessibilityRole="button"
-            accessibilityLabel="Anexar foto"
+            accessibilityLabel={t('messages.attachPhoto')}
           >
             <Ionicons name="image-outline" size={20} color="#9B9B9B" />
           </Pressable>
           <TextInput
             value={body}
             onChangeText={setBody}
-            placeholder="Escreva um recado..."
+            placeholder={t('messages.inputPlaceholder')}
             placeholderTextColor="#9B9B9B"
             multiline
             className="min-h-[52px] flex-1 rounded-2xl border border-line bg-elevated px-4 py-3 text-ink"
           />
         </View>
-        <Button label="Enviar" loading={isSending} onPress={() => void handleSend()} />
+        <Button label={t('messages.send')} loading={isSending} onPress={() => void handleSend()} />
       </View>
     </View>
   );
@@ -183,10 +183,11 @@ export function MessagesThread({ studentUserId, title, onBack }: MessagesThreadP
 
 export function StudentMessagesScreen() {
   const router = useRouter();
+  const t = useT();
 
   return (
     <View className="flex-1 bg-background">
-      <MessagesThread title="Recados" onBack={() => router.back()} />
+      <MessagesThread title={t('messages.title')} onBack={() => router.back()} />
     </View>
   );
 }

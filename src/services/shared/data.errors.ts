@@ -1,3 +1,6 @@
+import { translate } from '@/shared/i18n';
+import { usePreferencesStore } from '@/shared/theme/preferences.store';
+
 export type DataErrorCode =
   | 'configuration_error'
   | 'not_found'
@@ -8,40 +11,38 @@ export type DataErrorCode =
   | 'timeout_error'
   | 'unknown';
 
-const ERROR_MESSAGES: Record<DataErrorCode, string> = {
-  configuration_error:
-    'Supabase não está configurado. Verifique as variáveis de ambiente.',
-  not_found: 'Registro não encontrado.',
-  forbidden: 'Você não tem permissão para acessar este conteúdo.',
-  validation_error: 'Os dados informados são inválidos.',
-  conflict: 'Operação conflitou com o estado atual dos dados.',
-  network_error: 'Erro de conexão. Verifique sua internet e tente novamente.',
-  timeout_error: 'A operação demorou demais. Verifique sua conexão e tente novamente.',
-  unknown: 'Não foi possível concluir a operação. Tente novamente.',
-};
+function defaultDataMessage(code: DataErrorCode): string {
+  const locale = usePreferencesStore.getState().locale;
+  return translate(locale, `errors.data.${code}`);
+}
 
 export class DataServiceError extends Error {
   readonly code: DataErrorCode;
   readonly cause?: unknown;
+  /** true quando nenhuma mensagem custom foi passada — traduz sob demanda. */
+  readonly hasDefaultMessage: boolean;
 
   constructor(code: DataErrorCode, cause?: unknown, message?: string) {
-    super(message ?? ERROR_MESSAGES[code]);
+    super(message ?? defaultDataMessage(code));
     this.name = 'DataServiceError';
     this.code = code;
     this.cause = cause;
+    this.hasDefaultMessage = message === undefined;
   }
 }
 
 export function getDataErrorMessage(error: unknown): string {
   if (error instanceof DataServiceError) {
-    return error.message;
+    // Mensagens sem override custom re-traduzem no idioma atual (que pode ter
+    // mudado desde a criação do erro); mensagens custom ficam como foram escritas.
+    return error.hasDefaultMessage ? defaultDataMessage(error.code) : error.message;
   }
 
   if (error instanceof Error) {
     return error.message;
   }
 
-  return ERROR_MESSAGES.unknown;
+  return defaultDataMessage('unknown');
 }
 
 export function isMissingDatabaseObjectError(error: {

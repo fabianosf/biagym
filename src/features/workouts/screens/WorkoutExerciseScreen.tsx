@@ -1,4 +1,4 @@
-import { colors } from '@/shared/theme';
+import { colors, useT } from '@/shared/theme';
 import {
   ExerciseMediaHero,
   GymFinishButton,
@@ -22,6 +22,7 @@ import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-nati
 
 export function WorkoutExerciseScreen() {
   const router = useRouter();
+  const t = useT();
   const params = useLocalSearchParams<{ id?: string | string[]; exerciseId?: string | string[] }>();
   const planId = resolveRouteParam(params.id);
   const exerciseId = resolveRouteParam(params.exerciseId);
@@ -39,7 +40,7 @@ export function WorkoutExerciseScreen() {
   const load = useCallback(async () => {
     if (!planId || !exerciseId) {
       setItem(null);
-      setError('Exercício inválido.');
+      setError(t('exercise.invalid'));
       setIsLoading(false);
       return;
     }
@@ -50,19 +51,19 @@ export function WorkoutExerciseScreen() {
       const plan = await withTimeout(
         getTrainingPlan(planId),
         DATA_FETCH_TIMEOUT_MS,
-        'O exercício demorou demais para carregar. Tente novamente.',
+        t('exercise.loadTimeout'),
       );
       const found = plan?.exercises.find((entry) => entry.id === exerciseId) ?? null;
       setItem(found);
       if (!found) {
-        setError('Este exercício não está mais neste treino.');
+        setError(t('exercise.notFound'));
       }
     } catch (err) {
       setError(getDataErrorMessage(err));
     } finally {
       setIsLoading(false);
     }
-  }, [exerciseId, planId]);
+  }, [exerciseId, planId, t]);
 
   useEffect(() => {
     void load();
@@ -100,19 +101,19 @@ export function WorkoutExerciseScreen() {
           onPress={() => router.back()}
           className="absolute left-2 z-10 h-11 w-11 items-center justify-center"
           accessibilityRole="button"
-          accessibilityLabel="Voltar"
+          accessibilityLabel={t('workoutDetail.back')}
         >
           <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
         </Pressable>
         <Text className="flex-1 px-12 text-center text-lg font-semibold text-white" numberOfLines={1}>
-          {item?.exercise?.name ?? 'Exercício'}
+          {item?.exercise?.name ?? t('exercise.fallbackTitle')}
         </Text>
       </View>
 
       {isLoading ? (
         <View className="flex-1 items-center justify-center px-5">
           <ActivityIndicator size="large" color={colors.gymAccent} />
-          <Text className="mt-4 text-sm text-gymMuted">Carregando exercício...</Text>
+          <Text className="mt-4 text-sm text-gymMuted">{t('exercise.loading')}</Text>
         </View>
       ) : (
         <>
@@ -121,7 +122,7 @@ export function WorkoutExerciseScreen() {
               <View className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4">
                 <Text className="text-sm text-red-300">{error}</Text>
                 <Pressable className="mt-3" onPress={() => void load()}>
-                  <Text className="text-sm font-semibold text-gymAccent">Tentar novamente</Text>
+                  <Text className="text-sm font-semibold text-gymAccent">{t('workouts.tryAgain')}</Text>
                 </Pressable>
               </View>
             ) : null}
@@ -131,14 +132,14 @@ export function WorkoutExerciseScreen() {
                 <ExerciseMediaHero
                   videoUrl={resolvedVideoUrl}
                   thumbnail={exerciseThumbnailSource(item.exercise)}
-                  title={item.exercise?.name ?? 'Exercício'}
+                  title={item.exercise?.name ?? t('exercise.fallbackTitle')}
                   isResolvingVideo={isResolvingVideo}
                   isPlaying={isVideoPlaying}
                   onPlay={() => setIsVideoPlaying(true)}
                 />
 
                 <Text className="text-[28px] font-bold leading-8 text-white">
-                  {item.exercise?.name ?? 'Exercício'}
+                  {item.exercise?.name ?? t('exercise.fallbackTitle')}
                 </Text>
 
                 {hasVideo ? (
@@ -146,27 +147,29 @@ export function WorkoutExerciseScreen() {
                     onPress={() => setIsVideoPlaying(true)}
                     className="flex-row items-center self-start gap-2 rounded-full bg-gymAccent/15 px-4 py-2.5 active:opacity-80"
                     accessibilityRole="button"
-                    accessibilityLabel={`Assistir vídeo de ${item.exercise?.name ?? 'exercício'}`}
+                    accessibilityLabel={t('exercise.watchVideoOf', {
+                      name: item.exercise?.name ?? t('exercise.fallbackTitle'),
+                    })}
                   >
                     <Ionicons name="play-circle" size={18} color={colors.gymAccent} />
                     <Text className="text-sm font-semibold text-gymAccent">
-                      Assistir vídeo do exercício
+                      {t('exercise.watchVideo')}
                     </Text>
                   </Pressable>
                 ) : !isResolvingVideo ? (
                   <View className="flex-row items-center self-start gap-2 rounded-full bg-gymCard px-4 py-2.5">
                     <Ionicons name="videocam-off-outline" size={16} color={colors.gymMuted} />
-                    <Text className="text-sm text-gymMuted">Sem vídeo deste exercício</Text>
+                    <Text className="text-sm text-gymMuted">{t('exercise.noVideo')}</Text>
                   </View>
                 ) : null}
 
                 <View className="flex-row gap-3">
                   <PrescriptionStatCard
-                    label="Séries e Repetições"
+                    label={t('exercise.setsAndReps')}
                     value={formatSetsReps(item.sets, item.reps)}
                   />
                   <PrescriptionStatCard
-                    label="Carga (kg)"
+                    label={t('exercise.loadKg')}
                     value={String(displayedLoad)}
                     editable
                     onPress={() => setLoadEditorOpen(true)}
@@ -174,14 +177,16 @@ export function WorkoutExerciseScreen() {
                 </View>
 
                 {item.notes ? (
-                  <Text className="text-sm leading-5 text-gymMuted">Obs.: {item.notes}</Text>
+                  <Text className="text-sm leading-5 text-gymMuted">
+                    {t('exercise.notes', { notes: item.notes })}
+                  </Text>
                 ) : null}
               </>
             ) : null}
           </ScrollView>
 
           {item ? (
-            <GymFinishButton label="Concluir exercício" onPress={handleComplete} />
+            <GymFinishButton label={t('exercise.completeButton')} onPress={handleComplete} />
           ) : null}
 
           <LoadEditorModal

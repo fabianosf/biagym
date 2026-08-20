@@ -5,4 +5,4 @@ export type {
   UpdateTrainingSlotInput,
   Weekday,
 } from './types';
-export { WEEKDAY_LABELS, WEEKDAYS } from './types';
+export { WEEKDAYS } from './types';

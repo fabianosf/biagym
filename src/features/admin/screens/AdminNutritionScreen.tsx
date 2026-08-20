@@ -2,7 +2,7 @@ import { AdminStudentSearch, AdminShell } from '@/features/admin/components';
 import { useAdminFocusedStudent } from '@/features/admin/hooks/useAdminFocusedStudent';
 import { getStudentFirstName } from '@/features/admin/utils/student-label';
 import { useAuth } from '@/features/auth';
-import { MEAL_TYPE_LABELS, MEAL_TYPES, type NutritionPlan } from '@/domain/nutrition';
+import { MEAL_TYPES, type NutritionPlan } from '@/domain/nutrition';
 import type { StudentProfile } from '@/domain/student';
 import {
   adminCreateNutritionPlan,
@@ -12,6 +12,7 @@ import {
   listNutritionPlans,
 } from '@/services';
 import { Button, ErrorState, LoadingIndicator, TextField } from '@/shared/components';
+import { useT } from '@/shared/theme';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
@@ -44,11 +45,12 @@ function formatMacros(plan: NutritionPlan): string | null {
 }
 
 export function AdminNutritionScreen() {
+  const t = useT();
   const { user } = useAuth();
   const { focusedStudentId, student: focusedStudent, goBackToStudent } = useAdminFocusedStudent();
   const [plans, setPlans] = useState<NutritionPlan[]>([]);
   const [selectedStudent, setSelectedStudent] = useState<StudentProfile | null>(null);
-  const [title, setTitle] = useState('Plano alimentar da semana');
+  const [title, setTitle] = useState(t('admin.nutrition.defaultTitle'));
   const [description, setDescription] = useState('');
   const [calories, setCalories] = useState('');
   const [protein, setProtein] = useState('');
@@ -93,7 +95,7 @@ export function AdminNutritionScreen() {
 
   function resetForm() {
     setEditingPlanId(null);
-    setTitle('Plano alimentar da semana');
+    setTitle(t('admin.nutrition.defaultTitle'));
     setDescription('');
     setCalories('');
     setProtein('');
@@ -130,7 +132,7 @@ export function AdminNutritionScreen() {
     }
 
     if (title.trim().length < 3) {
-      setError('Informe um título para o plano.');
+      setError(t('admin.nutrition.titleRequired'));
       return;
     }
 
@@ -192,16 +194,16 @@ export function AdminNutritionScreen() {
 
   return (
     <AdminShell
-      title={firstName ? `Nutrição de ${firstName}` : 'Nutrição'}
+      title={firstName ? t('admin.nutrition.titleFor', { name: firstName }) : t('admin.nutrition.title')}
       subtitle={
         focusedStudent
-          ? `Este plano fica só com ${focusedStudent.name}.`
-          : 'Monte um plano para um aluno específico.'
+          ? t('admin.nutrition.subtitleFor', { name: focusedStudent.name })
+          : t('admin.nutrition.subtitleGeneric')
       }
       showBack
       onBack={goBackToStudent}
     >
-      {isLoading ? <LoadingIndicator fullScreen message="Carregando planos..." /> : null}
+      {isLoading ? <LoadingIndicator fullScreen message={t('admin.nutrition.loading')} /> : null}
 
       {!isLoading && error && plans.length === 0 ? (
         <View className="px-5 pt-2">
@@ -217,20 +219,22 @@ export function AdminNutritionScreen() {
             <View className="flex-row items-center justify-between">
               <Text className="text-lg font-semibold text-ink">
                 {editingPlanId
-                  ? 'Editar plano'
+                  ? t('admin.nutrition.editPlan')
                   : firstName
-                    ? `Novo plano de ${firstName}`
-                    : 'Novo plano'}
+                    ? t('admin.nutrition.newPlanFor', { name: firstName })
+                    : t('admin.nutrition.newPlan')}
               </Text>
               {editingPlanId ? (
                 <Pressable onPress={resetForm}>
-                  <Text className="text-sm text-muted">Cancelar</Text>
+                  <Text className="text-sm text-muted">{t('common.cancel')}</Text>
                 </Pressable>
               ) : null}
             </View>
             {focusedStudentId ? (
               <Text className="text-sm text-muted">
-                Individual: {focusedStudent?.name ?? 'este aluno'}
+                {t('admin.schedule.individualFor', {
+                  name: focusedStudent?.name ?? t('admin.studentSpace.thisStudent'),
+                })}
               </Text>
             ) : (
               <AdminStudentSearch
@@ -241,23 +245,23 @@ export function AdminNutritionScreen() {
               />
             )}
             <TextField
-              label="Título"
+              label={t('admin.programForm.title')}
               value={title}
               onChangeText={setTitle}
               placeholder="Cutting 4 semanas"
               icon="restaurant-outline"
             />
             <TextField
-              label="Observações"
+              label={t('admin.schedule.notesLabel')}
               value={description}
               onChangeText={setDescription}
-              placeholder="Priorize proteína e hidratação"
+              placeholder={t('admin.nutrition.descriptionPlaceholder')}
               icon="document-text-outline"
             />
             <View className="flex-row flex-wrap gap-3">
               <View className="min-w-[46%] flex-1">
                 <TextField
-                  label="kcal / dia"
+                  label={t('admin.nutrition.caloriesLabel')}
                   value={calories}
                   onChangeText={setCalories}
                   keyboardType="number-pad"
@@ -267,7 +271,7 @@ export function AdminNutritionScreen() {
               </View>
               <View className="min-w-[46%] flex-1">
                 <TextField
-                  label="Proteína (g)"
+                  label={t('admin.nutrition.proteinLabel')}
                   value={protein}
                   onChangeText={setProtein}
                   keyboardType="decimal-pad"
@@ -277,7 +281,7 @@ export function AdminNutritionScreen() {
               </View>
               <View className="min-w-[46%] flex-1">
                 <TextField
-                  label="Carboidrato (g)"
+                  label={t('admin.nutrition.carbsLabel')}
                   value={carbs}
                   onChangeText={setCarbs}
                   keyboardType="decimal-pad"
@@ -287,7 +291,7 @@ export function AdminNutritionScreen() {
               </View>
               <View className="min-w-[46%] flex-1">
                 <TextField
-                  label="Gordura (g)"
+                  label={t('admin.nutrition.fatLabel')}
                   value={fat}
                   onChangeText={setFat}
                   keyboardType="decimal-pad"
@@ -299,10 +303,10 @@ export function AdminNutritionScreen() {
             {meals.map((meal, index) => (
               <View key={meal.mealType} className="gap-2">
                 <Text className="text-sm font-semibold text-ink">
-                  {MEAL_TYPE_LABELS[meal.mealType]}
+                  {t(`mealTypes.${meal.mealType}`)}
                 </Text>
                 <TextField
-                  label="Prato / orientação"
+                  label={t('admin.nutrition.mealTitleLabel')}
                   value={meal.title}
                   onChangeText={(value) =>
                     setMeals((current) =>
@@ -311,11 +315,11 @@ export function AdminNutritionScreen() {
                       ),
                     )
                   }
-                  placeholder="Ex.: Ovos mexidos + fruta"
+                  placeholder={t('admin.nutrition.mealTitlePlaceholder')}
                   icon="leaf-outline"
                 />
                 <TextField
-                  label="Horário (opcional)"
+                  label={t('admin.nutrition.mealTimeLabel')}
                   value={meal.timeLabel}
                   onChangeText={(value) =>
                     setMeals((current) =>
@@ -332,10 +336,10 @@ export function AdminNutritionScreen() {
             <Button
               label={
                 editingPlanId
-                  ? 'Salvar alterações'
+                  ? t('admin.schedule.saveChanges')
                   : firstName
-                    ? `Salvar nutrição de ${firstName}`
-                    : 'Salvar plano'
+                    ? t('admin.nutrition.saveNutritionFor', { name: firstName })
+                    : t('admin.nutrition.savePlan')
               }
               loading={isSaving}
               onPress={() => void handleSave()}
@@ -344,34 +348,34 @@ export function AdminNutritionScreen() {
 
           <View className="gap-3">
             <Text className="text-lg font-semibold text-ink">
-              {firstName ? `Planos de ${firstName}` : 'Planos cadastrados'}
+              {firstName ? t('admin.nutrition.plansOf', { name: firstName }) : t('admin.nutrition.registeredPlans')}
             </Text>
             {visiblePlans.length === 0 ? (
               <Text className="text-muted">
                 {firstName
-                  ? `Nenhum plano ainda para ${firstName}.`
-                  : 'Nenhum plano ainda. Crie o primeiro acima.'}
+                  ? t('admin.nutrition.noPlansFor', { name: firstName })
+                  : t('admin.nutrition.noPlansYet')}
               </Text>
             ) : (
               visiblePlans.map((plan) => (
                 <View key={plan.id} className="rounded-card border border-line bg-surface p-5">
                   <Text className="font-semibold text-ink">{plan.title}</Text>
                   <Text className="mt-1 text-xs text-muted">
-                    {plan.studentUserId ? 'Plano individual' : 'Plano geral'}
+                    {plan.studentUserId ? t('admin.nutrition.individualPlan') : t('admin.nutrition.generalPlan')}
                     {formatMacros(plan) ? ` · ${formatMacros(plan)}` : ''}
                   </Text>
                   {plan.meals.map((meal) => (
                     <Text key={meal.id} className="mt-2 text-sm text-ink">
-                      {MEAL_TYPE_LABELS[meal.mealType]}
+                      {t(`mealTypes.${meal.mealType}`)}
                       {meal.timeLabel ? ` · ${meal.timeLabel}` : ''}: {meal.title}
                     </Text>
                   ))}
                   <View className="mt-3 flex-row gap-4">
                     <Pressable onPress={() => handleStartEdit(plan)}>
-                      <Text className="text-sm font-semibold text-primary">Editar</Text>
+                      <Text className="text-sm font-semibold text-primary">{t('common.edit')}</Text>
                     </Pressable>
                     <Pressable onPress={() => void handleDelete(plan.id)}>
-                      <Text className="text-sm text-red-400">Remover</Text>
+                      <Text className="text-sm text-red-400">{t('common.remove')}</Text>
                     </Pressable>
                   </View>
                 </View>

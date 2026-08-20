@@ -8,14 +8,6 @@ export const STUDENT_GOALS = [
 
 export type StudentGoal = (typeof STUDENT_GOALS)[number];
 
-export const STUDENT_GOAL_LABELS: Record<StudentGoal, string> = {
-  emagrecimento: 'Emagrecimento',
-  hipertrofia: 'Hipertrofia',
-  condicionamento: 'Condicionamento',
-  saude: 'Saúde e disposição',
-  mobilidade: 'Mobilidade e postura',
-};
-
 export interface StudentBodyMetrics {
   readonly weightKg: number;
   readonly heightCm: number;

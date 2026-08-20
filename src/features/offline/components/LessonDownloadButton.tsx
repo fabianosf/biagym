@@ -1,4 +1,4 @@
-import { colors } from '@/shared/theme';
+import { colors, useT } from '@/shared/theme';
 import { useLessonDownload } from '@/features/offline/hooks/useOfflineSync';
 import { useOfflineStore } from '@/features/offline/store/offline.store';
 import {
@@ -25,6 +25,7 @@ export function LessonDownloadButton({
   remoteUrl,
   compact = false,
 }: LessonDownloadButtonProps) {
+  const t = useT();
   const isOnline = useOfflineStore((state) => state.isOnline);
   const {
     downloadState,
@@ -43,7 +44,7 @@ export function LessonDownloadButton({
 
   async function handleDownload() {
     if (!isOnline) {
-      setError('Conecte-se à internet para baixar a aula.');
+      setError(t('offline.connectToDownload'));
       return;
     }
 
@@ -74,7 +75,7 @@ export function LessonDownloadButton({
         <ActivityIndicator size="small" color={colors.primary} />
         {!compact ? (
           <Text className="text-xs text-primary">
-            Baixando {Math.round(downloadProgress * 100)}%
+            {t('offline.downloading', { percent: String(Math.round(downloadProgress * 100)) })}
           </Text>
         ) : null}
       </View>
@@ -91,7 +92,7 @@ export function LessonDownloadButton({
       >
         <Ionicons name="checkmark-circle" size={14} color={colors.primary} />
         {!compact ? (
-          <Text className="ml-1 text-xs text-primary">Offline · remover</Text>
+          <Text className="ml-1 text-xs text-primary">{t('offline.offlineRemove')}</Text>
         ) : null}
       </Pressable>
     );
@@ -107,7 +108,7 @@ export function LessonDownloadButton({
         } ${!isOnline ? 'opacity-50' : ''}`}
       >
         <Ionicons name="download-outline" size={14} color="#1A1A1A" />
-        {!compact ? <Text className="ml-1 text-xs text-ink">Baixar</Text> : null}
+        {!compact ? <Text className="ml-1 text-xs text-ink">{t('offline.download')}</Text> : null}
       </Pressable>
       {error ? <Text className="mt-1 text-[10px] text-red-400">{error}</Text> : null}
     </View>

@@ -1,8 +1,6 @@
-import { Text, View } from 'react-native';
-import Ionicons from '@expo/vector-icons/Ionicons';
+import { Image, Text, View } from 'react-native';
 
-import { APP_NAME } from '@/shared/constants/app';
-import { useThemeColors } from '@/shared/theme';
+import { APP_NAME, BRAND_LOGO } from '@/shared/constants/app';
 
 type BrandMarkProps = {
   showName?: boolean;
@@ -10,28 +8,19 @@ type BrandMarkProps = {
 };
 
 /**
- * Marca vetorial (sem PNG) — o logo antigo tinha "BiA GYM" desenhado dentro
- * da própria imagem, o que duplicava o nome do app em todo cabeçalho. Aqui é
- * só um ícone, nas cores reais do app (o PNG antigo era laranja/preto,
- * destoando do verde usado em todo o resto da UI).
+ * Logo oficial da BiA Gym (assets/images/logo.png) já traz o nome desenhado
+ * na própria imagem — por isso `showName` não repete o texto ao lado por
+ * padrão; ele só existe para telas que precisem de um rótulo textual extra.
  */
 export function BrandMark({ showName = false, size = 32 }: BrandMarkProps) {
-  const colors = useThemeColors();
-
   return (
     <View className={`items-center ${showName ? 'flex-row gap-2' : 'self-center'}`}>
-      <View
-        style={{
-          width: size,
-          height: size,
-          borderRadius: size * 0.28,
-          backgroundColor: colors.primary,
-        }}
-        className="items-center justify-center"
+      <Image
+        source={BRAND_LOGO}
+        style={{ width: size, height: size, borderRadius: size * 0.2 }}
+        resizeMode="contain"
         accessibilityLabel={APP_NAME}
-      >
-        <Ionicons name="barbell" size={size * 0.58} color={colors.onPrimary} />
-      </View>
+      />
       {showName ? (
         <Text className="text-[18px] font-extrabold tracking-[1.4px] text-primary">
           {APP_NAME.toUpperCase()}

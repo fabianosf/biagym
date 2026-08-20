@@ -1,4 +1,4 @@
-import { useThemeColors } from '@/shared/theme';
+import { useT, useThemeColors } from '@/shared/theme';
 import { AdminShell } from '@/features/admin/components';
 import { adminRoutes } from '@/shared/constants/admin-routes';
 import { ErrorState, LoadingIndicator } from '@/shared/components';
@@ -13,6 +13,7 @@ import type { ProgramSummary } from '@/domain';
 
 export function AdminProgramsListScreen() {
   const router = useRouter();
+  const t = useT();
   const colors = useThemeColors();
   const [programs, setPrograms] = useState<ProgramSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -30,7 +31,7 @@ export function AdminProgramsListScreen() {
       const data = await withTimeout(
         listAdminPrograms(),
         DATA_FETCH_TIMEOUT_MS,
-        'Os programas demoraram demais para carregar. Tente de novo.',
+        t('admin.programsList.loadTimeout'),
       );
       setPrograms(data);
     } catch (err) {
@@ -42,7 +43,7 @@ export function AdminProgramsListScreen() {
         setIsLoading(false);
       }
     }
-  }, []);
+  }, [t]);
 
   useFocusEffect(
     useCallback(() => {
@@ -58,7 +59,7 @@ export function AdminProgramsListScreen() {
       await withTimeout(
         adminDeleteProgram(program.id),
         DATA_FETCH_TIMEOUT_MS,
-        'Não foi possível excluir o programa agora. Tente de novo.',
+        t('admin.programsList.deleteTimeout'),
       );
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
       await load(true);
@@ -71,23 +72,23 @@ export function AdminProgramsListScreen() {
 
   function confirmDelete(program: ProgramSummary) {
     Alert.alert(
-      'Excluir programa',
-      `"${program.title}" e todas as semanas, aulas e vídeos serão removidos. Alunos que tinham acesso perdem o programa. Esta ação não pode ser desfeita.`,
+      t('admin.programsList.deleteTitle'),
+      t('admin.programsList.deleteMessage', { title: program.title }),
       [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Excluir', style: 'destructive', onPress: () => void handleDelete(program) },
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('common.delete'), style: 'destructive', onPress: () => void handleDelete(program) },
       ],
     );
   }
 
   return (
     <AdminShell
-      title="Programas de Treino"
-      subtitle="Publicados e rascunhos"
+      title={t('store.title')}
+      subtitle={t('admin.programsList.subtitle')}
       showBack={router.canGoBack()}
       onBack={() => router.back()}
     >
-      {isLoading ? <LoadingIndicator fullScreen message="Carregando programas..." /> : null}
+      {isLoading ? <LoadingIndicator fullScreen message={t('home.loadingPrograms')} /> : null}
 
       {!isLoading && error ? (
         <View className="px-5 pt-4">
@@ -105,12 +106,12 @@ export function AdminProgramsListScreen() {
         >
           <Link href={adminRoutes.programNew} asChild>
             <Pressable className="min-h-[52px] items-center justify-center rounded-2xl bg-primary active:opacity-85">
-              <Text className="font-semibold text-background">+ Novo programa</Text>
+              <Text className="font-semibold text-background">{t('admin.programsList.newProgram')}</Text>
             </Pressable>
           </Link>
 
           {programs.length === 0 ? (
-            <Text className="text-center text-muted">Nenhum programa cadastrado.</Text>
+            <Text className="text-center text-muted">{t('admin.programsList.noPrograms')}</Text>
           ) : (
             programs.map((program) => (
               <View key={program.id} className="rounded-card border border-line bg-surface p-5">
@@ -129,13 +130,18 @@ export function AdminProgramsListScreen() {
                               program.isPublished ? 'text-primary' : 'text-muted'
                             }`}
                           >
-                            {program.isPublished ? 'Publicado' : 'Rascunho'}
+                            {program.isPublished
+                              ? t('admin.programForm.published')
+                              : t('admin.programForm.draft')}
                           </Text>
                         </View>
                       </View>
                       <Text className="mt-1 text-sm text-muted">{program.trainerName}</Text>
                       <Text className="mt-2 text-xs text-faint">
-                        {program.totalLessons} aulas · {program.durationWeeks} semanas
+                        {t('admin.programsList.lessonsAndWeeks', {
+                          lessons: String(program.totalLessons),
+                          weeks: String(program.durationWeeks),
+                        })}
                       </Text>
                     </Pressable>
                   </Link>
@@ -144,7 +150,7 @@ export function AdminProgramsListScreen() {
                 <View className="mt-4 flex-row gap-3 border-t border-line pt-3">
                   <Link href={adminRoutes.programEdit(program.id)} asChild>
                     <Pressable className="flex-1 items-center rounded-xl bg-elevated py-2.5">
-                      <Text className="text-sm font-semibold text-ink">Editar</Text>
+                      <Text className="text-sm font-semibold text-ink">{t('common.edit')}</Text>
                     </Pressable>
                   </Link>
                   <Pressable
@@ -153,7 +159,7 @@ export function AdminProgramsListScreen() {
                     className="flex-1 items-center rounded-xl bg-red-500/10 py-2.5"
                   >
                     <Text className="text-sm font-semibold text-red-500">
-                      {deletingId === program.id ? 'Excluindo...' : 'Excluir'}
+                      {deletingId === program.id ? t('admin.programsList.deleting') : t('common.delete')}
                     </Text>
                   </Pressable>
                 </View>

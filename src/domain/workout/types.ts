@@ -13,19 +13,6 @@ export const MUSCLE_GROUPS = [
 
 export type MuscleGroup = (typeof MUSCLE_GROUPS)[number];
 
-export const MUSCLE_GROUP_LABELS: Record<MuscleGroup, string> = {
-  peito: 'Peito',
-  costas: 'Costas',
-  ombros: 'Ombros',
-  biceps: 'Bíceps',
-  triceps: 'Tríceps',
-  pernas: 'Pernas',
-  gluteos: 'Glúteos',
-  core: 'Core',
-  cardio: 'Cardio',
-  corpo_todo: 'Corpo todo',
-};
-
 export interface Exercise {
   readonly id: string;
   readonly name: string;

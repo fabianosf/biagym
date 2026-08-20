@@ -1,5 +1,5 @@
-import { PROGRAM_LEVELS, PROGRAM_LEVEL_LABELS, type ProgramLevel } from '@/domain/program';
-import { colors } from '@/shared/theme';
+import { PROGRAM_LEVELS, type ProgramLevel } from '@/domain/program';
+import { colors, useT } from '@/shared/theme';
 import { ProgramPosterCard } from '@/features/programs/components';
 import { BrandHeader } from '@/features/programs/components/BrandHeader';
 import { useCatalog } from '@/features/programs/hooks';
@@ -11,6 +11,7 @@ import { useMemo, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, Text, TextInput, View } from 'react-native';
 
 export function StoreScreen() {
+  const t = useT();
   const { catalog, myItemIds, progressByProgramId, isLoading, isRefreshing, error, refetch } =
     useCatalog();
   const params = useLocalSearchParams<{ categoryId?: string }>();
@@ -64,10 +65,10 @@ export function StoreScreen() {
 
   return (
     <View className="flex-1 bg-background">
-      <BrandHeader showBrand={false} title="Programas de Treino" showAdminPill={false} />
+      <BrandHeader showBrand={false} title={t('store.title')} showAdminPill={false} />
       <OfflineBanner />
 
-      {isLoading ? <LoadingIndicator fullScreen message="Carregando catálogo..." /> : null}
+      {isLoading ? <LoadingIndicator fullScreen message={t('store.loadingCatalog')} /> : null}
 
       {!isLoading && error ? (
         <View className="flex-1 px-5 pt-2">
@@ -93,7 +94,7 @@ export function StoreScreen() {
             <TextInput
               value={query}
               onChangeText={setQuery}
-              placeholder="Pesquise aqui"
+              placeholder={t('store.searchPlaceholder')}
               placeholderTextColor="#9B9B9B"
               className="flex-1 px-3 py-3 text-base text-ink"
             />
@@ -102,8 +103,8 @@ export function StoreScreen() {
           <View className="mb-4 flex-row gap-5 border-b border-line">
             {(
               [
-                ['programas', 'Programas'],
-                ['lista', 'Minha lista'],
+                ['programas', t('store.tabPrograms')],
+                ['lista', t('store.tabMyList')],
               ] as const
             ).map(([id, label]) => (
               <Pressable key={id} onPress={() => setTab(id)} className="pb-2">
@@ -135,7 +136,7 @@ export function StoreScreen() {
                   <Ionicons name="checkmark" size={14} color="#1A1A1A" />
                 ) : null}
                 <Text className={`text-sm text-ink ${categoryId === null ? 'ml-1' : ''}`}>
-                  Todas categorias
+                  {t('store.allCategories')}
                 </Text>
               </Pressable>
               {categories.map((category) => (
@@ -169,7 +170,7 @@ export function StoreScreen() {
                 onPress={() => setLevel(null)}
                 className={`rounded-xl border px-3 py-2 ${level === null ? 'border-ink' : 'border-line'}`}
               >
-                <Text className="text-sm text-ink">Todos os níveis</Text>
+                <Text className="text-sm text-ink">{t('store.allLevels')}</Text>
               </Pressable>
               {levels.map((item) => (
                 <Pressable
@@ -177,7 +178,7 @@ export function StoreScreen() {
                   onPress={() => setLevel((current) => (current === item ? null : item))}
                   className={`rounded-xl border px-3 py-2 ${level === item ? 'border-ink' : 'border-line'}`}
                 >
-                  <Text className="text-sm text-ink">{PROGRAM_LEVEL_LABELS[item]}</Text>
+                  <Text className="text-sm text-ink">{t(`programLevels.${item}`)}</Text>
                 </Pressable>
               ))}
             </ScrollView>
@@ -187,11 +188,9 @@ export function StoreScreen() {
 
           {list.length === 0 ? (
             <EmptyState
-              title={hasActiveFilters ? 'Nada por aqui com esse filtro' : 'Nenhum programa por aqui'}
+              title={hasActiveFilters ? t('store.emptyFilteredTitle') : t('store.emptyTitle')}
               description={
-                hasActiveFilters
-                  ? 'Tente limpar a busca ou trocar o filtro.'
-                  : 'Programas publicados pela treinadora aparecem aqui.'
+                hasActiveFilters ? t('store.emptyFilteredDescription') : t('store.emptyDescription')
               }
             />
           ) : (

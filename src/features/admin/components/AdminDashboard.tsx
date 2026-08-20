@@ -2,7 +2,7 @@ import { QuietStudentsList } from '@/features/admin/components/QuietStudentsList
 import { ShortcutTile } from '@/features/admin/components/ShortcutTile';
 import { useAdminOverview } from '@/features/admin/hooks/useAdminOverview';
 import { adminRoutes } from '@/shared/constants/admin-routes';
-import { useThemeColors } from '@/shared/theme';
+import { useT, useThemeColors } from '@/shared/theme';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter, type Href } from 'expo-router';
 import { Pressable, ScrollView, Text, View } from 'react-native';
@@ -43,6 +43,7 @@ function KpiTile({ value, label, tone = 'neutral', onPress }: KpiTileProps) {
 }
 
 export function AdminDashboard() {
+  const t = useT();
   const router = useRouter();
   const {
     isLoading,
@@ -62,23 +63,23 @@ export function AdminDashboard() {
     <View className="gap-5 px-5 pt-2">
       <View>
         <Text className="mb-3 text-xs font-semibold uppercase tracking-[1.6px] text-primary">
-          Visão geral
+          {t('admin.dashboard.overview')}
         </Text>
         <View className="flex-row flex-wrap justify-between gap-y-3">
-          <KpiTile value={String(activities.length)} label="alunos no total" />
+          <KpiTile value={String(activities.length)} label={t('admin.dashboard.totalStudents')} />
           <KpiTile
             value={String(activeThisWeek)}
-            label="ativas essa semana"
+            label={t('admin.dashboard.activeThisWeekLabel')}
             tone="accent"
           />
           <KpiTile
             value={String(quiet.length)}
-            label="sem atividade há 14+ dias"
+            label={t('admin.dashboard.inactive14Days')}
             tone={quiet.length > 0 ? 'warning' : 'neutral'}
           />
           <KpiTile
             value={overallCompletion != null ? `${overallCompletion}%` : '—'}
-            label="conclusão média dos programas"
+            label={t('admin.dashboard.averageCompletion')}
             onPress={() => router.push(adminRoutes.programs as Href)}
           />
         </View>
@@ -86,37 +87,37 @@ export function AdminDashboard() {
 
       <View>
         <Text className="mb-3 text-xs font-semibold uppercase tracking-[1.6px] text-primary">
-          Atalhos
+          {t('admin.dashboard.shortcuts')}
         </Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-4">
           <ShortcutTile
             icon="barbell-outline"
-            label="Fichas"
+            label={t('admin.dashboard.plansShort')}
             onPress={() => router.push(adminRoutes.workouts as Href)}
           />
           <ShortcutTile
             icon="videocam-outline"
-            label="Exercícios"
+            label={t('admin.dashboard.exercisesShort')}
             onPress={() => router.push(adminRoutes.exercises as Href)}
           />
           <ShortcutTile
             icon="play-circle-outline"
-            label="Programas"
+            label={t('admin.dashboard.shortcutPrograms')}
             onPress={() => router.push(adminRoutes.programs)}
           />
           <ShortcutTile
             icon="ticket-outline"
-            label={couponCount > 0 ? `Cupons (${couponCount})` : 'Cupons'}
+            label={couponCount > 0 ? t('admin.dashboard.couponsWithCount', { count: String(couponCount) }) : t('admin.dashboard.coupons')}
             onPress={() => router.push(adminRoutes.store as Href)}
           />
         </ScrollView>
       </View>
 
-      <QuietStudentsList title="Sumindo" items={quiet} limit={5} variant="relative" />
+      <QuietStudentsList title={t('admin.dashboard.fadingAway')} items={quiet} limit={5} variant="relative" />
 
       {completionByProgram.length > 0 ? (
         <View className="gap-2">
-          <Text className="text-sm font-semibold text-ink">Conclusão por programa</Text>
+          <Text className="text-sm font-semibold text-ink">{t('admin.dashboard.completionByProgram')}</Text>
           {completionByProgram.map((item) => (
             <View key={item.title} className="rounded-2xl border border-line bg-surface px-4 py-3">
               <View className="flex-row items-center justify-between">
@@ -132,7 +133,12 @@ export function AdminDashboard() {
                 />
               </View>
               <Text className="mt-1 text-xs text-faint">
-                {item.studentCount} {item.studentCount === 1 ? 'aluno' : 'alunos'}
+                {t(
+                  item.studentCount === 1
+                    ? 'admin.dashboard.studentCountOne'
+                    : 'admin.dashboard.studentCountOther',
+                  { count: String(item.studentCount) },
+                )}
               </Text>
             </View>
           ))}

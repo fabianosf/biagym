@@ -1,9 +1,11 @@
 import { BrandMark } from '@/shared/components';
-import { colors } from '@/shared/theme';
+import { colors, useT } from '@/shared/theme';
 import { useAuth } from '@/features/auth';
 import { useAuthStore } from '@/features/auth/store/auth.store';
 import { getSupabaseSqlEditorUrl } from '@/shared/constants/app';
 import { routes } from '@/shared/constants/routes';
+import { translate } from '@/shared/i18n';
+import { usePreferencesStore } from '@/shared/theme/preferences.store';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Linking from 'expo-linking';
 import { useRouter } from 'expo-router';
@@ -11,13 +13,14 @@ import { Alert, Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 function showAdminBlockedAlert(message: string) {
+  const locale = usePreferencesStore.getState().locale;
   const sqlUrl = getSupabaseSqlEditorUrl();
-  Alert.alert('Não foi possível abrir o admin', message, [
+  Alert.alert(translate(locale, 'brandHeader.adminOpenFailed'), message, [
     { text: 'OK' },
     ...(sqlUrl
       ? [
           {
-            text: 'Abrir SQL Editor',
+            text: translate(locale, 'brandHeader.openSqlEditor'),
             onPress: () => {
               void Linking.openURL(sqlUrl);
             },
@@ -36,25 +39,25 @@ type BrandHeaderProps = {
 export function BrandHeader({ showBrand = true, title, showAdminPill = true }: BrandHeaderProps) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const t = useT();
   const { isAdmin, canOpenAdmin, becomeAdmin, isLoading } = useAuth();
 
   async function handleAdminPress() {
     try {
       if (!isAdmin) {
         Alert.alert(
-          'Painel do administrador',
-          'Aqui você cadastra programas, aulas, vídeos e libera o acesso dos alunos. Continuar?',
+          t('brandHeader.adminPanelTitle'),
+          t('brandHeader.adminPanelMessage'),
           [
-            { text: 'Cancelar', style: 'cancel' },
+            { text: t('common.cancel'), style: 'cancel' },
             {
-              text: 'Entrar como treinador',
+              text: t('brandHeader.enterAsTrainer'),
               onPress: () => {
                 void (async () => {
                   const promoted = await becomeAdmin();
                   if (!promoted) {
                     showAdminBlockedAlert(
-                      useAuthStore.getState().error ??
-                        'Você continua na área do aluno. Tente novamente.',
+                      useAuthStore.getState().error ?? t('brandHeader.staysInStudentArea'),
                     );
                     return;
                   }
@@ -69,7 +72,7 @@ export function BrandHeader({ showBrand = true, title, showAdminPill = true }: B
 
       router.push(routes.admin);
     } catch {
-      showAdminBlockedAlert('Você continua na área do aluno. Tente novamente.');
+      showAdminBlockedAlert(t('brandHeader.staysInStudentArea'));
     }
   }
 
@@ -89,10 +92,10 @@ export function BrandHeader({ showBrand = true, title, showAdminPill = true }: B
               disabled={isLoading}
               className="rounded-full bg-primary px-3 py-1.5"
               accessibilityRole="button"
-              accessibilityLabel="Abrir painel admin"
+              accessibilityLabel={t('brandHeader.openAdminPanel')}
             >
               <Text className="text-xs font-bold text-white">
-                {isAdmin ? 'Admin' : 'Sou admin'}
+                {isAdmin ? 'Admin' : t('brandHeader.imAdmin')}
               </Text>
             </Pressable>
           ) : null}
@@ -100,7 +103,7 @@ export function BrandHeader({ showBrand = true, title, showAdminPill = true }: B
             onPress={() => router.push(routes.profile)}
             className="h-9 w-9 items-center justify-center rounded-full"
             accessibilityRole="button"
-            accessibilityLabel="Notificações"
+            accessibilityLabel={t('notifications.title')}
           >
             <Ionicons name="notifications-outline" size={22} color={colors.ink} />
           </Pressable>

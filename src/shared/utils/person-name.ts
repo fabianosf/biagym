@@ -1,3 +1,10 @@
+import { translate } from '@/shared/i18n';
+import { usePreferencesStore } from '@/shared/theme/preferences.store';
+
+function tCurrent(key: string): string {
+  return translate(usePreferencesStore.getState().locale, key);
+}
+
 /** Nome vindo do e-mail (ex.: bruno.costa) não deve aparecer na saudação. */
 export function looksLikeGeneratedAccountName(value: string): boolean {
   const trimmed = value.trim();
@@ -56,16 +63,16 @@ export function toGivenAndFamilyName(value: string): string | null {
 export function parseRequiredFullName(value: string): { name: string } | { error: string } {
   const trimmed = value.trim().replace(/\s+/g, ' ');
   if (trimmed.length < 3) {
-    return { error: 'Escreva seu nome e sobrenome, como no documento.' };
+    return { error: tCurrent('validation.fullNameTooShort') };
   }
 
   if (looksLikeGeneratedAccountName(trimmed)) {
-    return { error: 'Use seu nome e sobrenome, não o e-mail.' };
+    return { error: tCurrent('validation.fullNameLooksLikeEmail') };
   }
 
   const parts = trimmed.split(' ');
   if (parts.length < 2 || parts.some((part) => part.length < 2)) {
-    return { error: 'Falta o sobrenome. Exemplo: Ana Souza.' };
+    return { error: tCurrent('validation.fullNameMissingLastName') };
   }
 
   return { name: toTitleCaseName(trimmed) };
@@ -108,9 +115,12 @@ export function getDisplayPersonName(
   return null;
 }
 
-export function formatHelloGreeting(...candidates: Array<string | null | undefined>): string {
+export function formatHelloGreeting(
+  t: (key: string, vars?: Record<string, string>) => string,
+  ...candidates: Array<string | null | undefined>
+): string {
   const name = getGivenAndFamilyName(...candidates);
-  return name ? `Olá, ${name}` : 'Olá!';
+  return name ? t('greeting.hello', { name }) : t('greeting.helloGeneric');
 }
 
 export function getNameInitials(name: string | null | undefined, fallback = 'BG'): string {

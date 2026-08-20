@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { ProgressBar } from '@/shared/components/ui/ProgressBar';
+import { useT } from '@/shared/theme';
 import { isPlayableVideoUrl } from '@/shared/utils';
 
 const COMPLETION_THRESHOLD = 0.8;
@@ -23,6 +24,7 @@ export function VideoPlayer({
   appearance = 'light',
   showCompletionHint = true,
 }: VideoPlayerProps) {
+  const t = useT();
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackProgress, setPlaybackProgress] = useState(0);
   const [playbackError, setPlaybackError] = useState<string | null>(null);
@@ -54,7 +56,7 @@ export function VideoPlayer({
     try {
       player.replace(playableUrl);
     } catch {
-      setPlaybackError('Não foi possível carregar este vídeo. Tente abrir o exercício de novo.');
+      setPlaybackError(t('videoPlayer.loadFailed'));
     }
   }, [playableUrl, player]);
 
@@ -82,7 +84,7 @@ export function VideoPlayer({
       }
 
       if (status === 'error') {
-        setPlaybackError('O vídeo não reproduziu. Confira se o MP4 foi enviado e tente de novo.');
+        setPlaybackError(t('videoPlayer.playbackFailed'));
       }
     });
 
@@ -101,7 +103,7 @@ export function VideoPlayer({
         }`}
       >
         <Text className={appearance === 'dark' ? 'text-sm text-gymMuted' : 'text-sm text-muted'}>
-          Vídeo indisponível.
+          {t('videoPlayer.unavailable')}
         </Text>
       </View>
     );
@@ -142,15 +144,17 @@ export function VideoPlayer({
           >
             <Ionicons name={isPlaying ? 'pause' : 'play'} size={18} color="#FFFFFF" />
             <Text className="ml-2 font-semibold text-white">
-              {isPlaying ? 'Pausar' : 'Reproduzir'}
+              {isPlaying ? t('videoPlayer.pause') : t('videoPlayer.play')}
             </Text>
           </Pressable>
 
           {showCompletionHint ? (
             <Text className={`ml-4 flex-1 text-right text-xs leading-5 ${appearance === 'dark' ? 'text-gymMuted' : 'text-muted'}`}>
               {playbackProgress >= COMPLETION_THRESHOLD
-                ? 'Pronto para concluir'
-                : `Assista ${Math.round(COMPLETION_THRESHOLD * 100)}% para concluir`}
+                ? t('videoPlayer.readyToComplete')
+                : t('videoPlayer.watchToComplete', {
+                    percent: String(Math.round(COMPLETION_THRESHOLD * 100)),
+                  })}
             </Text>
           ) : null}
         </View>

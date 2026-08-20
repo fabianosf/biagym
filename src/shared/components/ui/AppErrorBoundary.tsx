@@ -1,9 +1,15 @@
 import type { ReactNode } from 'react';
 
 import { captureException } from '@/services/observability';
+import { translate } from '@/shared/i18n';
+import { usePreferencesStore } from '@/shared/theme/preferences.store';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import React from 'react';
 import { Pressable, Text, View } from 'react-native';
+
+function tCurrent(key: string): string {
+  return translate(usePreferencesStore.getState().locale, key);
+}
 
 type AppErrorBoundaryProps = {
   children: ReactNode;
@@ -28,7 +34,7 @@ export class AppErrorBoundary extends React.Component<
   static getDerivedStateFromError(error: Error): Partial<AppErrorBoundaryState> {
     return {
       hasError: true,
-      message: error.message || 'Ocorreu um erro inesperado.',
+      message: error.message || tCurrent('common.unexpectedError'),
     };
   }
 
@@ -59,7 +65,7 @@ export class AppErrorBoundary extends React.Component<
             <Ionicons name="alert-circle-outline" size={28} color="#F87171" />
           </View>
           <Text className="text-center text-xl font-semibold text-ink">
-            Algo deu errado
+            {tCurrent('common.somethingWentWrong')}
           </Text>
           <Text className="mt-3 text-center text-sm leading-6 text-muted">
             {this.state.message}
@@ -68,7 +74,7 @@ export class AppErrorBoundary extends React.Component<
             onPress={this.handleRetry}
             className="mt-6 min-h-[52px] items-center justify-center rounded-2xl bg-primary px-5"
           >
-            <Text className="font-semibold text-white">Tentar novamente</Text>
+            <Text className="font-semibold text-white">{tCurrent('workouts.tryAgain')}</Text>
           </Pressable>
         </View>
       );

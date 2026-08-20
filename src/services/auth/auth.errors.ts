@@ -1,3 +1,6 @@
+import { translate } from '@/shared/i18n';
+import { usePreferencesStore } from '@/shared/theme/preferences.store';
+
 export type AuthErrorCode =
   | 'configuration_error'
   | 'invalid_credentials'
@@ -10,42 +13,38 @@ export type AuthErrorCode =
   | 'profile_not_found'
   | 'unknown';
 
-const ERROR_MESSAGES: Record<AuthErrorCode, string> = {
-  configuration_error:
-    'Supabase não está configurado. Verifique as variáveis de ambiente.',
-  invalid_credentials: 'E-mail ou senha inválidos.',
-  email_not_confirmed: 'Confirme seu e-mail antes de entrar.',
-  email_taken: 'Este e-mail já está cadastrado.',
-  weak_password: 'A senha deve ter pelo menos 6 caracteres.',
-  invalid_email: 'Informe um e-mail válido.',
-  session_expired: 'Sua sessão expirou. Entre novamente.',
-  network_error: 'Erro de conexão. Verifique sua internet e tente novamente.',
-  profile_not_found: 'Perfil do usuário não encontrado.',
-  unknown: 'Não foi possível concluir a operação. Tente novamente.',
-};
+function defaultAuthMessage(code: AuthErrorCode): string {
+  const locale = usePreferencesStore.getState().locale;
+  return translate(locale, `errors.auth.${code}`);
+}
 
 export class AuthServiceError extends Error {
   readonly code: AuthErrorCode;
   readonly cause?: unknown;
+  /** true quando nenhuma mensagem custom foi passada — traduz sob demanda. */
+  readonly hasDefaultMessage: boolean;
 
   constructor(code: AuthErrorCode, cause?: unknown, message?: string) {
-    super(message ?? ERROR_MESSAGES[code]);
+    super(message ?? defaultAuthMessage(code));
     this.name = 'AuthServiceError';
     this.code = code;
     this.cause = cause;
+    this.hasDefaultMessage = message === undefined;
   }
 }
 
 export function getAuthErrorMessage(error: unknown): string {
   if (error instanceof AuthServiceError) {
-    return error.message;
+    // Mensagens sem override custom re-traduzem no idioma atual (que pode ter
+    // mudado desde a criação do erro); mensagens custom ficam como foram escritas.
+    return error.hasDefaultMessage ? defaultAuthMessage(error.code) : error.message;
   }
 
   if (error instanceof Error) {
     return error.message;
   }
 
-  return ERROR_MESSAGES.unknown;
+  return defaultAuthMessage('unknown');
 }
 
 export function mapSupabaseAuthError(error: { message?: string; status?: number }): AuthServiceError {

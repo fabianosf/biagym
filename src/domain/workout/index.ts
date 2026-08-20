@@ -12,4 +12,4 @@ export type {
   WorkoutExercise,
   WorkoutSession,
 } from './types';
-export { MUSCLE_GROUP_LABELS, MUSCLE_GROUPS } from './types';
+export { MUSCLE_GROUPS } from './types';

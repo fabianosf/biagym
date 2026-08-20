@@ -6,4 +6,4 @@ export type {
   StudentGoal,
   StudentProfile,
 } from './types';
-export { STUDENT_GOAL_LABELS, STUDENT_GOALS } from './types';
+export { STUDENT_GOALS } from './types';

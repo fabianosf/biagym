@@ -1,4 +1,4 @@
-import { colors } from '@/shared/theme';
+import { colors, useT } from '@/shared/theme';
 import { ExerciseRunCard, GymFinishButton, GymScreen } from '@/features/workouts/components';
 import { useSessionClock } from '@/features/workouts/hooks/useSessionClock';
 import { useWorkoutRunStore } from '@/features/workouts/store/workout-run.store';
@@ -36,38 +36,47 @@ type FinishSummary = {
 
 const EMPTY_DONE_IDS: readonly string[] = [];
 
-function buildFinishSummary(plan: TrainingPlan, completedCount: number): FinishSummary {
+function buildFinishSummary(
+  t: (key: string, vars?: Record<string, string>) => string,
+  plan: TrainingPlan,
+  completedCount: number,
+): FinishSummary {
   const total = plan.exercises.length;
 
   if (total === 0) {
     return {
-      title: 'Treino registrado',
-      message: `${plan.title} foi salvo. Quando a ficha tiver exercícios, eles aparecem para você executar.`,
+      title: t('workoutDetail.finishRegisteredTitle'),
+      message: t('workoutDetail.finishNoExercises', { title: plan.title }),
     };
   }
 
   if (completedCount >= total) {
     return {
-      title: 'Mandou bem!',
-      message: `Você concluiu todos os ${total} exercícios de ${plan.title}. Descanse e hidrate.`,
+      title: t('workoutDetail.finishAllDoneTitle'),
+      message: t('workoutDetail.finishAllDone', { total: String(total), title: plan.title }),
     };
   }
 
   if (completedCount === 0) {
     return {
-      title: 'Treino registrado',
-      message: `${plan.title} foi salvo. Na próxima, marque cada exercício na lista quando fizer.`,
+      title: t('workoutDetail.finishRegisteredTitle'),
+      message: t('workoutDetail.finishNoneDone', { title: plan.title }),
     };
   }
 
   return {
-    title: 'Treino finalizado',
-    message: `Você concluiu ${completedCount} de ${total} exercícios de ${plan.title}. Seu progresso foi salvo.`,
+    title: t('workoutDetail.finishPartialTitle'),
+    message: t('workoutDetail.finishPartialDone', {
+      completed: String(completedCount),
+      total: String(total),
+      title: plan.title,
+    }),
   };
 }
 
 export function WorkoutDetailScreen() {
   const router = useRouter();
+  const t = useT();
   const { user } = useAuth();
   const params = useLocalSearchParams<{ id?: string | string[] }>();
   const planId = resolveRouteParam(params.id);
@@ -89,14 +98,14 @@ export function WorkoutDetailScreen() {
     [plan, doneSet],
   );
   const muscleSubtitle = useMemo(
-    () => (plan ? getPlanMuscleGroupSubtitle(plan.exercises) : ''),
-    [plan],
+    () => (plan ? getPlanMuscleGroupSubtitle(t, plan.exercises) : ''),
+    [plan, t],
   );
 
   const load = useCallback(async () => {
     if (!planId) {
       setPlan(null);
-      setError('Não encontramos este treino. Volte à lista e abra de novo.');
+      setError(t('workoutDetail.notFound'));
       setIsLoading(false);
       return;
     }
@@ -107,11 +116,11 @@ export function WorkoutDetailScreen() {
       const data = await withTimeout(
         getTrainingPlan(planId),
         DATA_FETCH_TIMEOUT_MS,
-        'O treino demorou demais para carregar. Tente novamente.',
+        t('workoutDetail.loadTimeout'),
       );
       if (!data) {
         setPlan(null);
-        setError('Este treino não está disponível para você no momento.');
+        setError(t('workoutDetail.notAvailable'));
         return;
       }
 
@@ -121,7 +130,7 @@ export function WorkoutDetailScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [planId]);
+  }, [planId, t]);
 
   useEffect(() => {
     void load();
@@ -147,17 +156,17 @@ export function WorkoutDetailScreen() {
   const handleOpenExercise = useCallback(
     (item: TrainingPlan['exercises'][number]) => {
       if (!plan?.id || !item.id) {
-        setError('Este exercício não está completo. Avise a treinadora.');
+        setError(t('workoutDetail.exerciseIncomplete'));
         return;
       }
 
       try {
         router.push(`/workouts/${plan.id}/exercises/${item.id}` as Href);
       } catch {
-        setError('Não foi possível abrir este exercício. Tente de novo.');
+        setError(t('workoutDetail.exerciseOpenFailed'));
       }
     },
-    [plan?.id, router],
+    [plan?.id, router, t],
   );
 
   async function handleFinish() {
@@ -174,9 +183,9 @@ export function WorkoutDetailScreen() {
           completedExerciseIds: [...doneIds],
         }),
         DATA_FETCH_TIMEOUT_MS,
-        'Não foi possível finalizar o treino agora. Tente de novo.',
+        t('workoutDetail.finishFailed'),
       );
-      const summary = buildFinishSummary(plan, doneIds.length);
+      const summary = buildFinishSummary(t, plan, doneIds.length);
       clearPlan(plan.id);
       try {
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -204,13 +213,13 @@ export function WorkoutDetailScreen() {
           onPress={() => router.back()}
           className="h-11 w-11 items-center justify-center"
           accessibilityRole="button"
-          accessibilityLabel="Voltar"
+          accessibilityLabel={t('workoutDetail.back')}
         >
           <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
         </Pressable>
         {finishSummary ? (
           <Text className="flex-1 text-center text-[22px] font-semibold text-white">
-            Concluído
+            {t('workoutDetail.done')}
           </Text>
         ) : (
           <ElapsedTimeLabel planId={planId} />
@@ -223,7 +232,7 @@ export function WorkoutDetailScreen() {
       {isLoading ? (
         <View className="flex-1 items-center justify-center px-5">
           <ActivityIndicator size="large" color={colors.gymAccent} />
-          <Text className="mt-4 text-sm text-gymMuted">Carregando treino...</Text>
+          <Text className="mt-4 text-sm text-gymMuted">{t('workoutDetail.loading')}</Text>
         </View>
       ) : finishSummary ? (
         <Animated.View
@@ -255,14 +264,14 @@ export function WorkoutDetailScreen() {
               onPress={() => router.back()}
               className="min-h-[56px] items-center justify-center rounded-full bg-gymAccent active:opacity-90"
             >
-              <Text className="text-base font-bold text-gymOnAccent">Voltar aos treinos</Text>
+              <Text className="text-base font-bold text-gymOnAccent">{t('workoutDetail.backToWorkouts')}</Text>
             </Pressable>
           </View>
         </Animated.View>
       ) : (
         <>
           <View className="px-5 pb-4 pt-1">
-            <Text className="text-[32px] font-bold text-white">{plan?.title ?? 'Treino'}</Text>
+            <Text className="text-[32px] font-bold text-white">{plan?.title ?? t('workoutDetail.fallbackTitle')}</Text>
             {muscleSubtitle ? (
               <Text className="mt-1 text-sm text-gymMuted">{muscleSubtitle}</Text>
             ) : plan?.description ? (
@@ -281,7 +290,7 @@ export function WorkoutDetailScreen() {
                 <View className="mb-3 rounded-2xl border border-red-500/30 bg-red-500/10 p-4">
                   <Text className="text-sm text-red-300">{error}</Text>
                   <Pressable className="mt-3" onPress={() => void load()}>
-                    <Text className="text-sm font-semibold text-gymAccent">Tentar novamente</Text>
+                    <Text className="text-sm font-semibold text-gymAccent">{t('workouts.tryAgain')}</Text>
                   </Pressable>
                 </View>
               ) : null
@@ -289,10 +298,9 @@ export function WorkoutDetailScreen() {
             ListEmptyComponent={
               plan ? (
                 <View className="rounded-2xl border border-dashed border-gymLine bg-gymCard p-5">
-                  <Text className="text-base font-semibold text-white">Ficha ainda vazia</Text>
+                  <Text className="text-base font-semibold text-white">{t('workoutDetail.emptyPlanTitle')}</Text>
                   <Text className="mt-2 text-sm leading-5 text-gymMuted">
-                    A treinadora ainda não colocou exercícios neste treino. Avise ela para completar
-                    a ficha.
+                    {t('workoutDetail.emptyPlanDescription')}
                   </Text>
                 </View>
               ) : null
@@ -311,7 +319,7 @@ export function WorkoutDetailScreen() {
           />
 
           <GymFinishButton
-            label="Finalizar treino"
+            label={t('workoutDetail.finishButton')}
             loading={isFinishing}
             disabled={!plan || Boolean(error && !plan)}
             onPress={() => void handleFinish()}

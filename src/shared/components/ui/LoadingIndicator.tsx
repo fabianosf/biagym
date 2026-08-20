@@ -1,17 +1,16 @@
 import { ActivityIndicator, Text, View } from 'react-native';
 
-import { useThemeColors } from '@/shared/theme';
+import { useT, useThemeColors } from '@/shared/theme';
 
 type LoadingIndicatorProps = {
   message?: string;
   fullScreen?: boolean;
 };
 
-export function LoadingIndicator({
-  message = 'Carregando...',
-  fullScreen = false,
-}: LoadingIndicatorProps) {
+export function LoadingIndicator({ message, fullScreen = false }: LoadingIndicatorProps) {
+  const t = useT();
   const colors = useThemeColors();
+  const resolvedMessage = message ?? t('common.loadingGeneric');
 
   return (
     <View
@@ -19,9 +18,9 @@ export function LoadingIndicator({
       className={fullScreen ? 'items-center justify-center' : 'items-center justify-center py-10'}
     >
       <ActivityIndicator size="large" color={colors.primary} />
-      {message ? (
+      {resolvedMessage ? (
         <Text className="mt-4 text-sm text-muted" style={{ color: colors.muted }}>
-          {message}
+          {resolvedMessage}
         </Text>
       ) : null}
     </View>

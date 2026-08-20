@@ -1,4 +1,5 @@
 import { AppImage } from '@/shared/components/ui/AppImage';
+import { useT } from '@/shared/theme';
 import { isPlayableVideoUrl } from '@/shared/utils';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { ImageSource } from 'expo-image';
@@ -82,6 +83,7 @@ export function ExerciseMediaHero({
 }
 
 function HeroVideo({ url, title }: { url: string; title: string }) {
+  const t = useT();
   const [isPlaying, setIsPlaying] = useState(true);
   const [hasError, setHasError] = useState(false);
   const lastUrlRef = useRef<string | null>(null);
@@ -142,7 +144,7 @@ function HeroVideo({ url, title }: { url: string; title: string }) {
       <View className="aspect-[3/4] items-center justify-center rounded-[28px] bg-gymCard">
         <Ionicons name="alert-circle-outline" size={36} color="#737373" />
         <Text className="mt-3 px-6 text-center text-sm text-gymMuted">
-          Não deu pra carregar esse vídeo agora. Tente de novo em instantes ou avise a treinadora.
+          {t('exercise.videoLoadError')}
         </Text>
       </View>
     );
@@ -156,7 +158,7 @@ function HeroVideo({ url, title }: { url: string; title: string }) {
         contentFit="cover"
         nativeControls
         allowsFullscreen
-        accessibilityLabel={`Vídeo de ${title}`}
+        accessibilityLabel={t('exercise.videoOf', { title })}
       />
       {!isPlaying ? (
         <View pointerEvents="box-none" className="absolute inset-0 items-center justify-center">
@@ -164,7 +166,7 @@ function HeroVideo({ url, title }: { url: string; title: string }) {
             onPress={togglePlayback}
             className="h-16 w-16 items-center justify-center rounded-full bg-black/55"
             accessibilityRole="button"
-            accessibilityLabel="Assistir vídeo"
+            accessibilityLabel={t('exercise.watchVideo')}
           >
             <Ionicons name="play" size={28} color="#FFFFFF" />
           </Pressable>

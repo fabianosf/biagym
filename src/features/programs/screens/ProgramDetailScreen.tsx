@@ -1,5 +1,4 @@
-import { PROGRAM_LEVEL_LABELS } from '@/domain/program';
-import { colors } from '@/shared/theme';
+import { colors, useT } from '@/shared/theme';
 import { WeekLessonList } from '@/features/programs/components';
 import { useProgramDetail } from '@/features/programs/hooks';
 import {
@@ -29,6 +28,7 @@ import { useCallback, useRef } from 'react';
 import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 
 export function ProgramDetailScreen() {
+  const t = useT();
   const router = useRouter();
   const params = useLocalSearchParams<{ id?: string | string[] }>();
   const programId = resolveRouteParam(params.id);
@@ -109,7 +109,7 @@ export function ProgramDetailScreen() {
   return (
     <View className="flex-1 bg-background">
       <ScreenHeader
-        title={detail?.program.title ?? 'Programa'}
+        title={detail?.program.title ?? t('program.fallbackTitle')}
         subtitle={detail?.program.trainerName}
         showBack
         onBack={() => router.back()}
@@ -117,7 +117,7 @@ export function ProgramDetailScreen() {
       <OfflineBanner />
       <SyncStatusBanner onRetry={() => void runSync()} />
 
-      {isLoading ? <LoadingIndicator fullScreen message="Carregando programa..." /> : null}
+      {isLoading ? <LoadingIndicator fullScreen message={t('program.loading')} /> : null}
 
       {!isLoading && error ? (
         <View className="flex-1 px-5 pt-2">
@@ -141,15 +141,15 @@ export function ProgramDetailScreen() {
           <View>
             <View className="mb-2 flex-row flex-wrap gap-2">
               <Badge
-                label={hasAccess ? 'Liberado' : 'Acesso necessário'}
+                label={hasAccess ? t('program.granted') : t('program.accessRequired')}
                 tone={hasAccess ? 'primary' : 'warning'}
               />
-              <Badge label={PROGRAM_LEVEL_LABELS[detail.program.level]} />
+              <Badge label={t(`programLevels.${detail.program.level}`)} />
             </View>
             <Text className="text-[32px] font-bold leading-9 text-ink">{detail.program.title}</Text>
             <Text className="mt-2 text-sm text-muted">
-              {detail.program.durationWeeks} sem. · {PROGRAM_LEVEL_LABELS[detail.program.level]} ·{' '}
-              {detail.program.trainerName}
+              {t('program.weeksAbbrev', { weeks: String(detail.program.durationWeeks) })} ·{' '}
+              {t(`programLevels.${detail.program.level}`)} · {detail.program.trainerName}
             </Text>
             <Text className="mt-3 text-base leading-6 text-ink">{detail.program.description}</Text>
             <View className="mt-4 flex-row items-center">
@@ -164,7 +164,7 @@ export function ProgramDetailScreen() {
 
           {continueLesson ? (
             <View>
-              <Text className="mb-3 text-lg font-bold text-ink">Comece por aqui</Text>
+              <Text className="mb-3 text-lg font-bold text-ink">{t('program.startHere')}</Text>
               <Pressable
                 onPress={handleContinuePress}
                 className="overflow-hidden rounded-2xl bg-surface active:opacity-90"
@@ -187,41 +187,45 @@ export function ProgramDetailScreen() {
           ) : null}
 
           {lastAccessedLesson && continueLesson?.id !== lastAccessedLesson.id ? (
-            <Text className="text-sm text-muted">Última aula: {lastAccessedLesson.title}</Text>
+            <Text className="text-sm text-muted">
+              {t('program.lastLesson', { title: lastAccessedLesson.title })}
+            </Text>
           ) : null}
 
           <View>
-            <Text className="mb-3 text-lg font-bold text-ink">Progresso</Text>
+            <Text className="mb-3 text-lg font-bold text-ink">{t('program.progress')}</Text>
             <View className="flex-row gap-3">
               <View className="flex-1 rounded-2xl bg-surface p-4">
-                <Text className="text-sm text-muted">Conclusão</Text>
+                <Text className="text-sm text-muted">{t('program.completion')}</Text>
                 <Text className="mt-2 text-3xl font-bold text-ink">{Math.round(percentComplete)}%</Text>
                 <View className="mt-3">
                   <ProgressBar value={percentComplete} showPercentage={false} size="sm" />
                 </View>
               </View>
               <View className="flex-1 rounded-2xl bg-surface p-4">
-                <Text className="text-sm text-muted">Aulas assistidas</Text>
+                <Text className="text-sm text-muted">{t('program.lessonsWatched')}</Text>
                 <Text className="mt-2 text-3xl font-bold text-ink">{accessibleCompleted}</Text>
-                <Text className="mt-1 text-xs text-faint">de {accessibleTotal}</Text>
+                <Text className="mt-1 text-xs text-faint">
+                  {t('program.ofTotal', { total: String(accessibleTotal) })}
+                </Text>
               </View>
             </View>
           </View>
 
           <View>
-            <SectionHeader title="Estrutura do programa" subtitle="Semanas, aulas e status" />
+            <SectionHeader title={t('program.structureTitle')} subtitle={t('program.structureSubtitle')} />
             {totalLessons === 0 ? (
               <EmptyState
-                title="Nenhuma aula cadastrada"
-                description="Este programa ainda não tem aulas. Volte mais tarde ou avise a treinadora."
+                title={t('program.noLessonsTitle')}
+                description={t('program.noLessonsDescription')}
               />
             ) : !hasAccess &&
               detail.weeks.every(({ lessons }) =>
                 lessons.every((lesson) => !lesson.isFreePreview),
               ) ? (
               <EmptyState
-                title="Conteúdo bloqueado"
-                description="Peça à treinadora para liberar o acesso a este programa."
+                title={t('program.lockedTitle')}
+                description={t('program.lockedDescription')}
               />
             ) : (
               <WeekLessonList
@@ -240,8 +244,8 @@ export function ProgramDetailScreen() {
       {!isLoading && !error && !detail && programId ? (
         <View className="flex-1 px-5 pt-2">
           <EmptyState
-            title="Programa não encontrado"
-            description="Verifique se o programa ainda está disponível no catálogo."
+            title={t('program.notFoundTitle')}
+            description={t('program.notFoundDescription')}
           />
         </View>
       ) : null}
@@ -249,8 +253,8 @@ export function ProgramDetailScreen() {
       {!isLoading && !error && !programId ? (
         <View className="flex-1 px-5 pt-2">
           <EmptyState
-            title="Programa inválido"
-            description="Não foi possível identificar o programa. Volte à lista e tente novamente."
+            title={t('program.invalidTitle')}
+            description={t('program.invalidDescription')}
           />
         </View>
       ) : null}

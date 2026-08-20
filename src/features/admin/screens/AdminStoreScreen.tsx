@@ -10,12 +10,14 @@ import {
   withTimeout,
 } from '@/services';
 import { Button, TextField } from '@/shared/components';
+import { useT } from '@/shared/theme';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
 export function AdminStoreScreen() {
   const router = useRouter();
+  const t = useT();
   const { user } = useAuth();
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -31,7 +33,7 @@ export function AdminStoreScreen() {
       const couponsData = await withTimeout(
         listCoupons(),
         DATA_FETCH_TIMEOUT_MS,
-        'Os cupons demoraram demais para carregar. Tente novamente.',
+        t('admin.store.loadTimeout'),
       );
       setCoupons(couponsData);
       setError(null);
@@ -40,7 +42,7 @@ export function AdminStoreScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     void load();
@@ -84,31 +86,28 @@ export function AdminStoreScreen() {
 
   return (
     <AdminShell
-      title="Cupons"
-      subtitle="Descontos que aparecem junto dos produtos recomendados na Conta dos alunos."
+      title={t('admin.store.title')}
+      subtitle={t('admin.store.subtitle')}
       showBack
       onBack={() => router.back()}
     >
       <ScrollView className="flex-1" contentContainerClassName="gap-6 px-5 pb-12">
         {error ? <Text className="text-sm text-red-400">{error}</Text> : null}
-        {isLoading ? <Text className="text-sm text-muted">Carregando cupons...</Text> : null}
+        {isLoading ? <Text className="text-sm text-muted">{t('admin.store.loading')}</Text> : null}
 
-        <Text className="text-sm leading-5 text-muted">
-          Produtos agora são cadastrados direto na Conta (seção "Recomendados") — aqui fica só a
-          gestão de cupom.
-        </Text>
+        <Text className="text-sm leading-5 text-muted">{t('admin.store.productsHint')}</Text>
 
         <View className="gap-4 rounded-card border border-line bg-surface p-5">
-          <Text className="text-lg font-semibold text-ink">Novo cupom</Text>
+          <Text className="text-lg font-semibold text-ink">{t('admin.store.newCoupon')}</Text>
           <TextField
-            label="Código"
+            label={t('admin.store.codeLabel')}
             value={couponCode}
             onChangeText={(value) => setCouponCode(value.toUpperCase())}
             placeholder="BIA10"
             icon="pricetag-outline"
           />
           <TextField
-            label="Desconto (%)"
+            label={t('admin.store.discountLabel')}
             value={couponDiscount}
             onChangeText={setCouponDiscount}
             placeholder="10"
@@ -116,23 +115,23 @@ export function AdminStoreScreen() {
             icon="ticket-outline"
           />
           <TextField
-            label="Descrição (opcional)"
+            label={t('admin.store.descriptionLabel')}
             value={couponDescription}
             onChangeText={setCouponDescription}
-            placeholder="10% de desconto na primeira compra"
+            placeholder={t('admin.store.descriptionPlaceholder')}
             icon="document-text-outline"
           />
           <Button
-            label="Salvar cupom"
+            label={t('admin.store.saveCoupon')}
             loading={isSavingCoupon}
             onPress={() => void handleCreateCoupon()}
           />
         </View>
 
         <View className="gap-3">
-          <Text className="text-lg font-semibold text-ink">Cupons ativos</Text>
+          <Text className="text-lg font-semibold text-ink">{t('admin.store.activeCoupons')}</Text>
           {!isLoading && coupons.length === 0 ? (
-            <Text className="text-sm text-muted">Nenhum cupom cadastrado ainda.</Text>
+            <Text className="text-sm text-muted">{t('admin.store.noCoupons')}</Text>
           ) : null}
           {coupons.map((coupon) => (
             <View
@@ -148,7 +147,7 @@ export function AdminStoreScreen() {
                 ) : null}
               </View>
               <Pressable onPress={() => void handleDeleteCoupon(coupon.id)}>
-                <Text className="text-sm text-red-400">Remover</Text>
+                <Text className="text-sm text-red-400">{t('common.remove')}</Text>
               </Pressable>
             </View>
           ))}

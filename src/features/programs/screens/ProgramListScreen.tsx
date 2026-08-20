@@ -1,4 +1,4 @@
-import { colors } from '@/shared/theme';
+import { colors, useT } from '@/shared/theme';
 import { ProgramCard } from '@/features/programs/components';
 import { useCatalog } from '@/features/programs/hooks';
 import { OfflineBanner } from '@/features/offline';
@@ -14,6 +14,7 @@ import { formatHelloGreeting } from '@/shared/utils/person-name';
 import { RefreshControl, ScrollView, View } from 'react-native';
 
 export function ProgramListScreen() {
+  const t = useT();
   const { user } = useAuth();
   const {
     catalog,
@@ -32,12 +33,12 @@ export function ProgramListScreen() {
     <View className="flex-1 bg-background">
       <ScreenHeader
         eyebrow="BiAGym"
-        title={formatHelloGreeting(user?.name)}
-        subtitle="Seus treinos e o catálogo pronto para o próximo ciclo."
+        title={formatHelloGreeting(t, user?.name)}
+        subtitle={t('home.programListSubtitle')}
       />
       <OfflineBanner />
 
-      {isLoading ? <LoadingIndicator fullScreen message="Carregando programas..." /> : null}
+      {isLoading ? <LoadingIndicator fullScreen message={t('home.loadingPrograms')} /> : null}
 
       {!isLoading && error ? (
         <View className="flex-1 px-5 pt-2">
@@ -60,15 +61,15 @@ export function ProgramListScreen() {
         >
           <View>
             <SectionHeader
-              eyebrow="Biblioteca"
-              title="Meus itens"
-              subtitle="Programas liberados para você treinar agora"
+              eyebrow={t('home.library')}
+              title={t('home.myItems')}
+              subtitle={t('home.myItemsReadySubtitle')}
             />
             {myItems.length === 0 ? (
               <EmptyState
                 icon="barbell-outline"
-                title="Nenhum programa liberado"
-                description="Quando o admin liberar o acesso, seus treinos aparecem aqui com destaque."
+                title={t('home.noProgramGranted')}
+                description={t('home.noProgramGrantedDescription')}
               />
             ) : (
               <View className="gap-4">
@@ -88,13 +89,13 @@ export function ProgramListScreen() {
 
           <View>
             <SectionHeader
-              title="Explorar catálogo"
-              subtitle="Programas publicados que você ainda não possui"
+              title={t('home.exploreCatalog')}
+              subtitle={t('home.exploreCatalogSubtitle')}
             />
             {exploreCatalog.length === 0 ? (
               <EmptyState
-                title="Nada novo para explorar"
-                description="Você já tem acesso a todos os programas publicados ou o catálogo está vazio."
+                title={t('home.nothingNewToExplore')}
+                description={t('home.nothingNewToExploreDescription')}
               />
             ) : (
               <View className="gap-4">

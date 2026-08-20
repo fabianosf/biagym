@@ -2,13 +2,6 @@ export const MEAL_TYPES = ['cafe', 'almoco', 'lanche', 'jantar'] as const;
 
 export type MealType = (typeof MEAL_TYPES)[number];
 
-export const MEAL_TYPE_LABELS: Record<MealType, string> = {
-  cafe: 'Café da manhã',
-  almoco: 'Almoço',
-  lanche: 'Lanche',
-  jantar: 'Jantar',
-};
-
 export interface NutritionMeal {
   readonly id: string;
   readonly planId: string;

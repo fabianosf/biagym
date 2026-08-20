@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { useAuth } from '@/features/auth';
 import { routes } from '@/shared/constants/routes';
-import { useThemeColors } from '@/shared/theme';
+import { useT, useThemeColors } from '@/shared/theme';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Link } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
@@ -24,6 +24,7 @@ export function AdminShell({
 }: AdminShellProps) {
   const insets = useSafeAreaInsets();
   const { signOut } = useAuth();
+  const t = useT();
   const colors = useThemeColors();
 
   return (
@@ -39,7 +40,7 @@ export function AdminShell({
             onPress={() => void signOut()}
             className="rounded-full border border-line bg-elevated px-3 py-1.5"
           >
-            <Text className="text-xs text-muted">Sair</Text>
+            <Text className="text-xs text-muted">{t('common.signOut')}</Text>
           </Pressable>
         </View>
 

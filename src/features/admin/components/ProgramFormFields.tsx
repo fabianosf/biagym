@@ -1,6 +1,7 @@
-import { PROGRAM_LEVELS, PROGRAM_LEVEL_LABELS, type Category, type ProgramLevel } from '@/domain';
+import { PROGRAM_LEVELS, type Category, type ProgramLevel } from '@/domain';
 import { uploadProgramCover } from '@/services';
 import { AppImage } from '@/shared/components';
+import { useT } from '@/shared/theme';
 import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native';
@@ -54,6 +55,7 @@ function Field({
 }
 
 export function ProgramFormFields({ values, categories, onChange }: ProgramFormFieldsProps) {
+  const t = useT();
   const [isUploadingCover, setIsUploadingCover] = useState(false);
   const [coverError, setCoverError] = useState<string | null>(null);
 
@@ -70,7 +72,7 @@ export function ProgramFormFields({ values, categories, onChange }: ProgramFormF
   async function handlePickCover() {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
-      setCoverError('Permita o acesso às fotos do celular para anexar a capa.');
+      setCoverError(t('admin.programForm.coverPermissionDenied'));
       return;
     }
 
@@ -94,7 +96,7 @@ export function ProgramFormFields({ values, categories, onChange }: ProgramFormF
       });
       onChange({ ...values, coverUrl });
     } catch {
-      setCoverError('Não foi possível enviar a foto. Tente de novo.');
+      setCoverError(t('admin.programForm.coverUploadFailed'));
     } finally {
       setIsUploadingCover(false);
     }
@@ -103,23 +105,23 @@ export function ProgramFormFields({ values, categories, onChange }: ProgramFormF
   return (
     <View className="gap-4">
       <Field
-        label="Título"
+        label={t('admin.programForm.title')}
         value={values.title}
         onChangeText={(title) => onChange({ ...values, title })}
       />
       <Field
-        label="Slug"
+        label={t('admin.programForm.slug')}
         value={values.slug}
         onChangeText={(slug) => onChange({ ...values, slug })}
       />
       <Field
-        label="Descrição"
+        label={t('admin.programForm.description')}
         value={values.description}
         onChangeText={(description) => onChange({ ...values, description })}
         multiline
       />
       <View>
-        <Text className="mb-2 text-sm text-muted">Capa</Text>
+        <Text className="mb-2 text-sm text-muted">{t('admin.programForm.cover')}</Text>
         {values.coverUrl ? (
           <AppImage uri={values.coverUrl} aspectRatio={3 / 4} className="mb-3 w-32 rounded-2xl" />
         ) : null}
@@ -131,28 +133,28 @@ export function ProgramFormFields({ values, categories, onChange }: ProgramFormF
           {isUploadingCover ? <ActivityIndicator /> : null}
           <Text className="font-semibold text-primary">
             {isUploadingCover
-              ? 'Enviando...'
+              ? t('admin.programForm.uploading')
               : values.coverUrl
-                ? 'Trocar capa'
-                : 'Anexar capa'}
+                ? t('admin.programForm.changeCover')
+                : t('admin.programForm.attachCover')}
           </Text>
         </Pressable>
         {coverError ? <Text className="mt-2 text-xs text-red-400">{coverError}</Text> : null}
       </View>
       <Field
-        label="Nome do(a) treinador(a)"
+        label={t('admin.programForm.trainerName')}
         value={values.trainerName}
         onChangeText={(trainerName) => onChange({ ...values, trainerName })}
       />
       <Field
-        label="Duração (semanas)"
+        label={t('admin.programForm.durationWeeks')}
         value={values.durationWeeks}
         onChangeText={(durationWeeks) => onChange({ ...values, durationWeeks })}
         keyboardType="numeric"
       />
 
       <View>
-        <Text className="mb-2 text-sm text-muted">Nível</Text>
+        <Text className="mb-2 text-sm text-muted">{t('admin.programForm.level')}</Text>
         <View className="flex-row flex-wrap gap-2">
           {PROGRAM_LEVELS.map((level) => (
             <Pressable
@@ -165,7 +167,7 @@ export function ProgramFormFields({ values, categories, onChange }: ProgramFormF
               <Text
                 className={values.level === level ? 'font-semibold text-background' : 'text-muted'}
               >
-                {PROGRAM_LEVEL_LABELS[level]}
+                {t(`programLevels.${level}`)}
               </Text>
             </Pressable>
           ))}
@@ -173,7 +175,7 @@ export function ProgramFormFields({ values, categories, onChange }: ProgramFormF
       </View>
 
       <View>
-        <Text className="mb-2 text-sm text-muted">Categorias</Text>
+        <Text className="mb-2 text-sm text-muted">{t('admin.programForm.categories')}</Text>
         <View className="flex-row flex-wrap gap-2">
           {categories.map((category) => {
             const selected = values.categoryIds.includes(category.id);
@@ -201,7 +203,7 @@ export function ProgramFormFields({ values, categories, onChange }: ProgramFormF
         }`}
       >
         <Text className="font-medium text-ink">
-          {values.isPublished ? 'Publicado no catálogo' : 'Rascunho (não publicado)'}
+          {values.isPublished ? t('admin.programForm.published') : t('admin.programForm.draft')}
         </Text>
       </Pressable>
     </View>

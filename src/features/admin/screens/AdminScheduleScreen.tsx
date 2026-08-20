@@ -2,7 +2,7 @@ import { AdminStudentSearch, AdminShell } from '@/features/admin/components';
 import { useAdminFocusedStudent } from '@/features/admin/hooks/useAdminFocusedStudent';
 import { getStudentFirstName } from '@/features/admin/utils/student-label';
 import { useAuth } from '@/features/auth';
-import { WEEKDAY_LABELS, WEEKDAYS, type TrainingSlot, type Weekday } from '@/domain/schedule';
+import { WEEKDAYS, type TrainingSlot, type Weekday } from '@/domain/schedule';
 import type { StudentProfile } from '@/domain/student';
 import {
   adminCreateTrainingSlot,
@@ -12,10 +12,12 @@ import {
   listTrainingSlots,
 } from '@/services';
 import { Button, ErrorState, LoadingIndicator, TextField } from '@/shared/components';
+import { useT } from '@/shared/theme';
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
 export function AdminScheduleScreen() {
+  const t = useT();
   const { user } = useAuth();
   const { focusedStudentId, student: focusedStudent, goBackToStudent } = useAdminFocusedStudent();
   const [slots, setSlots] = useState<TrainingSlot[]>([]);
@@ -23,7 +25,7 @@ export function AdminScheduleScreen() {
   const [weekday, setWeekday] = useState<Weekday>(1);
   const [startTime, setStartTime] = useState('07:00');
   const [duration, setDuration] = useState('60');
-  const [title, setTitle] = useState('Treino da semana');
+  const [title, setTitle] = useState(t('admin.schedule.defaultTitle'));
   const [notes, setNotes] = useState('');
   const [editingSlotId, setEditingSlotId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -60,7 +62,7 @@ export function AdminScheduleScreen() {
     setWeekday(1);
     setStartTime('07:00');
     setDuration('60');
-    setTitle('Treino da semana');
+    setTitle(t('admin.schedule.defaultTitle'));
     setNotes('');
   }
 
@@ -80,18 +82,18 @@ export function AdminScheduleScreen() {
     }
 
     if (!editingSlotId && !targetStudent) {
-      setError('Selecione um aluno para agendar o treino.');
+      setError(t('admin.schedule.selectStudent'));
       return;
     }
 
     const durationMinutes = Number.parseInt(duration, 10);
     if (!/^\d{2}:\d{2}$/.test(startTime.trim())) {
-      setError('Informe o horário no formato HH:MM.');
+      setError(t('admin.schedule.invalidTime'));
       return;
     }
 
     if (!Number.isFinite(durationMinutes) || durationMinutes < 15 || durationMinutes > 180) {
-      setError('Informe uma duração entre 15 e 180 minutos.');
+      setError(t('admin.schedule.invalidDuration'));
       return;
     }
 
@@ -104,7 +106,7 @@ export function AdminScheduleScreen() {
           weekday,
           startTime: startTime.trim(),
           durationMinutes,
-          title: title.trim() || 'Treino',
+          title: title.trim() || t('workoutDetail.fallbackTitle'),
           notes: notes || undefined,
         });
       } else if (targetStudent) {
@@ -113,7 +115,7 @@ export function AdminScheduleScreen() {
           weekday,
           startTime: startTime.trim(),
           durationMinutes,
-          title: title.trim() || 'Treino',
+          title: title.trim() || t('workoutDetail.fallbackTitle'),
           notes: notes || undefined,
           createdBy: user.id,
         });
@@ -141,16 +143,16 @@ export function AdminScheduleScreen() {
 
   return (
     <AdminShell
-      title={firstName ? `Agenda de ${firstName}` : 'Agenda'}
+      title={firstName ? t('admin.schedule.titleFor', { name: firstName }) : t('admin.schedule.title')}
       subtitle={
         focusedStudent
-          ? `Horários só de ${focusedStudent.name}.`
-          : 'Defina os horários de treino de cada aluno.'
+          ? t('admin.schedule.subtitleFor', { name: focusedStudent.name })
+          : t('admin.schedule.subtitleGeneric')
       }
       showBack
       onBack={goBackToStudent}
     >
-      {isLoading ? <LoadingIndicator fullScreen message="Carregando agenda..." /> : null}
+      {isLoading ? <LoadingIndicator fullScreen message={t('admin.schedule.loading')} /> : null}
 
       {!isLoading && error && slots.length === 0 ? (
         <View className="px-5 pt-2">
@@ -165,22 +167,24 @@ export function AdminScheduleScreen() {
           <View className="rounded-card border border-line bg-surface p-5 gap-4">
             <View className="flex-row items-center justify-between">
               <Text className="text-lg font-semibold text-ink">
-                {editingSlotId ? 'Editar horário' : 'Novo horário'}
+                {editingSlotId ? t('admin.schedule.editSlot') : t('admin.schedule.newSlot')}
               </Text>
               {editingSlotId ? (
                 <Pressable onPress={resetForm}>
-                  <Text className="text-sm text-muted">Cancelar</Text>
+                  <Text className="text-sm text-muted">{t('common.cancel')}</Text>
                 </Pressable>
               ) : null}
             </View>
             {editingSlotId ? null : focusedStudentId ? (
               <Text className="text-sm text-muted">
-                Individual: {focusedStudent?.name ?? 'este aluno'}
+                {t('admin.schedule.individualFor', {
+                  name: focusedStudent?.name ?? t('admin.studentSpace.thisStudent'),
+                })}
               </Text>
             ) : (
               <AdminStudentSearch selected={selectedStudent} onSelect={setSelectedStudent} />
             )}
-            <Text className="text-sm font-medium text-muted">Dia da semana</Text>
+            <Text className="text-sm font-medium text-muted">{t('admin.schedule.weekday')}</Text>
             <View className="flex-row flex-wrap gap-2">
               {WEEKDAYS.map((day) => (
                 <Pressable
@@ -191,20 +195,20 @@ export function AdminScheduleScreen() {
                   }`}
                 >
                   <Text className={weekday === day ? 'font-semibold text-white' : 'text-ink'}>
-                    {WEEKDAY_LABELS[day].slice(0, 3)}
+                    {t(`weekdaysShort.${day}`)}
                   </Text>
                 </Pressable>
               ))}
             </View>
             <TextField
-              label="Horário (HH:MM)"
+              label={t('admin.schedule.timeLabel')}
               value={startTime}
               onChangeText={setStartTime}
               placeholder="07:00"
               icon="time-outline"
             />
             <TextField
-              label="Duração (minutos)"
+              label={t('admin.schedule.durationLabel')}
               value={duration}
               onChangeText={setDuration}
               keyboardType="number-pad"
@@ -212,26 +216,26 @@ export function AdminScheduleScreen() {
               icon="hourglass-outline"
             />
             <TextField
-              label="Título"
+              label={t('admin.programForm.title')}
               value={title}
               onChangeText={setTitle}
               placeholder="Lower body"
               icon="barbell-outline"
             />
             <TextField
-              label="Observações"
+              label={t('admin.schedule.notesLabel')}
               value={notes}
               onChangeText={setNotes}
-              placeholder="Levar toalha e garrafa"
+              placeholder={t('admin.schedule.notesPlaceholder')}
               icon="chatbubble-outline"
             />
             <Button
               label={
                 editingSlotId
-                  ? 'Salvar alterações'
+                  ? t('admin.schedule.saveChanges')
                   : firstName
-                    ? `Salvar horário de ${firstName}`
-                    : 'Agendar treino'
+                    ? t('admin.schedule.saveSlotFor', { name: firstName })
+                    : t('admin.schedule.scheduleWorkout')
               }
               loading={isSaving}
               onPress={() => void handleSave()}
@@ -240,27 +244,29 @@ export function AdminScheduleScreen() {
 
           <View className="gap-3">
             <Text className="text-lg font-semibold text-ink">
-              {firstName ? `Horários de ${firstName}` : 'Horários cadastrados'}
+              {firstName
+                ? t('admin.schedule.slotsOf', { name: firstName })
+                : t('admin.schedule.registeredSlots')}
             </Text>
             {slots.length === 0 ? (
-              <Text className="text-muted">Nenhum horário ainda.</Text>
+              <Text className="text-muted">{t('admin.schedule.noSlotsYet')}</Text>
             ) : (
               slots.map((slot) => (
                 <View key={slot.id} className="rounded-card border border-line bg-surface p-5">
                   <Text className="font-semibold text-ink">
-                    {WEEKDAY_LABELS[slot.weekday]} · {slot.startTime}
+                    {t(`weekdays.${slot.weekday}`)} · {slot.startTime}
                   </Text>
                   <Text className="mt-1 text-sm text-ink">{slot.title}</Text>
                   <Text className="mt-1 text-xs text-muted">
-                    {slot.durationMinutes} min
+                    {t('admin.schedule.minutes', { minutes: String(slot.durationMinutes) })}
                     {slot.notes ? ` · ${slot.notes}` : ''}
                   </Text>
                   <View className="mt-3 flex-row gap-4">
                     <Pressable onPress={() => handleStartEdit(slot)}>
-                      <Text className="text-sm font-semibold text-primary">Editar</Text>
+                      <Text className="text-sm font-semibold text-primary">{t('common.edit')}</Text>
                     </Pressable>
                     <Pressable onPress={() => void handleDelete(slot.id)}>
-                      <Text className="text-sm text-red-400">Remover</Text>
+                      <Text className="text-sm text-red-400">{t('common.remove')}</Text>
                     </Pressable>
                   </View>
                 </View>

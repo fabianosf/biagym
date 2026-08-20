@@ -16,6 +16,7 @@ import {
 } from '@/services';
 import { Button, EmptyState, FeedbackBanner, LoadingIndicator, TextField } from '@/shared/components';
 import { adminRoutes } from '@/shared/constants/admin-routes';
+import { useT } from '@/shared/theme';
 import { useFocusEffect } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import { useRouter, type Href } from 'expo-router';
@@ -30,6 +31,7 @@ const QUICK_TITLES = ['Treino A', 'Treino B', 'Treino C'];
 
 export function AdminWorkoutsScreen() {
   const router = useRouter();
+  const t = useT();
   const { user } = useAuth();
   const { focusedStudentId, student: focusedStudent, goBackToStudent } = useAdminFocusedStudent();
   const firstName = focusedStudent ? getStudentFirstName(focusedStudent.name) : null;
@@ -57,7 +59,7 @@ export function AdminWorkoutsScreen() {
         await withTimeout(
           listTrainingPlans(),
           DATA_FETCH_TIMEOUT_MS,
-          'As fichas demoraram demais para carregar. Tente de novo.',
+          t('admin.workoutsScreen.loadTimeout'),
         ),
       );
     } catch (err) {
@@ -65,7 +67,7 @@ export function AdminWorkoutsScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useFocusEffect(
     useCallback(() => {
@@ -78,7 +80,7 @@ export function AdminWorkoutsScreen() {
     try {
       router.push(adminRoutes.workoutDetail(planId, focusedStudentId || undefined) as Href);
     } catch {
-      setError('Não foi possível abrir este treino. Tente de novo.');
+      setError(t('workouts.openFailed'));
     }
   }
 
@@ -100,7 +102,7 @@ export function AdminWorkoutsScreen() {
           sortOrder: plans.length,
         }),
         DATA_FETCH_TIMEOUT_MS,
-        'A ficha demorou demais para ser criada. Tente de novo.',
+        t('admin.workoutsScreen.createTimeout'),
       );
       setDescription('');
       successHaptic();
@@ -125,16 +127,16 @@ export function AdminWorkoutsScreen() {
       const result = await withTimeout(
         bootstrapSampleGymCatalog(user.id),
         8 * 60_000,
-        'O cadastro dos treinos de exemplo demorou demais. Verifique a conexão e tente de novo.',
+        t('admin.workoutsScreen.bootstrapTimeout'),
       );
       successHaptic();
       await load(true);
       setNotice(
-        `Treino A e Treino B prontos (${result.exerciseCount} exercícios).${
-          firstName
-            ? ` Volte e libere para ${firstName}.`
-            : ' Entre no aluno e publique com o nome visível no botão.'
-        }`,
+        t('admin.workoutsScreen.bootstrapDone', { count: String(result.exerciseCount) }) +
+          ' ' +
+          (firstName
+            ? t('admin.workoutsScreen.bootstrapDoneFor', { name: firstName })
+            : t('admin.workoutsScreen.bootstrapDoneGeneric')),
       );
     } catch (err) {
       setError(getDataErrorMessage(err));
@@ -150,7 +152,7 @@ export function AdminWorkoutsScreen() {
       await withTimeout(
         deleteTrainingPlan(plan.id),
         DATA_FETCH_TIMEOUT_MS,
-        'Não foi possível excluir a ficha agora. Tente de novo.',
+        t('admin.workoutsScreen.deleteTimeout'),
       );
       successHaptic();
       await load(true);
@@ -163,13 +165,14 @@ export function AdminWorkoutsScreen() {
 
   function confirmDelete(plan: TrainingPlanSummary) {
     Alert.alert(
-      'Excluir ficha',
-      `"${plan.title || 'Treino'}" e todos os exercícios dela serão removidos. ${
-        plan.isPublished ? 'Quem tinha acesso perde esta ficha. ' : ''
-      }Esta ação não pode ser desfeita.`,
+      t('admin.workoutsScreen.deletePlanTitle'),
+      t('admin.workoutsScreen.deletePlanMessage', {
+        title: plan.title || t('workoutDetail.fallbackTitle'),
+        accessNote: plan.isPublished ? t('admin.workoutsScreen.deletePlanAccessNote') : '',
+      }),
       [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Excluir', style: 'destructive', onPress: () => void handleDelete(plan) },
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('common.delete'), style: 'destructive', onPress: () => void handleDelete(plan) },
       ],
     );
   }
@@ -188,7 +191,7 @@ export function AdminWorkoutsScreen() {
 
   async function handleSaveEdit(plan: TrainingPlanSummary) {
     if (!editTitleDraft.trim()) {
-      setError('Dê um título pra ficha antes de salvar.');
+      setError(t('admin.workoutsScreen.titleRequired'));
       return;
     }
 
@@ -201,7 +204,7 @@ export function AdminWorkoutsScreen() {
           description: editDescriptionDraft.trim() || undefined,
         }),
         DATA_FETCH_TIMEOUT_MS,
-        'Não foi possível salvar agora. Tente de novo.',
+        t('admin.programFormScreen.saveFailed'),
       );
       successHaptic();
       cancelEdit();
@@ -215,11 +218,11 @@ export function AdminWorkoutsScreen() {
 
   return (
     <AdminShell
-      title={firstName ? `Fichas para ${firstName}` : 'Catálogo de treinos'}
+      title={firstName ? t('admin.workoutsScreen.titleFor', { name: firstName }) : t('admin.workoutsScreen.title')}
       subtitle={
         focusedStudent
-          ? `O que você publicar nesta tela vai para ${focusedStudent.name}.`
-          : 'Aqui você monta a ficha. Para o aluno receber, entre no espaço dele.'
+          ? t('admin.workoutsScreen.subtitleFor', { name: focusedStudent.name })
+          : t('admin.workoutsScreen.subtitleGeneric')
       }
       showBack={router.canGoBack()}
       onBack={goBackToStudent}
@@ -229,7 +232,7 @@ export function AdminWorkoutsScreen() {
         {notice ? <FeedbackBanner message={notice} variant="success" /> : null}
 
         <View className="gap-3 rounded-card border border-line bg-surface p-5">
-          <Text className="text-lg font-semibold text-ink">Nova ficha</Text>
+          <Text className="text-lg font-semibold text-ink">{t('admin.workoutsScreen.newPlan')}</Text>
           <View className="flex-row flex-wrap gap-2">
             {QUICK_TITLES.map((quick) => (
               <Pressable
@@ -244,43 +247,43 @@ export function AdminWorkoutsScreen() {
             ))}
           </View>
           <TextField
-            label="Título"
+            label={t('admin.programForm.title')}
             value={title}
             onChangeText={setTitle}
-            placeholder="Treino A, B, C... o nome que quiser"
+            placeholder={t('admin.workoutsScreen.titlePlaceholder')}
             icon="barbell-outline"
           />
           <TextField
-            label="Descrição"
+            label={t('admin.schedule.notesLabel')}
             value={description}
             onChangeText={setDescription}
             placeholder="Membros inferiores · 45 min"
             icon="document-text-outline"
           />
           <Button
-            label={firstName ? `Criar ficha para ${firstName}` : 'Criar ficha'}
+            label={firstName ? t('admin.workoutsScreen.createPlanFor', { name: firstName }) : t('admin.workoutsScreen.createPlan')}
             loading={isSaving}
             onPress={() => void handleCreate()}
           />
           <Text className="text-xs leading-5 text-faint">
             {firstName
-              ? `Depois de montar, publique para ${firstName}. Só essa pessoa vê.`
-              : 'Criar a ficha não envia para ninguém. Publique no espaço do aluno.'}
+              ? t('admin.workoutsScreen.createHintFor', { name: firstName })
+              : t('admin.workoutsScreen.createHintGeneric')}
           </Text>
         </View>
 
         <View>
           <Text className="mb-3 text-xs font-semibold uppercase tracking-[1.6px] text-primary">
-            {firstName ? `Fichas de ${firstName}` : 'Fichas cadastradas'}
+            {firstName ? t('admin.workoutsScreen.plansOf', { name: firstName }) : t('admin.workoutsScreen.registeredPlans')}
           </Text>
 
-          {isLoading ? <LoadingIndicator message="Carregando fichas..." /> : null}
+          {isLoading ? <LoadingIndicator message={t('admin.workoutsScreen.loading')} /> : null}
 
           {!isLoading && plans.length === 0 ? (
             <EmptyState
               icon="barbell-outline"
-              title="Nenhuma ficha ainda"
-              description="Crie o Treino A, B, C — ou qualquer nome — no formulário acima."
+              title={t('admin.workoutsScreen.noPlansTitle')}
+              description={t('admin.workoutsScreen.noPlansDescription')}
             />
           ) : null}
 
@@ -290,14 +293,14 @@ export function AdminWorkoutsScreen() {
                 {editingPlanId === plan.id ? (
                   <View className="gap-3">
                     <TextField
-                      label="Título"
+                      label={t('admin.programForm.title')}
                       value={editTitleDraft}
                       onChangeText={setEditTitleDraft}
                       placeholder="Treino A"
                       icon="barbell-outline"
                     />
                     <TextField
-                      label="Descrição"
+                      label={t('admin.schedule.notesLabel')}
                       value={editDescriptionDraft}
                       onChangeText={setEditDescriptionDraft}
                       placeholder="Membros inferiores · 45 min"
@@ -310,7 +313,7 @@ export function AdminWorkoutsScreen() {
                         className="flex-1 items-center rounded-xl bg-primary py-2.5 active:opacity-85"
                       >
                         <Text className="text-sm font-semibold text-background">
-                          {isSavingEdit ? 'Salvando...' : 'Salvar'}
+                          {isSavingEdit ? t('admin.workoutsScreen.saving') : t('common.save')}
                         </Text>
                       </Pressable>
                       <Pressable
@@ -318,7 +321,7 @@ export function AdminWorkoutsScreen() {
                         disabled={isSavingEdit}
                         className="flex-1 items-center rounded-xl bg-elevated py-2.5 active:opacity-85"
                       >
-                        <Text className="text-sm text-muted">Cancelar</Text>
+                        <Text className="text-sm text-muted">{t('common.cancel')}</Text>
                       </Pressable>
                     </View>
                   </View>
@@ -327,14 +330,22 @@ export function AdminWorkoutsScreen() {
                     <Pressable
                       onPress={() => openPlan(plan.id)}
                       accessibilityRole="button"
-                      accessibilityLabel={`Abrir ficha ${plan.title}`}
+                      accessibilityLabel={t('admin.workoutsScreen.openPlanLabel', { title: plan.title })}
                     >
-                      <Text className="text-lg font-semibold text-ink">{plan.title || 'Treino'}</Text>
+                      <Text className="text-lg font-semibold text-ink">
+                        {plan.title || t('workoutDetail.fallbackTitle')}
+                      </Text>
                       <Text className="mt-1 text-xs text-muted">
-                        {plan.exerciseCount} exercícios ·{' '}
+                        {t(
+                          plan.exerciseCount === 1
+                            ? 'admin.studentSpace.exerciseCountOne'
+                            : 'admin.studentSpace.exerciseCountOther',
+                          { count: String(plan.exerciseCount) },
+                        )}{' '}
+                        ·{' '}
                         {plan.isPublished
-                          ? 'No catálogo — só quem você escolheu vê'
-                          : 'Rascunho — ainda não foi para nenhum aluno'}
+                          ? t('admin.workoutsScreen.statusPublished')
+                          : t('admin.workoutsScreen.statusDraft')}
                       </Text>
                     </Pressable>
                     <View className="mt-4 flex-row gap-3 border-t border-line pt-3">
@@ -342,13 +353,13 @@ export function AdminWorkoutsScreen() {
                         onPress={() => openPlan(plan.id)}
                         className="flex-1 items-center rounded-xl bg-primary/10 py-2.5 active:opacity-85"
                       >
-                        <Text className="text-sm font-semibold text-primary">Abrir</Text>
+                        <Text className="text-sm font-semibold text-primary">{t('admin.workoutsScreen.open')}</Text>
                       </Pressable>
                       <Pressable
                         onPress={() => startEdit(plan)}
                         className="flex-1 items-center rounded-xl bg-elevated py-2.5 active:opacity-85"
                       >
-                        <Text className="text-sm font-semibold text-ink">Editar</Text>
+                        <Text className="text-sm font-semibold text-ink">{t('common.edit')}</Text>
                       </Pressable>
                       <Pressable
                         onPress={() => confirmDelete(plan)}
@@ -356,7 +367,7 @@ export function AdminWorkoutsScreen() {
                         className="flex-1 items-center rounded-xl bg-red-500/10 py-2.5 active:opacity-85"
                       >
                         <Text className="text-sm font-semibold text-red-500">
-                          {busyPlanId === plan.id ? 'Excluindo...' : 'Excluir'}
+                          {busyPlanId === plan.id ? t('admin.programsList.deleting') : t('common.delete')}
                         </Text>
                       </Pressable>
                     </View>
@@ -368,14 +379,11 @@ export function AdminWorkoutsScreen() {
         </View>
 
         <View className="gap-3 rounded-card border border-dashed border-line p-5">
-          <Text className="text-sm font-semibold text-muted">Atalho: ficha de exemplo</Text>
-          <Text className="text-xs leading-5 text-faint">
-            Sobe MP4s de exemplo, cria os exercícios e monta Treino A e Treino B prontos, com
-            séries, reps, carga e descanso já preenchidos. Útil só pra testar o app.
-          </Text>
+          <Text className="text-sm font-semibold text-muted">{t('admin.workoutsScreen.sampleShortcutTitle')}</Text>
+          <Text className="text-xs leading-5 text-faint">{t('admin.workoutsScreen.sampleShortcutHint')}</Text>
           <Button
             variant="secondary"
-            label="Cadastrar exemplo com vídeos"
+            label={t('admin.workoutsScreen.sampleShortcutButton')}
             loading={isBootstrapping}
             onPress={() => void handleBootstrapSamples()}
           />

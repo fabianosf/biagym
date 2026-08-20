@@ -2,6 +2,7 @@ import type { Program, ProgramSummary } from '@/domain';
 import type { UserProgress } from '@/domain/progress';
 import { AppImage, GradientScrim } from '@/shared/components/ui';
 import { programDetailPath } from '@/shared/constants/routes';
+import { useT } from '@/shared/theme';
 import { programCoverSource } from '@/shared/utils';
 import { Link } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
@@ -20,6 +21,7 @@ export function ProgramPosterCard({
   size = 'md',
   index = 0,
 }: ProgramPosterCardProps) {
+  const t = useT();
   const width = size === 'lg' ? 168 : 148;
   const height = size === 'lg' ? 236 : 210;
   const percent = progress?.percentComplete ?? 0;
@@ -32,7 +34,7 @@ export function ProgramPosterCard({
           style={isGrid ? { width: '100%' } : { width }}
           className="active:opacity-90"
           accessibilityRole="button"
-          accessibilityLabel={`Abrir programa ${program.title}`}
+          accessibilityLabel={t('home.openProgram', { title: program.title })}
         >
           <View
             style={isGrid ? { width: '100%', aspectRatio: 3 / 4 } : { width, height }}

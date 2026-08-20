@@ -12,6 +12,7 @@ import {
   TextField,
 } from '@/shared/components';
 import { isSupabaseConfigured } from '@/services/supabase';
+import { useT } from '@/shared/theme';
 
 import { parseRequiredFullName } from '@/shared/utils/person-name';
 import { parseOptionalWhatsAppPhone } from '@/shared/utils/phone';
@@ -19,6 +20,7 @@ import { parseOptionalWhatsAppPhone } from '@/shared/utils/phone';
 import { useAuth } from '../hooks/useAuth';
 
 export function SignUpScreen() {
+  const t = useT();
   const { signUp, isLoading, error, infoMessage, clearError, clearInfoMessage } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -40,7 +42,7 @@ export function SignUpScreen() {
     }
 
     if (!email.trim()) {
-      setValidationError('Informe seu e-mail.');
+      setValidationError(t('auth.validationEmailRequired'));
       return;
     }
 
@@ -51,7 +53,7 @@ export function SignUpScreen() {
     }
 
     if (password.length < 6) {
-      setValidationError('A senha deve ter pelo menos 6 caracteres.');
+      setValidationError(t('auth.validationPasswordMin'));
       return;
     }
 
@@ -81,59 +83,56 @@ export function SignUpScreen() {
             showsVerticalScrollIndicator={false}
           >
             <View className="mb-8 items-center">
-              <Text className="text-[32px] font-semibold tracking-tight text-ink">Comece agora</Text>
+              <Text className="text-[32px] font-semibold tracking-tight text-ink">
+                {t('auth.signUpHeroTitle')}
+              </Text>
               <Text className="mt-2 text-center text-base leading-6 text-muted">
-                Uma conta. Programas, aulas e progresso no mesmo lugar.
+                {t('auth.signUpHeroSubtitle')}
               </Text>
             </View>
 
             <Card>
-              <Text className="text-2xl font-semibold text-ink">Criar conta</Text>
-              <Text className="mt-1 text-sm text-muted">
-                Cadastro rápido. Confirme o e-mail se o Supabase exigir.
-              </Text>
+              <Text className="text-2xl font-semibold text-ink">{t('auth.signUpTitle')}</Text>
+              <Text className="mt-1 text-sm text-muted">{t('auth.signUpSubtitle')}</Text>
 
               {!isConfigured ? (
                 <View className="mt-4">
-                  <FeedbackBanner
-                    variant="warning"
-                    message="Configure EXPO_PUBLIC_SUPABASE_URL e EXPO_PUBLIC_SUPABASE_ANON_KEY no arquivo .env."
-                  />
+                  <FeedbackBanner variant="warning" message={t('auth.configWarning')} />
                 </View>
               ) : null}
 
               <View className="mt-6 gap-4">
                 <TextField
-                  label="Nome completo"
+                  label={t('auth.fullNameLabel')}
                   value={name}
                   onChangeText={setName}
-                  placeholder="Bruno Costa"
+                  placeholder={t('auth.fullNamePlaceholder')}
                   autoCapitalize="words"
                   autoComplete="name"
                   icon="person-outline"
                 />
                 <TextField
-                  label="E-mail"
+                  label={t('auth.emailLabel')}
                   value={email}
                   onChangeText={setEmail}
-                  placeholder="seu@email.com"
+                  placeholder={t('auth.emailPlaceholder')}
                   keyboardType="email-address"
                   autoComplete="email"
                 />
                 <TextField
-                  label="WhatsApp"
+                  label={t('auth.whatsappLabel')}
                   value={phone}
                   onChangeText={setPhone}
-                  placeholder="(11) 98888-8888"
+                  placeholder={t('auth.whatsappPlaceholder')}
                   keyboardType="phone-pad"
                   autoComplete="tel"
                   icon="logo-whatsapp"
                 />
                 <PasswordField
-                  label="Senha"
+                  label={t('auth.passwordLabel')}
                   value={password}
                   onChangeText={setPassword}
-                  placeholder="Mínimo 6 caracteres"
+                  placeholder={t('auth.passwordPlaceholderMin')}
                   autoComplete="new-password"
                 />
               </View>
@@ -158,7 +157,7 @@ export function SignUpScreen() {
 
               <Button
                 className="mt-6"
-                label={isLoading ? 'Criando conta...' : 'Criar conta'}
+                label={isLoading ? t('auth.signUpButtonLoading') : t('auth.signUpButton')}
                 onPress={() => void handleSubmit()}
                 loading={isLoading}
                 disabled={!isConfigured}
@@ -166,10 +165,10 @@ export function SignUpScreen() {
             </Card>
 
             <View className="mt-8 flex-row justify-center">
-              <Text className="text-muted">Já tem conta? </Text>
+              <Text className="text-muted">{t('auth.haveAccount')}</Text>
               <Link href={routes.signIn} asChild>
                 <Pressable>
-                  <Text className="font-semibold text-primary">Entrar</Text>
+                  <Text className="font-semibold text-primary">{t('auth.signInButton')}</Text>
                 </Pressable>
               </Link>
             </View>

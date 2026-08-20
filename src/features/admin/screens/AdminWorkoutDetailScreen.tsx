@@ -6,7 +6,6 @@ import { formatRecipientSummary } from '@/features/admin/utils/recipients';
 import { useAuth } from '@/features/auth';
 import type { StudentProfile } from '@/domain/student';
 import type { Exercise, TrainingPlan, TrainingPlanGrant } from '@/domain/workout';
-import { MUSCLE_GROUP_LABELS } from '@/domain/workout';
 import {
   DATA_FETCH_TIMEOUT_MS,
   addWorkoutExercise,
@@ -25,6 +24,7 @@ import {
 } from '@/services';
 import { Button, ErrorState, LoadingIndicator, TextField } from '@/shared/components';
 import { adminRoutes } from '@/shared/constants/admin-routes';
+import { useT } from '@/shared/theme';
 import { resolveRouteParam } from '@/shared/utils';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -46,6 +46,7 @@ const EMPTY_DRAFT: PrescriptionDraft = {
 
 export function AdminWorkoutDetailScreen() {
   const router = useRouter();
+  const t = useT();
   const { user } = useAuth();
   const params = useLocalSearchParams<{ id?: string | string[]; studentId?: string | string[] }>();
   const planId = resolveRouteParam(params.id);
@@ -75,13 +76,13 @@ export function AdminWorkoutDetailScreen() {
 
   const recipientNames = useMemo(() => {
     const byId = new Map(students.map((student) => [student.userId, student.name]));
-    return selectedIds.map((id) => byId.get(id) ?? 'Aluno');
-  }, [selectedIds, students]);
+    return selectedIds.map((id) => byId.get(id) ?? t('common.student'));
+  }, [selectedIds, students, t]);
 
   const load = useCallback(async () => {
     if (!planId) {
       setPlan(null);
-      setError('Não encontramos este treino. Volte e abra de novo.');
+      setError(t('admin.workoutDetail.notFound'));
       setIsLoading(false);
       return;
     }
@@ -91,7 +92,7 @@ export function AdminWorkoutDetailScreen() {
       const detail = await withTimeout(
         getTrainingPlan(planId),
         DATA_FETCH_TIMEOUT_MS,
-        'O treino demorou demais para carregar. Tente novamente.',
+        t('admin.workoutDetail.loadTimeout'),
       );
       setPlan(detail);
       setDrafts(
@@ -108,7 +109,7 @@ export function AdminWorkoutDetailScreen() {
         ),
       );
       if (!detail) {
-        setError('Este treino não está mais disponível.');
+        setError(t('admin.workoutDetail.notAvailable'));
       }
     } catch (err) {
       setPlan(null);
@@ -119,7 +120,7 @@ export function AdminWorkoutDetailScreen() {
       const exercises = await withTimeout(
         listExercises(),
         DATA_FETCH_TIMEOUT_MS,
-        'Os exercícios demoraram demais para carregar.',
+        t('admin.exercises.loadTimeoutShort'),
       );
       setCatalog(exercises);
     } catch {
@@ -167,7 +168,7 @@ export function AdminWorkoutDetailScreen() {
     }
 
     setIsLoading(false);
-  }, [focusedStudentId, planId]);
+  }, [focusedStudentId, planId, t]);
 
   useEffect(() => {
     void load();
@@ -181,7 +182,7 @@ export function AdminWorkoutDetailScreen() {
 
   async function handleAdd() {
     if (!planId || !selectedExerciseId) {
-      setError('Cadastre um exercício no catálogo antes de montar o treino.');
+      setError(t('admin.workoutDetail.registerExerciseFirst'));
       return;
     }
 
@@ -237,7 +238,7 @@ export function AdminWorkoutDetailScreen() {
 
     const targets = focusedStudentId ? [focusedStudentId] : selectedIds;
     if (targets.length === 0) {
-      setError('Escolha o aluno (ou os alunos) que vão receber este treino.');
+      setError(t('admin.workoutDetail.chooseStudents'));
       return;
     }
 
@@ -254,8 +255,10 @@ export function AdminWorkoutDetailScreen() {
         ? [focusedStudent.name]
         : recipientNames.length > 0
           ? recipientNames
-          : ['este aluno'];
-      setNotice(`Publicado para ${formatRecipientSummary(names)}. Só quem foi escolhido vê.`);
+          : [t('admin.studentSpace.thisStudent')];
+      setNotice(
+        t('admin.workoutDetail.publishedFor', { names: formatRecipientSummary(names) }),
+      );
       await load();
     } catch (err) {
       setError(getDataErrorMessage(err));
@@ -279,7 +282,7 @@ export function AdminWorkoutDetailScreen() {
         isPublished: false,
         sortOrder: plan.sortOrder,
       });
-      setNotice('Treino voltou a rascunho. Nenhum aluno vê até você publicar de novo.');
+      setNotice(t('admin.workoutDetail.unpublishedNotice'));
       await load();
     } catch (err) {
       setError(getDataErrorMessage(err));
@@ -345,18 +348,22 @@ export function AdminWorkoutDetailScreen() {
   }
 
   const publishLabel = focusedStudentId
-    ? `Publicar para ${focusedStudent?.name ?? 'este aluno'}`
+    ? t('admin.workoutDetail.publishForName', {
+        name: focusedStudent?.name ?? t('admin.studentSpace.thisStudent'),
+      })
     : selectedIds.length === 0
-      ? 'Escolha o aluno para publicar'
-      : `Publicar para ${formatRecipientSummary(recipientNames)}`;
+      ? t('admin.workoutDetail.chooseStudentToPublish')
+      : t('admin.workoutDetail.publishForName', { name: formatRecipientSummary(recipientNames) });
 
   const scopeLabel = focusedStudentId
-    ? `Ambiente de ${focusedStudent?.name ?? 'este aluno'}. Este treino fica só com este aluno.`
-    : 'Escolha o aluno (ou os alunos). Sem nome marcado, ninguém vê.';
+    ? t('admin.workoutDetail.scopeIndividual', {
+        name: focusedStudent?.name ?? t('admin.studentSpace.thisStudent'),
+      })
+    : t('admin.workoutDetail.scopeGeneric');
 
   return (
     <AdminShell
-      title={plan?.title ?? 'Treino'}
+      title={plan?.title ?? t('workoutDetail.fallbackTitle')}
       subtitle={scopeLabel}
       showBack
       onBack={() =>
@@ -365,7 +372,7 @@ export function AdminWorkoutDetailScreen() {
           : router.back()
       }
     >
-      {isLoading ? <LoadingIndicator fullScreen message="Carregando treino..." /> : null}
+      {isLoading ? <LoadingIndicator fullScreen message={t('admin.workoutDetail.loading')} /> : null}
 
       {!isLoading && error && !plan ? (
         <View className="px-5 pt-4">
@@ -381,31 +388,47 @@ export function AdminWorkoutDetailScreen() {
           {focusedStudentId && grants.length > 1 ? (
             <View className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4">
               <Text className="text-sm font-semibold text-amber-600">
-                Este treino é compartilhado
+                {t('admin.workoutDetail.sharedTitle')}
               </Text>
               <Text className="mt-1 text-sm leading-5 text-amber-700">
-                Além de {focusedStudent?.name ?? 'este aluno'}, mais{' '}
-                {grants.length - 1} {grants.length - 1 === 1 ? 'aluno tem' : 'alunos têm'} este
-                mesmo treino liberado. Qualquer alteração de exercício, série, carga ou descanso
-                vale para todos eles, não só para {focusedStudent?.name ?? 'este aluno'}.
+                {t('admin.workoutDetail.sharedMessage', {
+                  name: focusedStudent?.name ?? t('admin.studentSpace.thisStudent'),
+                  countLabel: t(
+                    grants.length - 1 === 1
+                      ? 'admin.workoutDetail.sharedCountOne'
+                      : 'admin.workoutDetail.sharedCountOther',
+                    { count: String(grants.length - 1) },
+                  ),
+                })}
               </Text>
             </View>
           ) : null}
 
           <View className="rounded-card border border-line bg-surface p-5">
             <Text className="text-xs font-semibold uppercase tracking-[1.6px] text-primary">
-              Para quem vai
+              {t('admin.workoutDetail.whoItGoesTo')}
             </Text>
             <Text className="mt-2 text-sm leading-5 text-muted">
               {focusedStudentId
-                ? `Individual: ${focusedStudent?.name ?? 'este aluno'}`
+                ? t('admin.workoutDetail.individualLabel', {
+                    name: focusedStudent?.name ?? t('admin.studentSpace.thisStudent'),
+                  })
                 : selectedIds.length <= 1
-                  ? `Individual: ${formatRecipientSummary(recipientNames)}`
-                  : `Coletivo: ${formatRecipientSummary(recipientNames)}`}
+                  ? t('admin.workoutDetail.individualLabel', {
+                      name: formatRecipientSummary(recipientNames),
+                    })
+                  : t('admin.workoutDetail.collectiveLabel', {
+                      names: formatRecipientSummary(recipientNames),
+                    })}
             </Text>
             {grants.length > 0 && !focusedStudentId ? (
               <Text className="mt-1 text-xs text-faint">
-                Já liberado hoje para {grants.length} {grants.length === 1 ? 'aluno' : 'alunos'}.
+                {t(
+                  grants.length === 1
+                    ? 'admin.workoutDetail.grantedTodayOne'
+                    : 'admin.workoutDetail.grantedTodayOther',
+                  { count: String(grants.length) },
+                )}
               </Text>
             ) : null}
 
@@ -425,7 +448,9 @@ export function AdminWorkoutDetailScreen() {
                 className="mt-3"
               >
                 <Text className="text-sm font-semibold text-primary">
-                  Voltar ao espaço de {focusedStudent?.name ?? 'este aluno'}
+                  {t('admin.workoutDetail.backToSpace', {
+                    name: focusedStudent?.name ?? t('admin.studentSpace.thisStudent'),
+                  })}
                 </Text>
               </Pressable>
             ) : null}
@@ -440,7 +465,7 @@ export function AdminWorkoutDetailScreen() {
               {plan.isPublished ? (
                 <Button
                   variant="secondary"
-                  label="Voltar para rascunho"
+                  label={t('admin.workoutDetail.backToDraft')}
                   disabled={isPublishing}
                   onPress={() => void handleUnpublish()}
                 />
@@ -458,15 +483,13 @@ export function AdminWorkoutDetailScreen() {
             }
             className="rounded-2xl border border-primary/30 bg-primary/10 px-4 py-3"
           >
-            <Text className="font-semibold text-primary">Abrir catálogo de exercícios / upload</Text>
+            <Text className="font-semibold text-primary">{t('admin.workoutDetail.openCatalog')}</Text>
           </Pressable>
 
           <View className="gap-3 rounded-card border border-line bg-surface p-5">
-            <Text className="font-semibold text-ink">Adicionar exercício</Text>
+            <Text className="font-semibold text-ink">{t('admin.workoutDetail.addExercise')}</Text>
             {catalog.length === 0 ? (
-              <Text className="text-sm text-muted">
-                Cadastre pelo menos um exercício no catálogo para montar esta ficha.
-              </Text>
+              <Text className="text-sm text-muted">{t('admin.workoutDetail.registerFirst')}</Text>
             ) : null}
             <View className="flex-row flex-wrap gap-2">
               {catalog.map((exercise) => (
@@ -490,7 +513,7 @@ export function AdminWorkoutDetailScreen() {
             <View className="flex-row gap-3">
               <View className="flex-1">
                 <TextField
-                  label="Séries"
+                  label={t('admin.workoutDetail.setsLabel')}
                   value={sets}
                   onChangeText={setSets}
                   keyboardType="number-pad"
@@ -499,7 +522,7 @@ export function AdminWorkoutDetailScreen() {
               </View>
               <View className="flex-1">
                 <TextField
-                  label="Reps"
+                  label={t('admin.workoutDetail.repsLabel')}
                   value={reps}
                   onChangeText={setReps}
                   placeholder="8-12"
@@ -510,17 +533,17 @@ export function AdminWorkoutDetailScreen() {
             <View className="flex-row gap-3">
               <View className="flex-1">
                 <TextField
-                  label="Carga (kg)"
+                  label={t('exercise.loadKg')}
                   value={loadKg}
                   onChangeText={setLoadKg}
-                  placeholder="vazio = peso corporal"
+                  placeholder={t('admin.workoutDetail.loadPlaceholder')}
                   keyboardType="decimal-pad"
                   icon="barbell-outline"
                 />
               </View>
               <View className="flex-1">
                 <TextField
-                  label="Descanso (s)"
+                  label={t('admin.workoutDetail.restLabel')}
                   value={rest}
                   onChangeText={setRest}
                   keyboardType="number-pad"
@@ -529,7 +552,7 @@ export function AdminWorkoutDetailScreen() {
               </View>
             </View>
             <Button
-              label="Incluir no treino"
+              label={t('admin.workoutDetail.includeInWorkout')}
               loading={isSaving}
               disabled={catalog.length === 0}
               onPress={() => void handleAdd()}
@@ -538,20 +561,18 @@ export function AdminWorkoutDetailScreen() {
 
           {(plan.exercises ?? []).map((item, index) => {
             const draft = drafts[item.id] ?? EMPTY_DRAFT;
-            const muscleLabel =
-              MUSCLE_GROUP_LABELS[item.exercise?.muscleGroup ?? 'corpo_todo'] ??
-              MUSCLE_GROUP_LABELS.corpo_todo;
+            const muscleLabel = t(`muscleGroups.${item.exercise?.muscleGroup ?? 'corpo_todo'}`);
             return (
               <View key={item.id} className="rounded-card border border-line bg-surface p-4">
                 <Text className="font-semibold text-ink">
-                  {index + 1}. {item.exercise?.name ?? 'Exercício'}
+                  {index + 1}. {item.exercise?.name ?? t('exercise.fallbackTitle')}
                 </Text>
                 <Text className="mt-1 text-xs text-muted">{muscleLabel}</Text>
                 <View className="mt-3 gap-3">
                   <View className="flex-row gap-3">
                     <View className="flex-1">
                       <TextField
-                        label="Séries"
+                        label={t('admin.workoutDetail.setsLabel')}
                         value={draft.sets}
                         onChangeText={(value) => updateDraft(item.id, { sets: value })}
                         keyboardType="number-pad"
@@ -560,7 +581,7 @@ export function AdminWorkoutDetailScreen() {
                     </View>
                     <View className="flex-1">
                       <TextField
-                        label="Reps"
+                        label={t('admin.workoutDetail.repsLabel')}
                         value={draft.reps}
                         onChangeText={(value) => updateDraft(item.id, { reps: value })}
                         icon="repeat-outline"
@@ -570,7 +591,7 @@ export function AdminWorkoutDetailScreen() {
                   <View className="flex-row gap-3">
                     <View className="flex-1">
                       <TextField
-                        label="Carga (kg)"
+                        label={t('exercise.loadKg')}
                         value={draft.loadKg}
                         onChangeText={(value) => updateDraft(item.id, { loadKg: value })}
                         keyboardType="decimal-pad"
@@ -579,7 +600,7 @@ export function AdminWorkoutDetailScreen() {
                     </View>
                     <View className="flex-1">
                       <TextField
-                        label="Descanso (s)"
+                        label={t('admin.workoutDetail.restLabel')}
                         value={draft.rest}
                         onChangeText={(value) => updateDraft(item.id, { rest: value })}
                         keyboardType="number-pad"
@@ -588,17 +609,17 @@ export function AdminWorkoutDetailScreen() {
                     </View>
                   </View>
                   <Button
-                    label="Salvar prescrição"
+                    label={t('admin.workoutDetail.savePrescription')}
                     loading={savingItemId === item.id}
                     onPress={() => void handleSaveItem(item.id)}
                   />
                 </View>
                 <View className="mt-3 flex-row gap-4">
                   <Pressable onPress={() => void moveItem(item.id, -1)}>
-                    <Text className="text-sm text-primary">Subir</Text>
+                    <Text className="text-sm text-primary">{t('admin.workoutDetail.moveUp')}</Text>
                   </Pressable>
                   <Pressable onPress={() => void moveItem(item.id, 1)}>
-                    <Text className="text-sm text-primary">Descer</Text>
+                    <Text className="text-sm text-primary">{t('admin.workoutDetail.moveDown')}</Text>
                   </Pressable>
                   <Pressable
                     onPress={() =>
@@ -607,7 +628,7 @@ export function AdminWorkoutDetailScreen() {
                         .catch((err) => setError(getDataErrorMessage(err)))
                     }
                   >
-                    <Text className="text-sm text-red-500">Remover</Text>
+                    <Text className="text-sm text-red-500">{t('common.remove')}</Text>
                   </Pressable>
                 </View>
               </View>

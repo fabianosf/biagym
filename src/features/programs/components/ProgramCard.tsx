@@ -6,6 +6,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { AppImage, Badge, GradientScrim, ProgressBar } from '@/shared/components/ui';
 import { programDetailPath } from '@/shared/constants/routes';
+import { useT } from '@/shared/theme';
 import { formatProgramDuration } from '@/shared/utils';
 
 type ProgramCardVariant = 'owned' | 'catalog';
@@ -25,6 +26,7 @@ export function ProgramCard({
   variant = 'catalog',
   index = 0,
 }: ProgramCardProps) {
+  const t = useT();
   const percent = progress?.percentComplete ?? 0;
   const categories = 'categories' in program ? program.categories : [];
   const totalLessons = 'totalLessons' in program ? program.totalLessons : 0;
@@ -38,14 +40,20 @@ export function ProgramCard({
         <Pressable
           className="overflow-hidden rounded-card border border-line bg-surface active:opacity-95"
           accessibilityRole="button"
-          accessibilityLabel={`Abrir programa ${program.title}`}
+          accessibilityLabel={t('home.openProgram', { title: program.title })}
         >
           <View className="relative">
             <AppImage uri={program.coverUrl} aspectRatio={16 / 9} className="h-48" />
             <GradientScrim />
             <View className="absolute inset-x-0 bottom-0 p-4">
               <Badge
-                label={isOwned ? 'Meu treino' : hasAccess ? 'Liberado' : 'Catálogo'}
+                label={
+                  isOwned
+                    ? t('home.myWorkoutBadge')
+                    : hasAccess
+                      ? t('program.granted')
+                      : t('home.catalogBadge')
+                }
                 tone={isOwned ? 'primary' : 'neutral'}
               />
               <Text className="mt-3 text-xl font-semibold text-ink">{program.title}</Text>
@@ -55,15 +63,18 @@ export function ProgramCard({
 
           <View className="p-4">
             <View className="flex-row flex-wrap gap-2">
-              <Badge label={program.level} tone="cyan" />
+              <Badge label={t(`programLevels.${program.level}`)} tone="cyan" />
               {categories.slice(0, 2).map((category) => (
                 <Badge key={category.id} label={category.name} />
               ))}
             </View>
 
             <Text className="mt-3 text-sm text-muted">
-              {totalLessons} aulas · {formatProgramDuration(totalDurationSeconds)} ·{' '}
-              {program.durationWeeks} sem.
+              {t('home.programMeta', {
+                lessons: String(totalLessons),
+                duration: formatProgramDuration(totalDurationSeconds),
+                weeks: String(program.durationWeeks),
+              })}
             </Text>
 
             {progress ? (

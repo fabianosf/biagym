@@ -1,4 +1,4 @@
-import { colors } from '@/shared/theme';
+import { colors, useT } from '@/shared/theme';
 import { AdminShell } from '@/features/admin/components';
 import { adminRoutes } from '@/shared/constants/admin-routes';
 import { ErrorState, LoadingIndicator } from '@/shared/components';
@@ -19,6 +19,7 @@ import { Alert, Pressable, RefreshControl, ScrollView, Text, TextInput, View } f
 
 export function AdminProgramDetailScreen() {
   const router = useRouter();
+  const t = useT();
   const params = useLocalSearchParams<{ id?: string | string[] }>();
   const programId = resolveRouteParam(params.id);
 
@@ -32,7 +33,7 @@ export function AdminProgramDetailScreen() {
   const load = useCallback(async (silent = false) => {
     if (!programId) {
       setDetail(null);
-      setError('Identificador do programa inválido.');
+      setError(t('admin.programDetail.invalidId'));
       setIsLoading(false);
       return;
     }
@@ -53,7 +54,7 @@ export function AdminProgramDetailScreen() {
         setIsLoading(false);
       }
     }
-  }, [programId]);
+  }, [programId, t]);
 
   useEffect(() => {
     void load();
@@ -69,7 +70,7 @@ export function AdminProgramDetailScreen() {
       await adminCreateWeek({
         programId,
         weekNumber: nextNumber,
-        title: `Semana ${nextNumber}`,
+        title: t('admin.programDetail.weekNumber', { number: String(nextNumber) }),
       });
       await load();
     } catch (err) {
@@ -102,10 +103,10 @@ export function AdminProgramDetailScreen() {
   }
 
   function confirmDeleteWeek(weekId: string) {
-    Alert.alert('Excluir semana', 'Todas as aulas desta semana serão removidas.', [
-      { text: 'Cancelar', style: 'cancel' },
+    Alert.alert(t('admin.programDetail.deleteWeekTitle'), t('admin.programDetail.deleteWeekMessage'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Excluir',
+        text: t('common.delete'),
         style: 'destructive',
         onPress: () => {
           void (async () => {
@@ -122,10 +123,10 @@ export function AdminProgramDetailScreen() {
   }
 
   function confirmDeleteLesson(lessonId: string) {
-    Alert.alert('Excluir aula', 'Esta ação não pode ser desfeita.', [
-      { text: 'Cancelar', style: 'cancel' },
+    Alert.alert(t('admin.programDetail.deleteLessonTitle'), t('admin.programDetail.deleteLessonMessage'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Excluir',
+        text: t('common.delete'),
         style: 'destructive',
         onPress: () => {
           void (async () => {
@@ -143,12 +144,12 @@ export function AdminProgramDetailScreen() {
 
   return (
     <AdminShell
-      title={detail?.program.title ?? 'Programa'}
-      subtitle="Semanas, aulas e upload de vídeos"
+      title={detail?.program.title ?? t('program.fallbackTitle')}
+      subtitle={t('admin.programDetail.subtitle')}
       showBack
       onBack={() => router.back()}
     >
-      {isLoading ? <LoadingIndicator fullScreen message="Carregando conteúdo..." /> : null}
+      {isLoading ? <LoadingIndicator fullScreen message={t('admin.programDetail.loading')} /> : null}
 
       {!isLoading && error && !detail ? (
         <View className="px-5 pt-4">
@@ -172,12 +173,16 @@ export function AdminProgramDetailScreen() {
               }`}
             >
               <Text className={detail.program.isPublished ? 'text-primary' : 'text-muted'}>
-                {detail.program.isPublished ? 'Publicado' : 'Rascunho'} · toque para alternar
+                {t('admin.programDetail.publishToggle', {
+                  status: detail.program.isPublished
+                    ? t('admin.programForm.published')
+                    : t('admin.programForm.draft'),
+                })}
               </Text>
             </Pressable>
             <Link href={adminRoutes.programEdit(programId)} asChild>
               <Pressable className="rounded-full bg-elevated px-3 py-2">
-                <Text className="text-muted">Editar metadados</Text>
+                <Text className="text-muted">{t('admin.programDetail.editMetadata')}</Text>
               </Pressable>
             </Link>
           </View>
@@ -186,13 +191,11 @@ export function AdminProgramDetailScreen() {
             onPress={() => void handleAddWeek()}
             className="min-h-[52px] items-center justify-center rounded-2xl border border-primary/40"
           >
-            <Text className="font-semibold text-primary">+ Adicionar semana</Text>
+            <Text className="font-semibold text-primary">{t('admin.programDetail.addWeek')}</Text>
           </Pressable>
 
           {detail.weeks.length === 0 ? (
-            <Text className="text-muted">
-              Nenhuma semana cadastrada. Adicione a primeira semana para criar aulas.
-            </Text>
+            <Text className="text-muted">{t('admin.programDetail.noWeeks')}</Text>
           ) : (
             detail.weeks.map(({ week, lessons }) => (
               <View
@@ -206,7 +209,7 @@ export function AdminProgramDetailScreen() {
                         <TextInput
                           value={weekTitleDraft}
                           onChangeText={setWeekTitleDraft}
-                          placeholder={`Semana ${week.weekNumber}`}
+                          placeholder={t('admin.programDetail.weekNumber', { number: String(week.weekNumber) })}
                           placeholderTextColor="#9B9B9B"
                           className="rounded-2xl border border-line bg-elevated px-3 py-2.5 text-ink"
                         />
@@ -215,7 +218,7 @@ export function AdminProgramDetailScreen() {
                             onPress={() => void handleSaveWeekTitle(week.id)}
                             className="rounded-xl bg-primary px-3 py-1.5"
                           >
-                            <Text className="text-xs font-semibold text-background">Salvar</Text>
+                            <Text className="text-xs font-semibold text-background">{t('common.save')}</Text>
                           </Pressable>
                           <Pressable
                             onPress={() => {
@@ -224,7 +227,7 @@ export function AdminProgramDetailScreen() {
                             }}
                             className="rounded-xl bg-elevated px-3 py-1.5"
                           >
-                            <Text className="text-xs text-muted">Cancelar</Text>
+                            <Text className="text-xs text-muted">{t('common.cancel')}</Text>
                           </Pressable>
                         </View>
                       </View>
@@ -236,15 +239,15 @@ export function AdminProgramDetailScreen() {
                         }}
                       >
                         <Text className="font-semibold text-ink">
-                          Semana {week.weekNumber}
+                          {t('admin.programDetail.weekNumber', { number: String(week.weekNumber) })}
                           {week.title ? ` · ${week.title}` : ''}
                         </Text>
-                        <Text className="mt-1 text-xs text-faint">Toque para editar título</Text>
+                        <Text className="mt-1 text-xs text-faint">{t('admin.programDetail.tapToEditTitle')}</Text>
                       </Pressable>
                     )}
                   </View>
                   <Pressable onPress={() => confirmDeleteWeek(week.id)}>
-                    <Text className="text-xs text-red-400">Excluir</Text>
+                    <Text className="text-xs text-red-400">{t('common.delete')}</Text>
                   </Pressable>
                 </View>
 
@@ -257,8 +260,11 @@ export function AdminProgramDetailScreen() {
                       <View className="flex-1">
                         <Text className="font-medium text-ink">{lesson.title}</Text>
                         <Text className="mt-1 text-xs text-muted">
-                          Ordem {lesson.order} · {Math.round(lesson.durationSeconds / 60)} min
-                          {lesson.isFreePreview ? ' · Prévia' : ''}
+                          {t('admin.programDetail.lessonMeta', {
+                            order: String(lesson.order),
+                            minutes: String(Math.round(lesson.durationSeconds / 60)),
+                          })}
+                          {lesson.isFreePreview ? ` · ${t('admin.programDetail.preview')}` : ''}
                         </Text>
                       </View>
                       <Link
@@ -266,18 +272,18 @@ export function AdminProgramDetailScreen() {
                         asChild
                       >
                         <Pressable className="mr-3 rounded-xl bg-elevated px-3 py-1.5">
-                          <Text className="text-xs text-ink">Editar</Text>
+                          <Text className="text-xs text-ink">{t('common.edit')}</Text>
                         </Pressable>
                       </Link>
                       <Pressable onPress={() => confirmDeleteLesson(lesson.id)}>
-                        <Text className="text-xs text-red-400">Excluir</Text>
+                        <Text className="text-xs text-red-400">{t('common.delete')}</Text>
                       </Pressable>
                     </View>
                   ))}
 
                   <Link href={adminRoutes.lessonNew(programId, week.id)} asChild>
                     <Pressable className="items-center rounded-2xl border border-dashed border-line py-3">
-                      <Text className="text-sm text-muted">+ Nova aula</Text>
+                      <Text className="text-sm text-muted">{t('admin.programDetail.newLesson')}</Text>
                     </Pressable>
                   </Link>
                 </View>

@@ -13,34 +13,30 @@ import {
   TextField,
 } from '@/shared/components';
 import { isSupabaseConfigured } from '@/services/supabase';
+import { useT } from '@/shared/theme';
 
 import { useAuth } from '../hooks/useAuth';
 
 export function SignInScreen() {
+  const t = useT();
   const { signIn, requestPasswordReset, isLoading, error, infoMessage, clearError, clearInfoMessage } =
     useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [validationError, setValidationError] = useState<string | null>(null);
+  const [validationError, setValidationError] = useState<
+    { field: 'email' | 'password' | null; message: string } | null
+  >(null);
   const [isResetting, setIsResetting] = useState(false);
 
   const isConfigured = isSupabaseConfigured();
 
-  const fieldErrors = useMemo(() => {
-    if (!validationError) {
-      return { email: null, password: null };
-    }
-
-    if (validationError.includes('e-mail')) {
-      return { email: validationError, password: null };
-    }
-
-    if (validationError.includes('senha')) {
-      return { email: null, password: validationError };
-    }
-
-    return { email: null, password: null };
-  }, [validationError]);
+  const fieldErrors = useMemo(
+    () => ({
+      email: validationError?.field === 'email' ? validationError.message : null,
+      password: validationError?.field === 'password' ? validationError.message : null,
+    }),
+    [validationError],
+  );
 
   async function handleSubmit() {
     clearError();
@@ -48,12 +44,12 @@ export function SignInScreen() {
     setValidationError(null);
 
     if (!email.trim()) {
-      setValidationError('Informe seu e-mail.');
+      setValidationError({ field: 'email', message: t('auth.validationEmailRequired') });
       return;
     }
 
     if (!password) {
-      setValidationError('Informe sua senha.');
+      setValidationError({ field: 'password', message: t('auth.validationPasswordRequired') });
       return;
     }
 
@@ -70,7 +66,7 @@ export function SignInScreen() {
     setValidationError(null);
 
     if (!email.trim()) {
-      setValidationError('Informe seu e-mail para redefinir a senha.');
+      setValidationError({ field: 'email', message: t('auth.validationEmailForReset') });
       return;
     }
 
@@ -100,35 +96,32 @@ export function SignInScreen() {
             <View className="mb-8 items-center">
               <BrandMark size={56} showName={false} />
               <Text className="mt-3 text-center text-base leading-6 text-muted">
-                Treinos, aulas e progresso no seu ritmo.
+                {t('auth.heroTagline')}
               </Text>
             </View>
 
             <Card>
-              <Text className="text-2xl font-semibold text-ink">Entrar</Text>
-              <Text className="mt-1 text-sm text-muted">Acesse programas, aulas e progresso.</Text>
+              <Text className="text-2xl font-semibold text-ink">{t('auth.signInTitle')}</Text>
+              <Text className="mt-1 text-sm text-muted">{t('auth.signInSubtitle')}</Text>
 
               {!isConfigured ? (
                 <View className="mt-4">
-                  <FeedbackBanner
-                    variant="warning"
-                    message="Configure EXPO_PUBLIC_SUPABASE_URL e EXPO_PUBLIC_SUPABASE_ANON_KEY no arquivo .env."
-                  />
+                  <FeedbackBanner variant="warning" message={t('auth.configWarning')} />
                 </View>
               ) : null}
 
               <View className="mt-6 gap-4">
                 <TextField
-                  label="E-mail"
+                  label={t('auth.emailLabel')}
                   value={email}
                   onChangeText={setEmail}
-                  placeholder="seu@email.com"
+                  placeholder={t('auth.emailPlaceholder')}
                   keyboardType="email-address"
                   autoComplete="email"
                   error={fieldErrors.email}
                 />
                 <PasswordField
-                  label="Senha"
+                  label={t('auth.passwordLabel')}
                   value={password}
                   onChangeText={setPassword}
                   autoComplete="password"
@@ -138,7 +131,7 @@ export function SignInScreen() {
 
               {validationError && !fieldErrors.email && !fieldErrors.password ? (
                 <View className="mt-4">
-                  <FeedbackBanner message={validationError} variant="warning" />
+                  <FeedbackBanner message={validationError.message} variant="warning" />
                 </View>
               ) : null}
 
@@ -156,7 +149,7 @@ export function SignInScreen() {
 
               <Button
                 className="mt-6"
-                label={isLoading ? 'Entrando...' : 'Entrar'}
+                label={isLoading ? t('auth.signInButtonLoading') : t('auth.signInButton')}
                 onPress={() => void handleSubmit()}
                 loading={isLoading}
                 disabled={isResetting || !isConfigured}
@@ -168,16 +161,16 @@ export function SignInScreen() {
                 className="mt-3 min-h-[44px] items-center justify-center"
               >
                 <Text className="text-sm font-medium text-muted">
-                  {isResetting ? 'Enviando link...' : 'Esqueci minha senha'}
+                  {isResetting ? t('auth.forgotPasswordSending') : t('auth.forgotPassword')}
                 </Text>
               </Pressable>
             </Card>
 
             <View className="mt-8 flex-row justify-center">
-              <Text className="text-muted">Não tem conta? </Text>
+              <Text className="text-muted">{t('auth.noAccount')}</Text>
               <Link href={routes.signUp} asChild>
                 <Pressable>
-                  <Text className="font-semibold text-primary">Criar conta</Text>
+                  <Text className="font-semibold text-primary">{t('auth.createAccount')}</Text>
                 </Pressable>
               </Link>
             </View>

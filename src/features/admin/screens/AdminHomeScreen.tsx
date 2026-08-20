@@ -9,8 +9,8 @@ export function AdminHomeScreen() {
 
   return (
     <AdminShell
-      title="Painel da treinadora"
-      subtitle="Toque no aluno. Tudo que você fizer a partir daqui é só dele."
+      title={t('admin.dashboard.title')}
+      subtitle={t('admin.home.subtitle')}
       showBack
       onBack={() => router.back()}
     >

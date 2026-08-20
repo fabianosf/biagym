@@ -1,4 +1,5 @@
 import { parseSessionLoadKg } from '@/features/workouts/utils/format';
+import { useT } from '@/shared/theme';
 import { useEffect, useState } from 'react';
 import {
   KeyboardAvoidingView,
@@ -18,6 +19,7 @@ type LoadEditorModalProps = {
 };
 
 export function LoadEditorModal({ visible, currentLoadKg, onClose, onSave }: LoadEditorModalProps) {
+  const t = useT();
   const [draft, setDraft] = useState(String(currentLoadKg));
   const [error, setError] = useState<string | null>(null);
 
@@ -31,7 +33,7 @@ export function LoadEditorModal({ visible, currentLoadKg, onClose, onSave }: Loa
   function handleSave() {
     const parsed = parseSessionLoadKg(draft);
     if (parsed == null) {
-      setError('Informe um número válido (ex.: 40 ou 12,5).');
+      setError(t('exercise.loadInvalid'));
       return;
     }
 
@@ -45,13 +47,11 @@ export function LoadEditorModal({ visible, currentLoadKg, onClose, onSave }: Loa
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         className="flex-1 justify-end bg-black/70"
       >
-        <Pressable className="flex-1" onPress={onClose} accessibilityLabel="Fechar" />
+        <Pressable className="flex-1" onPress={onClose} accessibilityLabel={t('common.close')} />
         <View className="rounded-t-3xl bg-gymCard px-5 pb-8 pt-5">
           <View className="mb-4 h-1 w-10 self-center rounded-full bg-white/20" />
-          <Text className="text-lg font-bold text-white">Carga (kg)</Text>
-          <Text className="mt-1 text-sm text-gymMuted">
-            Vale só nesta execução. A ficha da treinadora continua igual.
-          </Text>
+          <Text className="text-lg font-bold text-white">{t('exercise.loadKg')}</Text>
+          <Text className="mt-1 text-sm text-gymMuted">{t('exercise.loadHint')}</Text>
           <TextInput
             value={draft}
             onChangeText={(value) => {
@@ -70,13 +70,13 @@ export function LoadEditorModal({ visible, currentLoadKg, onClose, onSave }: Loa
               onPress={onClose}
               className="h-12 flex-1 items-center justify-center rounded-full border border-white/15"
             >
-              <Text className="font-semibold text-white">Cancelar</Text>
+              <Text className="font-semibold text-white">{t('common.cancel')}</Text>
             </Pressable>
             <Pressable
               onPress={handleSave}
               className="h-12 flex-1 items-center justify-center rounded-full bg-gymAccent"
             >
-              <Text className="font-bold text-gymOnAccent">Salvar</Text>
+              <Text className="font-bold text-gymOnAccent">{t('common.save')}</Text>
             </Pressable>
           </View>
         </View>

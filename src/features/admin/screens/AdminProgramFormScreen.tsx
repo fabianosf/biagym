@@ -5,6 +5,7 @@ import {
 } from '@/features/admin/components';
 import { adminRoutes } from '@/shared/constants/admin-routes';
 import { Button, ErrorState, LoadingIndicator } from '@/shared/components';
+import { useT } from '@/shared/theme';
 import { resolveRouteParam, slugify } from '@/shared/utils';
 import {
   adminCreateProgram,
@@ -34,6 +35,7 @@ const EMPTY_FORM: ProgramFormValues = {
 
 export function AdminProgramFormScreen() {
   const router = useRouter();
+  const t = useT();
   const params = useLocalSearchParams<{ id?: string | string[] }>();
   const id = resolveRouteParam(params.id);
   const isEditing = Boolean(id);
@@ -58,7 +60,7 @@ export function AdminProgramFormScreen() {
 
       const detail = await getAdminProgramDetail(id);
       if (!detail) {
-        setError('Programa não encontrado.');
+        setError(t('program.notFoundTitle'));
         return;
       }
 
@@ -78,7 +80,7 @@ export function AdminProgramFormScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [id]);
+  }, [id, t]);
 
   useEffect(() => {
     void load();
@@ -91,7 +93,7 @@ export function AdminProgramFormScreen() {
 
     const durationWeeks = Number.parseInt(values.durationWeeks, 10);
     if (!values.title.trim() || !values.slug.trim() || Number.isNaN(durationWeeks)) {
-      setError('Preencha título, slug e duração válida.');
+      setError(t('admin.programFormScreen.validationError'));
       setIsSaving(false);
       return;
     }
@@ -111,9 +113,9 @@ export function AdminProgramFormScreen() {
             isPublished: values.isPublished,
           }),
           DATA_FETCH_TIMEOUT_MS,
-          'Não foi possível salvar agora. Tente de novo.',
+          t('admin.programFormScreen.saveFailed'),
         );
-        setSuccess('Programa atualizado.');
+        setSuccess(t('admin.programFormScreen.updateSuccess'));
       } else {
         const created = await withTimeout(
           adminCreateProgram({
@@ -128,7 +130,7 @@ export function AdminProgramFormScreen() {
             isPublished: values.isPublished,
           }),
           DATA_FETCH_TIMEOUT_MS,
-          'O programa demorou demais para ser criado. Tente de novo.',
+          t('admin.programFormScreen.createTimeout'),
         );
         router.replace(adminRoutes.programDetail(created.id));
         return;
@@ -142,12 +144,12 @@ export function AdminProgramFormScreen() {
 
   return (
     <AdminShell
-      title={isEditing ? 'Editar programa de treino' : 'Novo programa de treino'}
-      subtitle="Metadados, categorias e publicação"
+      title={isEditing ? t('admin.programFormScreen.editTitle') : t('admin.programFormScreen.newTitle')}
+      subtitle={t('admin.programFormScreen.subtitle')}
       showBack
       onBack={() => router.back()}
     >
-      {isLoading ? <LoadingIndicator fullScreen message="Carregando formulário..." /> : null}
+      {isLoading ? <LoadingIndicator fullScreen message={t('admin.programFormScreen.loading')} /> : null}
 
       {!isLoading && error && !values.title ? (
         <View className="px-5 pt-4">
@@ -178,14 +180,14 @@ export function AdminProgramFormScreen() {
             disabled={isSaving}
             loading={isSaving}
             onPress={() => void handleSave()}
-            label={isEditing ? 'Salvar alterações' : 'Criar programa'}
+            label={isEditing ? t('admin.schedule.saveChanges') : t('admin.programFormScreen.createProgram')}
           />
 
           {isEditing && id ? (
             <Button
               variant="secondary"
               onPress={() => router.push(adminRoutes.programDetail(id))}
-              label="Gerenciar semanas e aulas"
+              label={t('admin.programFormScreen.manageWeeksAndLessons')}
             />
           ) : null}
         </ScrollView>

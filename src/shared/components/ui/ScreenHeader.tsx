@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useThemeColors } from '@/shared/theme';
+import { useT, useThemeColors } from '@/shared/theme';
 
 type ScreenHeaderProps = {
   title: string;
@@ -20,6 +20,7 @@ export function ScreenHeader({
   onBack,
 }: ScreenHeaderProps) {
   const insets = useSafeAreaInsets();
+  const t = useT();
   const colors = useThemeColors();
 
   return (
@@ -30,7 +31,7 @@ export function ScreenHeader({
             onPress={onBack}
             className="mr-3 h-11 w-11 items-center justify-center rounded-full border border-line bg-elevated"
             accessibilityRole="button"
-            accessibilityLabel="Voltar"
+            accessibilityLabel={t('workoutDetail.back')}
           >
               <Ionicons name="chevron-back" size={22} color={colors.ink} />
           </Pressable>

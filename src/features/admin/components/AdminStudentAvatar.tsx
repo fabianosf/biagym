@@ -1,4 +1,5 @@
 import type { StudentProfile } from '@/domain/student';
+import { useT } from '@/shared/theme';
 import { getNameInitials } from '@/shared/utils/person-name';
 import { Image, Text, View } from 'react-native';
 
@@ -8,6 +9,7 @@ type AdminStudentAvatarProps = {
 };
 
 export function AdminStudentAvatar({ student, size = 48 }: AdminStudentAvatarProps) {
+  const t = useT();
   const initials = getNameInitials(student.name);
 
   if (student.avatarUrl) {
@@ -15,7 +17,7 @@ export function AdminStudentAvatar({ student, size = 48 }: AdminStudentAvatarPro
       <Image
         source={{ uri: student.avatarUrl }}
         style={{ width: size, height: size, borderRadius: size / 2 }}
-        accessibilityLabel={`Foto de ${student.name}`}
+        accessibilityLabel={t('profile.avatarOf', { name: student.name })}
       />
     );
   }

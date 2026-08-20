@@ -6,6 +6,7 @@ import {
   formatPrescriptionLine,
   formatRestClock,
 } from '@/features/workouts/utils/format';
+import { useT } from '@/shared/theme';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import { memo, useEffect, useState } from 'react';
@@ -30,6 +31,7 @@ function ExerciseRunCardComponent({
   onPress,
   onToggleDone,
 }: ExerciseRunCardProps) {
+  const t = useT();
   const [remaining, setRemaining] = useState<number | null>(null);
   const isRestRunning = remaining != null;
   const restDisplay = formatRestClock(remaining ?? item.restSeconds);
@@ -90,7 +92,7 @@ function ExerciseRunCardComponent({
           }`}
           accessibilityRole="checkbox"
           accessibilityState={{ checked: done }}
-          accessibilityLabel={done ? 'Desmarcar exercício' : 'Marcar exercício como concluído'}
+          accessibilityLabel={done ? t('exercise.uncheck') : t('exercise.checkDone')}
         >
           {done ? <Ionicons name="checkmark" size={16} color="#111111" /> : null}
         </Pressable>
@@ -109,7 +111,7 @@ function ExerciseRunCardComponent({
 
         <View className="min-w-0 flex-1 pr-2">
           <Text className="text-base font-bold text-white" numberOfLines={1}>
-            {item.exercise?.name ?? 'Exercício'}
+            {item.exercise?.name ?? t('exercise.fallbackTitle')}
           </Text>
           <Text className="mt-1 text-sm text-gymMuted" numberOfLines={1}>
             {formatPrescriptionLine(item.sets ?? 3, item.reps ?? '12', displayLoadKg)}
@@ -122,13 +124,13 @@ function ExerciseRunCardComponent({
       <View className="flex-row items-center border-t border-white/10 px-4 py-3">
         <View className="flex-1">
           <Text className="text-base font-semibold text-white">{restDisplay}</Text>
-          <Text className="text-[12px] text-gymMuted">(Descanso entre séries)</Text>
+          <Text className="text-[12px] text-gymMuted">{t('exercise.restBetweenSets')}</Text>
         </View>
         <Pressable
           onPress={handleRestPlay}
           className="h-9 w-9 items-center justify-center"
           accessibilityRole="button"
-          accessibilityLabel={isRestRunning ? 'Parar descanso' : 'Iniciar descanso'}
+          accessibilityLabel={isRestRunning ? t('exercise.stopRest') : t('exercise.startRest')}
         >
           <Ionicons name={isRestRunning ? 'pause' : 'play'} size={18} color="#FFFFFF" />
         </Pressable>

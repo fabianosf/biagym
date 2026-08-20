@@ -1,6 +1,7 @@
 import { useAuth } from '@/features/auth';
 import { getFriendlyErrorMessage } from '@/shared/errors';
 import { isExpoGo } from '@/shared/runtime/expo-go';
+import { useT } from '@/shared/theme';
 import {
   DATA_FETCH_TIMEOUT_MS,
   disablePushNotifications,
@@ -34,6 +35,7 @@ const DEFAULT_PREFERENCES: NotificationPreferences = {
 };
 
 export function useNotificationPreferences() {
+  const t = useT();
   const { user, isInitialized } = useAuth();
   const [state, setState] = useState<NotificationPreferencesState>({
     preferences: DEFAULT_PREFERENCES,
@@ -74,7 +76,7 @@ export function useNotificationPreferences() {
       const [preferences, permission] = await withTimeout(
         Promise.all([getNotificationPreferences(user.id), getDevicePushPermissionStatus()]),
         DATA_FETCH_TIMEOUT_MS,
-        'As preferências de notificação demoraram demais. Tente novamente.',
+        t('notifications.loadTimeout'),
       );
 
       if (requestId !== requestIdRef.current) {
@@ -98,7 +100,7 @@ export function useNotificationPreferences() {
         error: getFriendlyErrorMessage(error),
       }));
     }
-  }, [isInitialized, user]);
+  }, [isInitialized, user, t]);
 
   useEffect(() => {
     void load();
@@ -144,7 +146,7 @@ export function useNotificationPreferences() {
         preferences,
         permissionStatus: permission,
         isSaving: false,
-        success: 'Notificações ativadas.',
+        success: t('notifications.enabledSuccess'),
       }));
     } catch (error) {
       setState((current) => ({
@@ -153,7 +155,7 @@ export function useNotificationPreferences() {
         error: getFriendlyErrorMessage(error),
       }));
     }
-  }, [user]);
+  }, [user, t]);
 
   const disableNotifications = useCallback(async () => {
     if (!user) {
@@ -173,7 +175,7 @@ export function useNotificationPreferences() {
         ...current,
         preferences,
         isSaving: false,
-        success: 'Notificações desativadas.',
+        success: t('notifications.disabledSuccess'),
       }));
     } catch (error) {
       setState((current) => ({
@@ -182,7 +184,7 @@ export function useNotificationPreferences() {
         error: getFriendlyErrorMessage(error),
       }));
     }
-  }, [user]);
+  }, [user, t]);
 
   const toggleNotifications = useCallback(
     async (nextEnabled: boolean) => {
@@ -213,7 +215,7 @@ export function useNotificationPreferences() {
       setState((current) => ({
         ...current,
         isSendingTest: false,
-        success: 'Notificação de teste enviada.',
+        success: t('notifications.testSentSuccess'),
       }));
     } catch (error) {
       setState((current) => ({
@@ -222,7 +224,7 @@ export function useNotificationPreferences() {
         error: getFriendlyErrorMessage(error),
       }));
     }
-  }, [user]);
+  }, [user, t]);
 
   return {
     ...state,

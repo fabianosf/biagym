@@ -1,10 +1,11 @@
-import { colors } from '@/shared/theme';
+import { colors, useT } from '@/shared/theme';
 import { useNotificationPreferences } from '@/features/notifications/hooks/useNotificationPreferences';
 import { getExpoGoPushLimitationMessage } from '@/services/notifications/push-notification.runtime';
 import { Button, Card, FeedbackBanner } from '@/shared/components';
 import { ActivityIndicator, Switch, Text, View } from 'react-native';
 
 export function NotificationSettingsCard() {
+  const t = useT();
   const {
     preferences,
     permissionStatus,
@@ -20,10 +21,8 @@ export function NotificationSettingsCard() {
 
   return (
     <Card>
-      <Text className="text-lg font-semibold text-ink">Notificações</Text>
-      <Text className="mt-1 text-sm text-muted">
-        Lembretes de treino, novos programas e aulas liberadas.
-      </Text>
+      <Text className="text-lg font-semibold text-ink">{t('notifications.title')}</Text>
+      <Text className="mt-1 text-sm text-muted">{t('notifications.subtitle')}</Text>
 
       {isPushLimitedInRuntime ? (
         <View className="mt-4">
@@ -39,10 +38,8 @@ export function NotificationSettingsCard() {
         <>
           <View className="mt-5 flex-row items-center justify-between">
             <View className="flex-1 pr-4">
-              <Text className="font-medium text-ink">Ativar notificações</Text>
-              <Text className="mt-1 text-xs leading-5 text-faint">
-                Você controla quando receber alertas. Sem spam no primeiro acesso.
-              </Text>
+              <Text className="font-medium text-ink">{t('notifications.enable')}</Text>
+              <Text className="mt-1 text-xs leading-5 text-faint">{t('notifications.enableHint')}</Text>
             </View>
             <Switch
               value={preferences.enabled}
@@ -55,7 +52,7 @@ export function NotificationSettingsCard() {
 
           {permissionStatus !== 'granted' && preferences.enabled ? (
             <Text className="mt-3 text-xs text-amber-200">
-              Permissão do sistema: {permissionStatus}. Verifique Ajustes do dispositivo.
+              {t('notifications.systemPermission', { status: permissionStatus })}
             </Text>
           ) : null}
 
@@ -63,7 +60,7 @@ export function NotificationSettingsCard() {
             <Button
               className="mt-4"
               variant="secondary"
-              label="Enviar notificação de teste"
+              label={t('notifications.sendTest')}
               onPress={() => void sendTestNotification()}
               loading={isSendingTest}
             />

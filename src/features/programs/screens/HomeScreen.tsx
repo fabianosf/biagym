@@ -1,4 +1,4 @@
-import { colors } from '@/shared/theme';
+import { colors, useT } from '@/shared/theme';
 import { BrandHeader, ContinueWatchBar, ProgramCarousel } from '@/features/programs/components';
 import { useCatalog } from '@/features/programs/hooks';
 import { OfflineBanner } from '@/features/offline';
@@ -10,6 +10,7 @@ import { useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, Text, View } from 'react-native';
 
 export function HomeScreen() {
+  const t = useT();
   const { user } = useAuth();
   const {
     catalog,
@@ -56,14 +57,14 @@ export function HomeScreen() {
     <View className="flex-1 bg-background">
       <BrandHeader />
       <View className="px-5 pb-2">
-        <Text className="text-[28px] font-bold text-ink">{formatHelloGreeting(user?.name)}</Text>
+        <Text className="text-[28px] font-bold text-ink">{formatHelloGreeting(t, user?.name)}</Text>
         {getGivenAndFamilyName(user?.name) ? null : (
-          <Text className="mt-1 text-sm text-muted">Pronto para treinar?</Text>
+          <Text className="mt-1 text-sm text-muted">{t('home.readyToTrain')}</Text>
         )}
       </View>
       <OfflineBanner />
 
-      {isLoading ? <LoadingIndicator fullScreen message="Carregando programas..." /> : null}
+      {isLoading ? <LoadingIndicator fullScreen message={t('home.loadingPrograms')} /> : null}
 
       {!isLoading && error ? (
         <View className="flex-1 px-5 pt-2">
@@ -89,7 +90,7 @@ export function HomeScreen() {
               program={continueItem}
               progress={continueProgress}
               lessonId={continueProgress.lastLessonId ?? continueProgress.completedLessonIds[0] ?? ''}
-              lessonTitle="Retomar aula"
+              lessonTitle={t('home.resumeLesson')}
               onDismiss={() => setDismissedContinue(true)}
             />
           ) : null}
@@ -98,8 +99,8 @@ export function HomeScreen() {
             <View className="px-5">
               <EmptyState
                 icon="barbell-outline"
-                title="Nada por aqui ainda"
-                description="Seus programas aparecem nesta tela. Os Treinos A, B e C ficam na aba Treinos, depois que a treinadora liberar o seu."
+                title={t('home.emptyTitle')}
+                description={t('home.emptyDescription')}
               />
             </View>
           ) : null}
@@ -110,15 +111,15 @@ export function HomeScreen() {
           </View>
 
           <ProgramCarousel
-            title="Programas iniciados"
-            subtitle="Aqueles em que você já fez uma ou mais aulas"
+            title={t('home.startedPrograms')}
+            subtitle={t('home.startedProgramsSubtitle')}
             programs={startedPrograms}
             progressByProgramId={progressByProgramId}
           />
 
           <ProgramCarousel
-            title="Meus itens"
-            subtitle="Programas com acesso liberado"
+            title={t('home.myItems')}
+            subtitle={t('home.myItemsSubtitle')}
             programs={myItems}
             progressByProgramId={progressByProgramId}
           />

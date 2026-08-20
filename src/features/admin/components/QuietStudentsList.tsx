@@ -2,28 +2,32 @@ import { AdminStudentAvatar } from '@/features/admin/components/AdminStudentAvat
 import { getStudentFirstName } from '@/features/admin/utils/student-label';
 import type { StudentActivity } from '@/features/admin/hooks/useAdminOverview';
 import { adminRoutes } from '@/shared/constants/admin-routes';
-import { useThemeColors } from '@/shared/theme';
+import { useT, useThemeColors } from '@/shared/theme';
 import { formatRelativeAccessDate } from '@/shared/utils';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter, type Href } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
 
 type Props = {
-  title?: string;
+  title: string;
   items: StudentActivity[];
   limit?: number;
   /** 'relative' mostra "desde 12 mar", 'days' mostra "12 dias sem treinar". */
   variant?: 'relative' | 'days';
 };
 
-function formatDaysSince(iso: string) {
-  const days = Math.floor((Date.now() - new Date(iso).getTime()) / (24 * 60 * 60 * 1000));
-  return `${days} ${days === 1 ? 'dia' : 'dias'} sem treinar`;
-}
-
-export function QuietStudentsList({ title = 'Sumindo', items, limit = 5, variant = 'relative' }: Props) {
+export function QuietStudentsList({ title, items, limit = 5, variant = 'relative' }: Props) {
   const router = useRouter();
+  const t = useT();
   const colors = useThemeColors();
+
+  function formatDaysSince(iso: string) {
+    const days = Math.floor((Date.now() - new Date(iso).getTime()) / (24 * 60 * 60 * 1000));
+    return t(days === 1 ? 'admin.dashboard.daysSinceOne' : 'admin.dashboard.daysSinceOther', {
+      days: String(days),
+    });
+  }
+
   const list = items.slice(0, limit);
 
   if (list.length === 0) {
@@ -48,8 +52,8 @@ export function QuietStudentsList({ title = 'Sumindo', items, limit = 5, variant
               {lastActivity
                 ? variant === 'days'
                   ? formatDaysSince(lastActivity)
-                  : `desde ${formatRelativeAccessDate(lastActivity)}`
-                : 'nunca treinou'}
+                  : t('admin.dashboard.sinceDate', { date: formatRelativeAccessDate(lastActivity) })
+                : t('admin.dashboard.neverTrained')}
             </Text>
           </View>
           <Ionicons name="chevron-forward" size={16} color={colors.faint} />

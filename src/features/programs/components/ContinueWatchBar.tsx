@@ -2,6 +2,7 @@ import type { ProgramSummary } from '@/domain';
 import type { UserProgress } from '@/domain/progress';
 import { AppImage } from '@/shared/components';
 import { programDetailPath, programLessonPath } from '@/shared/constants/routes';
+import { useT } from '@/shared/theme';
 import { programCoverSource } from '@/shared/utils';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
@@ -23,6 +24,7 @@ export function ContinueWatchBar({
   onDismiss,
 }: ContinueWatchBarProps) {
   const router = useRouter();
+  const t = useT();
 
   return (
     <Pressable
@@ -48,12 +50,12 @@ export function ContinueWatchBar({
           </View>
         </View>
         <View className="flex-1 pr-2">
-          <Text className="text-[13px] font-semibold text-white">Continuar de onde parou</Text>
+          <Text className="text-[13px] font-semibold text-white">{t('home.continueWatching')}</Text>
           <Text numberOfLines={1} className="mt-0.5 text-xs text-white/90">
             {program.title} · {lessonTitle}
           </Text>
           <Text className="mt-0.5 text-[11px] text-white/75">
-            {Math.round(progress.percentComplete)}% concluído
+            {t('home.percentComplete', { percent: String(Math.round(progress.percentComplete)) })}
           </Text>
         </View>
         {onDismiss ? (

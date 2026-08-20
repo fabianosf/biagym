@@ -1,4 +1,4 @@
-import { colors } from '@/shared/theme';
+import { colors, useT } from '@/shared/theme';
 import { GymScreen, WorkoutCard } from '@/features/workouts/components';
 import type { TrainingPlanSummary } from '@/domain/workout';
 import { DATA_FETCH_TIMEOUT_MS, getDataErrorMessage, listTrainingPlans, withTimeout } from '@/services';
@@ -11,6 +11,7 @@ import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, View } 
 
 export function WorkoutListScreen() {
   const router = useRouter();
+  const t = useT();
   const [plans, setPlans] = useState<TrainingPlanSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -29,7 +30,7 @@ export function WorkoutListScreen() {
       const data = await withTimeout(
         listTrainingPlans({ publishedOnly: true }),
         DATA_FETCH_TIMEOUT_MS,
-        'Os treinos demoraram demais para carregar. Tente novamente.',
+        t('workouts.loadTimeout'),
       );
       setPlans(data);
     } catch (err) {
@@ -53,16 +54,14 @@ export function WorkoutListScreen() {
         <Text className="text-xs font-bold uppercase tracking-[1.8px] text-primary">
           {APP_NAME}
         </Text>
-        <Text className="mt-2 text-[32px] font-bold text-white">Meus Treinos</Text>
-        <Text className="mt-1 text-sm text-gymMuted">
-          Treinos liberados para você. Toque para executar.
-        </Text>
+        <Text className="mt-2 text-[32px] font-bold text-white">{t('workouts.myWorkouts')}</Text>
+        <Text className="mt-1 text-sm text-gymMuted">{t('workouts.listSubtitle')}</Text>
       </View>
 
       {isLoading ? (
         <View className="flex-1 items-center justify-center px-5">
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text className="mt-4 text-sm text-gymMuted">Carregando treinos...</Text>
+          <Text className="mt-4 text-sm text-gymMuted">{t('workouts.loading')}</Text>
         </View>
       ) : (
         <ScrollView
@@ -80,7 +79,7 @@ export function WorkoutListScreen() {
             <View className="rounded-3xl border border-red-500/30 bg-red-500/10 p-5">
               <Text className="text-sm leading-5 text-red-300">{error}</Text>
               <Pressable className="mt-3" onPress={() => void load(false)}>
-                <Text className="text-sm font-semibold text-primary">Tentar novamente</Text>
+                <Text className="text-sm font-semibold text-primary">{t('workouts.tryAgain')}</Text>
               </Pressable>
             </View>
           ) : null}
@@ -89,8 +88,8 @@ export function WorkoutListScreen() {
             <EmptyState
               tone="dark"
               icon="barbell-outline"
-              title="Nenhum treino liberado ainda"
-              description="Quando a treinadora liberar o Treino A, B ou C para você, ele aparece aqui. Puxe a tela para baixo para atualizar."
+              title={t('workouts.emptyTitle')}
+              description={t('workouts.emptyDescription')}
             />
           ) : null}
 
@@ -101,14 +100,14 @@ export function WorkoutListScreen() {
                   plan={plan}
                   onPress={() => {
                     if (!plan.id) {
-                      setError('Este treino está incompleto. Avise a treinadora.');
+                      setError(t('workouts.incompletePlan'));
                       return;
                     }
 
                     try {
                       router.push(`/workouts/${plan.id}` as Href);
                     } catch {
-                      setError('Não foi possível abrir este treino. Tente de novo.');
+                      setError(t('workouts.openFailed'));
                     }
                   }}
                 />

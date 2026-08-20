@@ -1,4 +1,5 @@
 import type { StudentProfile } from '@/domain/student';
+import { useT } from '@/shared/theme';
 import { Pressable, Text, View } from 'react-native';
 
 type AdminRecipientPickerProps = {
@@ -14,15 +15,12 @@ export function AdminRecipientPicker({
   lockedIds = [],
   onToggle,
 }: AdminRecipientPickerProps) {
+  const t = useT();
   const selected = new Set(selectedIds);
   const locked = new Set(lockedIds);
 
   if (students.length === 0) {
-    return (
-      <Text className="text-sm text-muted">
-        Nenhum aluno cadastrado ainda. Cadastre um aluno antes de publicar o treino.
-      </Text>
-    );
+    return <Text className="text-sm text-muted">{t('admin.recipientPicker.noStudents')}</Text>;
   }
 
   return (
@@ -44,12 +42,12 @@ export function AdminRecipientPicker({
             }`}
             accessibilityRole="checkbox"
             accessibilityState={{ checked: isOn }}
-            accessibilityLabel={`Enviar treino para ${student.name}`}
+            accessibilityLabel={t('admin.recipientPicker.sendTo', { name: student.name })}
           >
             <Text className="font-medium text-ink">{student.name}</Text>
             <Text className="text-xs text-muted">{student.email}</Text>
             {isLocked ? (
-              <Text className="mt-1 text-xs text-primary">Ambiente deste aluno</Text>
+              <Text className="mt-1 text-xs text-primary">{t('admin.recipientPicker.thisStudentSpace')}</Text>
             ) : null}
           </Pressable>
         );

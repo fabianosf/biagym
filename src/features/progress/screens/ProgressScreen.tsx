@@ -1,4 +1,4 @@
-import { colors } from '@/shared/theme';
+import { colors, useT } from '@/shared/theme';
 import { AcademyWorkoutsSection, CoachingPlanSection, CompletionHistorySection, ProgressProgramCard } from '@/features/progress/components';
 import { useStudentProgress } from '@/features/progress/hooks';
 import { OfflineBanner, SyncStatusBanner } from '@/features/offline';
@@ -15,6 +15,7 @@ import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native'
 
 export function ProgressScreen() {
   const router = useRouter();
+  const t = useT();
   const { items, isLoading, isRefreshing, error, refetch } = useStudentProgress();
   const { runSync } = useOfflineSync();
 
@@ -23,14 +24,11 @@ export function ProgressScreen() {
 
   return (
     <View className="flex-1 bg-background">
-      <ScreenHeader
-        title="Meu Plano"
-        subtitle="Veja o que está em andamento e o que já foi concluído."
-      />
+      <ScreenHeader title={t('tabs.progress')} subtitle={t('progress.subtitle')} />
       <OfflineBanner />
       <SyncStatusBanner onRetry={() => void runSync()} />
 
-      {isLoading ? <LoadingIndicator fullScreen message="Carregando progresso..." /> : null}
+      {isLoading ? <LoadingIndicator fullScreen message={t('progress.loading')} /> : null}
 
       {!isLoading && error ? (
         <View className="flex-1 px-5 pt-2">
@@ -53,15 +51,15 @@ export function ProgressScreen() {
         >
           {items.length > 0 ? (
             <View className="mb-2 flex-row gap-3">
-              <StatCard value={inProgressCount} label="Em andamento" />
-              <StatCard value={completedCount} label="Concluídos" accent />
+              <StatCard value={inProgressCount} label={t('progress.inProgress')} />
+              <StatCard value={completedCount} label={t('progress.completed')} accent />
             </View>
           ) : null}
 
           {!isLoading && !error && items.length === 0 ? (
             <EmptyState
-              title="Nenhum progresso ainda"
-              description="Quando você assistir e concluir aulas de um programa, o histórico aparece aqui. Os treinos da academia ficam na aba Treinos."
+              title={t('progress.emptyTitle')}
+              description={t('progress.emptyDescription')}
             />
           ) : (
             items.map((item) => <ProgressProgramCard key={item.program.id} item={item} />)
@@ -72,15 +70,15 @@ export function ProgressScreen() {
               onPress={() => router.push('/evolution' as Href)}
               className="flex-1 rounded-card border border-line bg-surface px-4 py-4"
             >
-              <Text className="font-semibold text-ink">Evolução</Text>
-              <Text className="mt-1 text-xs text-muted">Peso e fotos</Text>
+              <Text className="font-semibold text-ink">{t('progress.evolution')}</Text>
+              <Text className="mt-1 text-xs text-muted">{t('progress.evolutionSubtitle')}</Text>
             </Pressable>
             <Pressable
               onPress={() => router.push('/messages' as Href)}
               className="flex-1 rounded-card border border-line bg-surface px-4 py-4"
             >
-              <Text className="font-semibold text-ink">Recados</Text>
-              <Text className="mt-1 text-xs text-muted">Fale com a treinadora</Text>
+              <Text className="font-semibold text-ink">{t('progress.notes')}</Text>
+              <Text className="mt-1 text-xs text-muted">{t('progress.notesSubtitle')}</Text>
             </Pressable>
           </View>
 

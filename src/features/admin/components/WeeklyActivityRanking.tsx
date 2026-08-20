@@ -2,7 +2,7 @@ import { AdminStudentAvatar } from '@/features/admin/components/AdminStudentAvat
 import { getStudentFirstName } from '@/features/admin/utils/student-label';
 import type { RankedStudent } from '@/features/admin/hooks/useAdminOverview';
 import { adminRoutes } from '@/shared/constants/admin-routes';
-import { useThemeColors } from '@/shared/theme';
+import { useT, useThemeColors } from '@/shared/theme';
 import { useRouter, type Href } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
 
@@ -14,6 +14,7 @@ const RANK_STYLES = [
 
 export function WeeklyActivityRanking({ items }: { items: RankedStudent[] }) {
   const router = useRouter();
+  const t = useT();
   const colors = useThemeColors();
 
   if (items.length === 0) {
@@ -23,7 +24,7 @@ export function WeeklyActivityRanking({ items }: { items: RankedStudent[] }) {
   return (
     <View className="gap-2">
       <Text className="text-xs font-semibold uppercase tracking-[1.6px] text-primary">
-        Mais ativos essa semana
+        {t('admin.dashboard.mostActiveThisWeek')}
       </Text>
       {items.map(({ student, sessionCount }, index) => {
         const rankStyle = RANK_STYLES[index];
@@ -54,7 +55,12 @@ export function WeeklyActivityRanking({ items }: { items: RankedStudent[] }) {
               {getStudentFirstName(student.name)}
             </Text>
             <Text className="text-xs font-bold text-primary">
-              {sessionCount} {sessionCount === 1 ? 'treino' : 'treinos'}
+              {t(
+                sessionCount === 1
+                  ? 'admin.dashboard.workoutCountOne'
+                  : 'admin.dashboard.workoutCountOther',
+                { count: String(sessionCount) },
+              )}
             </Text>
           </Pressable>
         );

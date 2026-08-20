@@ -1,3 +1,4 @@
+import { useT } from '@/shared/theme';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, Text, View } from 'react-native';
 
@@ -14,6 +15,7 @@ export function PrescriptionStatCard({
   editable = false,
   onPress,
 }: PrescriptionStatCardProps) {
+  const t = useT();
   const card = (
     <View className="min-h-[92px] flex-1 rounded-2xl bg-gymCard px-4 py-4">
       {editable ? (
@@ -37,7 +39,7 @@ export function PrescriptionStatCard({
       className="flex-1"
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`Editar ${label}`}
+      accessibilityLabel={t('workouts.editField', { label })}
     >
       {card}
     </Pressable>

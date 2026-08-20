@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 
-import { useThemeColors } from '@/shared/theme';
+import { useT, useThemeColors } from '@/shared/theme';
 
 type PasswordFieldProps = {
   label: string;
@@ -23,6 +23,7 @@ export function PasswordField({
 }: PasswordFieldProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [focused, setFocused] = useState(false);
+  const t = useT();
   const colors = useThemeColors();
 
   return (
@@ -48,7 +49,7 @@ export function PasswordField({
         <Pressable
           onPress={() => setIsVisible((current) => !current)}
           accessibilityRole="button"
-          accessibilityLabel={isVisible ? 'Ocultar senha' : 'Mostrar senha'}
+          accessibilityLabel={isVisible ? t('common.hidePassword') : t('common.showPassword')}
           className="h-10 w-10 items-center justify-center"
         >
           <Ionicons

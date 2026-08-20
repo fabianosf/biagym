@@ -1,4 +1,4 @@
-import { colors } from '@/shared/theme';
+import { colors, useT } from '@/shared/theme';
 import {
   AdminShell,
   VideoUploadField,
@@ -30,6 +30,7 @@ import {
 
 export function AdminLessonFormScreen() {
   const router = useRouter();
+  const t = useT();
   const params = useLocalSearchParams<{
     id?: string | string[];
     lessonId?: string | string[];
@@ -59,7 +60,7 @@ export function AdminLessonFormScreen() {
 
   const load = useCallback(async () => {
     if (!programId) {
-      setError('Identificador do programa inválido.');
+      setError(t('admin.programDetail.invalidId'));
       setIsLoading(false);
       return;
     }
@@ -68,7 +69,7 @@ export function AdminLessonFormScreen() {
     try {
       const detail = await getAdminProgramDetail(programId);
       if (!detail) {
-        setError('Programa não encontrado.');
+        setError(t('program.notFoundTitle'));
         return;
       }
 
@@ -83,7 +84,7 @@ export function AdminLessonFormScreen() {
           .find((item) => item.id === selectedLessonId);
 
         if (!lesson) {
-          setError('Aula não encontrada.');
+          setError(t('admin.lessonForm.lessonNotFound'));
           return;
         }
 
@@ -106,7 +107,7 @@ export function AdminLessonFormScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [isEditing, programId, selectedLessonId, weekIdParam]);
+  }, [isEditing, programId, selectedLessonId, weekIdParam, t]);
 
   useEffect(() => {
     void load();
@@ -114,7 +115,7 @@ export function AdminLessonFormScreen() {
 
   async function handleSave() {
     if (!programId || !selectedWeekId) {
-      setError('Selecione uma semana.');
+      setError(t('admin.lessonForm.selectWeek'));
       return;
     }
 
@@ -122,7 +123,7 @@ export function AdminLessonFormScreen() {
     const parsedDuration = Number.parseInt(durationSeconds, 10);
 
     if (!title.trim() || Number.isNaN(parsedOrder) || Number.isNaN(parsedDuration)) {
-      setError('Preencha título, ordem e duração válidos.');
+      setError(t('admin.lessonForm.validationError'));
       return;
     }
 
@@ -146,7 +147,7 @@ export function AdminLessonFormScreen() {
         });
       } else {
         if (!finalVideoUrl && !pickedVideo) {
-          setError('Selecione um vídeo do dispositivo ou informe a URL do vídeo.');
+          setError(t('admin.lessonForm.videoRequired'));
           setIsSaving(false);
           return;
         }
@@ -188,7 +189,7 @@ export function AdminLessonFormScreen() {
         }
       }
 
-      setSuccess('Aula salva com sucesso.');
+      setSuccess(t('admin.lessonForm.savedSuccess'));
       if (!isEditing && lessonRecordId) {
         router.replace(adminRoutes.lessonEdit(programId, lessonRecordId));
       }
@@ -202,12 +203,12 @@ export function AdminLessonFormScreen() {
 
   return (
     <AdminShell
-      title={isEditing ? 'Editar aula' : 'Nova aula'}
-      subtitle="Conteúdo, ordem e upload de vídeo"
+      title={isEditing ? t('admin.lessonForm.editTitle') : t('admin.lessonForm.newTitle')}
+      subtitle={t('admin.lessonForm.subtitle')}
       showBack
       onBack={() => router.back()}
     >
-      {isLoading ? <LoadingIndicator fullScreen message="Carregando aula..." /> : null}
+      {isLoading ? <LoadingIndicator fullScreen message={t('admin.lessonForm.loading')} /> : null}
 
       {!isLoading && error && !title && !videoUrl ? (
         <View className="px-5 pt-4">
@@ -218,7 +219,7 @@ export function AdminLessonFormScreen() {
       {!isLoading ? (
         <ScrollView className="flex-1" contentContainerClassName="gap-4 px-5 py-4 pb-10">
           <View>
-            <Text className="mb-2 text-sm text-muted">Semana</Text>
+            <Text className="mb-2 text-sm text-muted">{t('admin.lessonForm.weekLabel')}</Text>
             <View className="flex-row flex-wrap gap-2">
               {weeks.map((week) => (
                 <Pressable
@@ -235,7 +236,7 @@ export function AdminLessonFormScreen() {
                         : 'text-muted'
                     }
                   >
-                    Semana {week.weekNumber}
+                    {t('admin.programDetail.weekNumber', { number: String(week.weekNumber) })}
                   </Text>
                 </Pressable>
               ))}
@@ -243,7 +244,7 @@ export function AdminLessonFormScreen() {
           </View>
 
           <View>
-            <Text className="mb-2 text-sm text-muted">Título</Text>
+            <Text className="mb-2 text-sm text-muted">{t('admin.programForm.title')}</Text>
             <TextInput
               value={title}
               onChangeText={setTitle}
@@ -253,7 +254,7 @@ export function AdminLessonFormScreen() {
           </View>
 
           <View>
-            <Text className="mb-2 text-sm text-muted">Descrição</Text>
+            <Text className="mb-2 text-sm text-muted">{t('admin.programForm.description')}</Text>
             <TextInput
               value={description}
               onChangeText={setDescription}
@@ -265,7 +266,7 @@ export function AdminLessonFormScreen() {
 
           <View className="flex-row gap-3">
             <View className="flex-1">
-              <Text className="mb-2 text-sm text-muted">Ordem</Text>
+              <Text className="mb-2 text-sm text-muted">{t('admin.lessonForm.orderLabel')}</Text>
               <TextInput
                 value={order}
                 onChangeText={setOrder}
@@ -274,7 +275,7 @@ export function AdminLessonFormScreen() {
               />
             </View>
             <View className="flex-1">
-              <Text className="mb-2 text-sm text-muted">Duração (seg)</Text>
+              <Text className="mb-2 text-sm text-muted">{t('admin.lessonForm.durationLabel')}</Text>
               <TextInput
                 value={durationSeconds}
                 onChangeText={setDurationSeconds}
@@ -285,7 +286,7 @@ export function AdminLessonFormScreen() {
           </View>
 
           <View className="flex-row items-center justify-between rounded-2xl border border-line bg-surface px-4 py-3.5">
-            <Text className="text-ink">Prévia gratuita</Text>
+            <Text className="text-ink">{t('admin.lessonForm.freePreview')}</Text>
             <Switch
               value={isFreePreview}
               onValueChange={setIsFreePreview}
@@ -295,23 +296,21 @@ export function AdminLessonFormScreen() {
           </View>
 
           <View>
-            <Text className="mb-2 text-sm text-muted">URL do vídeo (opcional)</Text>
+            <Text className="mb-2 text-sm text-muted">{t('admin.lessonForm.videoUrlLabel')}</Text>
             <TextInput
               value={videoUrl}
               onChangeText={setVideoUrl}
               autoCapitalize="none"
               autoCorrect={false}
-              placeholder="https://... ou envie arquivo abaixo"
+              placeholder={t('admin.lessonForm.videoUrlPlaceholder')}
               placeholderTextColor="#9B9B9B"
               className="rounded-2xl border border-line bg-elevated px-4 py-3.5 text-ink"
             />
-            <Text className="mt-1 text-xs text-faint">
-              Use URL pública ou selecione um arquivo para upload no Supabase Storage.
-            </Text>
+            <Text className="mt-1 text-xs text-faint">{t('admin.lessonForm.videoUrlHint')}</Text>
           </View>
 
           <VideoUploadField
-            label="Vídeo da aula"
+            label={t('admin.lessonForm.videoFieldLabel')}
             currentUrl={videoUrl || undefined}
             isUploading={isUploading}
             onPick={setPickedVideo}
@@ -319,7 +318,9 @@ export function AdminLessonFormScreen() {
 
           {pickedVideo ? (
             <Text className="text-xs text-primary">
-              Vídeo selecionado: {pickedVideo.name ?? 'arquivo local'}
+              {t('admin.lessonForm.videoSelected', {
+                name: pickedVideo.name ?? t('admin.lessonForm.localFile'),
+              })}
             </Text>
           ) : null}
 
@@ -330,7 +331,7 @@ export function AdminLessonFormScreen() {
             disabled={isSaving || isUploading}
             loading={isSaving || isUploading}
             onPress={() => void handleSave()}
-            label="Salvar aula"
+            label={t('admin.lessonForm.saveLesson')}
           />
         </ScrollView>
       ) : null}

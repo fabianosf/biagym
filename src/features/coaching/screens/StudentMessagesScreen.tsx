@@ -3,6 +3,7 @@ import type { CoachMessage } from '@/domain/messaging';
 import {
   listCoachMessages,
   markCoachMessagesRead,
+  notifyCoachMessage,
   sendCoachMessage,
   uploadMessageAttachment,
 } from '@/services';
@@ -88,15 +89,20 @@ export function MessagesThread({ studentUserId, title, onBack }: MessagesThreadP
           })
         : undefined;
 
+      const sentBody = body;
       await sendCoachMessage({
         studentUserId: threadId,
         senderId: user.id,
-        body,
+        body: sentBody,
         attachmentUrl,
       });
       setBody('');
       setPendingImage(null);
       await load();
+
+      if (isAdmin) {
+        void notifyCoachMessage(threadId, sentBody);
+      }
     } catch (err) {
       setError(getFriendlyErrorMessage(err));
     } finally {

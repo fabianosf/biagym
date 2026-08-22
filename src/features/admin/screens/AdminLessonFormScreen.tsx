@@ -13,6 +13,7 @@ import {
   adminUpdateLesson,
   getAdminProgramDetail,
   getDataErrorMessage,
+  notifyNewLesson,
   uploadLessonVideo,
 } from '@/services';
 import type { Week } from '@/domain/program';
@@ -43,6 +44,7 @@ export function AdminLessonFormScreen() {
   const weekIdParam = resolveRouteParam(params.weekId);
 
   const [weeks, setWeeks] = useState<Week[]>([]);
+  const [programTitle, setProgramTitle] = useState('');
   const [selectedWeekId, setSelectedWeekId] = useState<string>('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -75,6 +77,7 @@ export function AdminLessonFormScreen() {
 
       const weekList = detail.weeks.map(({ week }) => week);
       setWeeks(weekList);
+      setProgramTitle(detail.program.title);
 
       const initialWeekId = weekIdParam ?? weekList[0]?.id ?? '';
 
@@ -191,6 +194,7 @@ export function AdminLessonFormScreen() {
 
       setSuccess(t('admin.lessonForm.savedSuccess'));
       if (!isEditing && lessonRecordId) {
+        void notifyNewLesson(programId, programTitle, title.trim());
         router.replace(adminRoutes.lessonEdit(programId, lessonRecordId));
       }
     } catch (err) {

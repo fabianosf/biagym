@@ -95,9 +95,6 @@ export function SignInScreen() {
           >
             <View className="mb-8 items-center">
               <BrandMark size={56} showName={false} />
-              <Text className="mt-3 text-center text-base leading-6 text-muted">
-                {t('auth.heroTagline')}
-              </Text>
             </View>
 
             <Card>

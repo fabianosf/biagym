@@ -21,6 +21,7 @@ import {
   listTrainingPlanGrantsForUser,
   listTrainingPlans,
   listWorkoutSessions,
+  notifyAccessGranted,
   revokeTrainingPlanAccess,
   withTimeout,
 } from '@/services';
@@ -169,6 +170,7 @@ export function AdminStudentSpaceScreen() {
         grantedBy: user.id,
       });
       setNotice(t('admin.studentSpace.planReleased', { title: plan.title, name: student.name }));
+      void notifyAccessGranted([student.userId], plan.title, 'workouts');
       await load(true);
     } catch (err) {
       setError(getDataErrorMessage(err));
@@ -208,6 +210,7 @@ export function AdminStudentSpaceScreen() {
         grantedAt: new Date().toISOString(),
       });
       setNotice(t('admin.studentSpace.programReleased', { title: program.title, name: student.name }));
+      void notifyAccessGranted([student.userId], program.title, 'programs');
       await load(true);
     } catch (err) {
       setError(getDataErrorMessage(err));

@@ -16,6 +16,7 @@ import {
   listExercises,
   listStudentProfiles,
   listTrainingPlanGrants,
+  notifyAccessGranted,
   parseOptionalLoadKg,
   publishTrainingPlanToStudents,
   updateTrainingPlan,
@@ -259,6 +260,7 @@ export function AdminWorkoutDetailScreen() {
       setNotice(
         t('admin.workoutDetail.publishedFor', { names: formatRecipientSummary(names) }),
       );
+      void notifyAccessGranted(targets, plan.title, 'workouts');
       await load();
     } catch (err) {
       setError(getDataErrorMessage(err));

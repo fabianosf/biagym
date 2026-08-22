@@ -68,12 +68,19 @@ Execute no **SQL Editor**, nesta ordem:
 3. `supabase/storage.sql` (bucket de vídeos)
 4. `supabase/phase8-progress-offline.sql` (coluna `last_lesson_id`)
 5. `supabase/phase10-notifications.sql` (push token + preferências)
+6. `supabase/phase19-training-reminders.sql` (função do lembrete de treino)
 
-Deploy da Edge Function:
+Deploy das Edge Functions:
 
 ```bash
 supabase functions deploy send-push-notification
+supabase functions deploy training-reminder-cron
 ```
+
+Depois do deploy, agende `training-reminder-cron` pra rodar 1x por dia em
+**Dashboard → Edge Functions → training-reminder-cron → Cron** (ex.: todo dia
+às 18h, `0 18 * * *`). O Supabase já invoca a função autenticado com o
+service role key — não precisa configurar nada além do agendamento.
 
 ### 4. Sentry
 
@@ -236,9 +243,7 @@ npm run submit:ios
 ## Melhorias futuras (pós-v1)
 
 - Cache offline de metadados de programas (catálogo sem internet)
-- Cron de lembretes (“3 dias sem treinar”) via Supabase Scheduled Functions
 - Analytics (Firebase/Mixpanel)
-- Internacionalização (i18n)
 - Testes E2E automatizados (Maestro / Detox)
 - Otimização de listas longas com FlashList
 

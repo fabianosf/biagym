@@ -5,6 +5,8 @@ type NotificationType =
   | 'training_reminder'
   | 'new_program'
   | 'new_lesson'
+  | 'coach_message'
+  | 'app_update'
   | 'test';
 
 type SendPushBody = {
@@ -20,6 +22,8 @@ const NOTIFICATION_TYPES: readonly NotificationType[] = [
   'training_reminder',
   'new_program',
   'new_lesson',
+  'coach_message',
+  'app_update',
   'test',
 ];
 const MAX_TITLE_LENGTH = 120;

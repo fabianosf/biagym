@@ -4,6 +4,7 @@ const ANDROID_VERSION_CODE = 1;
 
 const BRAND_PRIMARY = '#10B981';
 const BRAND_DARK = '#07140F';
+const SPLASH_BLACK = '#000000';
 
 /** @type {import('expo/config').ExpoConfig} */
 const config = {
@@ -16,7 +17,18 @@ const config = {
   icon: './assets/images/icon.png',
   description:
     'Treinos, aulas e progresso no seu ritmo — o app da BiAGym.',
-  primaryColor: BRAND_PRIMARY,
+  // primaryColor tinge a tela de download/carregamento do Expo Go — preto
+  // pra combinar com o splash, não o verde de destaque usado dentro do app.
+  primaryColor: SPLASH_BLACK,
+  // splash (campo legado, fora do plugin expo-splash-screen): é o que o
+  // próprio app Expo Go lê pra desenhar a tela de "Downloading X%" antes do
+  // bundle carregar — o plugin expo-splash-screen só vale pra builds nativas
+  // (dev client / produção), não pro cliente genérico do Expo Go.
+  splash: {
+    backgroundColor: SPLASH_BLACK,
+    image: './assets/images/icon.png',
+    resizeMode: 'contain',
+  },
   ios: {
     bundleIdentifier: 'com.biagym.app',
     buildNumber: IOS_BUILD_NUMBER,
@@ -63,12 +75,15 @@ const config = {
     [
       'expo-splash-screen',
       {
-        backgroundColor: BRAND_DARK,
-        image: './assets/images/splash-icon.png',
-        imageWidth: 160,
+        // splash-icon.png tem fundo branco sólido embutido — usamos o
+        // icon.png (fundo preto de ponta a ponta) pra colar sem borda
+        // visível na tela preta do splash.
+        backgroundColor: SPLASH_BLACK,
+        image: './assets/images/icon.png',
+        imageWidth: 180,
         dark: {
-          backgroundColor: BRAND_DARK,
-          image: './assets/images/splash-icon.png',
+          backgroundColor: SPLASH_BLACK,
+          image: './assets/images/icon.png',
         },
       },
     ],

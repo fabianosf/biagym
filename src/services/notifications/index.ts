@@ -23,3 +23,10 @@ export {
   listEnabledPushTokensForUsers,
   updateNotificationPreferences,
 } from './push-preferences.repository';
+
+export {
+  notifyAccessGranted,
+  notifyAppUpdate,
+  notifyCoachMessage,
+  notifyNewLesson,
+} from './notification-events';

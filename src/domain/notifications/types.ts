@@ -4,6 +4,8 @@ export type NotificationType =
   | 'training_reminder'
   | 'new_program'
   | 'new_lesson'
+  | 'coach_message'
+  | 'app_update'
   | 'test';
 
 export interface NotificationPreferences {
